@@ -1,0 +1,3839 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Báo Cáo Sản Xuất</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+</head>
+
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-2">
+            <div class="flex items-center justify-center space-x-4">
+                <!-- Logo -->
+                <div class="flex-shrink-0">
+                    <img src="https://hoangmv.github.io/inqr/AMJ.jpg" alt="August Mechanical JSC"
+                        class="h-12 w-auto md:h-16 object-contain">
+                </div>
+                <!-- Title and subtitle -->
+                <div class="text-center">
+                    <h1 class="text-2xl md:text-3xl font-bold">Báo Cáo Quản Lý Chất Lượng</h1>
+                    <!-- <p class="text-blue-100 mt-1 md:mt-2 text-sm md:text-base">Dashboard Theo Dõi Hoạt Động Sản Xuất</p> -->
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-white shadow-sm border-b sticky top-0 z-10">
+        <div class="container mx-auto px-4">
+            <nav class="flex overflow-x-auto scrollbar-hide space-x-2 lg:space-x-8 pb-0">
+                <button onclick="showReport('may3d')"
+                    class="tab-btn active py-3 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 whitespace-nowrap flex-shrink-0">
+                    <i class="fas fa-cogs mr-2"></i>Máy Đo 3D
+                </button>
+                <button onclick="showReport('sanluong')"
+                    class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent hover:border-blue-500 whitespace-nowrap flex-shrink-0">
+                    <i class="fas fa-chart-bar mr-2"></i>Sản Lượng Nhóm
+                </button>
+                <button onclick="showReport('loi')"
+                    class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent hover:border-blue-500 whitespace-nowrap flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Lỗi Phát Sinh
+                </button>
+                <button onclick="showReport('danhbong')"
+                    class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent hover:border-blue-500 whitespace-nowrap flex-shrink-0">
+                    <i class="fas fa-gem mr-2"></i>Đánh Bóng
+                </button>
+                <button onclick="showReport('hangnhan')"
+                    class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent hover:border-blue-500 whitespace-nowrap flex-shrink-0">
+                    <i class="fas fa-truck-loading mr-2"></i>Hàng Nhận
+                </button>
+                <button onclick="showReport('hanggiao')"
+                    class="tab-btn py-3 px-4 text-sm font-medium border-b-2 border-transparent hover:border-blue-500 whitespace-nowrap flex-shrink-0">
+                    <i class="fas fa-shipping-fast mr-2"></i>Hàng Giao
+                </button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container mx-auto px-4 py-6">
+        <!-- Báo cáo Máy Đo 3D -->
+        <div id="may3d" class="report-section">
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-cogs text-blue-600 mr-3"></i>
+                        Báo Cáo Tình Trạng Hoạt Động Máy Đo 3D
+                    </h2>
+                    <button onclick="refreshAllData()"
+                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-sync mr-2"></i>Làm mới
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Bộ lọc dữ liệu</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                            <input type="date" id="dateFrom3d" onchange="applyFilter3D()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                            <input type="date" id="dateTo3d" onchange="applyFilter3D()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Số Máy</label>
+                            <select id="machine3d" onchange="applyFilter3D()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Tất cả máy</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Ca Làm Việc</label>
+                            <select id="shift3d" onchange="applyFilter3D()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Tất cả ca</option>
+                                <option value="day">Ca ngày (7h-19h)</option>
+                                <option value="night">Ca đêm (19h-7h)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button onclick="resetFilter3D()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                            <i class="fas fa-undo mr-2"></i>Đặt lại
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-blue-100 p-4 rounded-lg">
+                        <h4 class="text-blue-800 font-semibold">Tổng thời gian</h4>
+                        <p class="text-2xl font-bold text-blue-600" id="totalTime3d">0h</p>
+                    </div>
+                    <div class="bg-green-100 p-4 rounded-lg">
+                        <h4 class="text-green-800 font-semibold">Thời gian gia công</h4>
+                        <p class="text-2xl font-bold text-green-600" id="workingTime3d">0h</p>
+                    </div>
+                    <div class="bg-red-100 p-4 rounded-lg">
+                        <h4 class="text-red-800 font-semibold">Thời gian tạm dừng</h4>
+                        <p class="text-2xl font-bold text-red-600" id="downTime3d">0h</p>
+                    </div>
+                    <div class="bg-yellow-100 p-4 rounded-lg">
+                        <h4 class="text-yellow-800 font-semibold">Hiệu suất</h4>
+                        <p class="text-2xl font-bold text-yellow-600" id="efficiency3d">0%</p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white border rounded-lg p-4">
+                    <h4 class="text-lg font-semibold mb-4">Biểu đồ phân bổ thời gian theo máy (%)</h4>
+                    <div class="h-96">
+                        <canvas id="chart3d"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="mt-6">
+                    <h4 class="text-lg font-semibold mb-4">Chi tiết dữ liệu</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Máy</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ca</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chuẩn bị
+                                        (%)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chạy thử
+                                        (%)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gia công
+                                        (%)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gá lắp
+                                        (%)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tạm dừng
+                                        (%)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ghi chú
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="table3d" class="divide-y divide-gray-200">
+                                <!-- Data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Báo cáo Sản Lượng Nhóm -->
+        <div id="sanluong" class="report-section hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-chart-bar text-green-600 mr-3"></i>
+                        Báo Cáo Sản Lượng Các Nhóm
+                    </h2>
+                </div>
+
+                <!-- Trong phần Filters của báo cáo Sản Lượng Nhóm -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Bộ lọc dữ liệu</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4"> <!-- Đổi từ grid-cols-4 thành grid-cols-5 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                            <input type="date" id="dateFromSL" onchange="applyFilterSL()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                            <input type="date" id="dateToSL" onchange="applyFilterSL()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nhóm</label>
+                            <select id="groupSL" onchange="applyFilterSL()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Tất cả nhóm</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tổ</label>
+                            <select id="teamSL" onchange="applyFilterSL()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Tất cả tổ</option>
+                            </select>
+                        </div>
+                        <!-- THÊM DROPDOWN CA LÀM VIỆC MỚI -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Ca Làm Việc</label>
+                            <select id="shiftSL" onchange="applyFilterSL()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Tất cả ca</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button onclick="resetFilterSL()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                            <i class="fas fa-undo mr-2"></i>Đặt lại
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-blue-100 p-4 rounded-lg">
+                        <h4 class="text-blue-800 font-semibold">Tổng sản lượng</h4>
+                        <p class="text-2xl font-bold text-blue-600" id="totalProductionSL">0</p>
+                    </div>
+                    <div class="bg-green-100 p-4 rounded-lg">
+                        <h4 class="text-green-800 font-semibold">Hiệu suất TB</h4>
+                        <p class="text-2xl font-bold text-green-600" id="avgEfficiencySL">0%</p>
+                    </div>
+                    <div class="bg-purple-100 p-4 rounded-lg">
+                        <h4 class="text-purple-800 font-semibold">Tổng nhân sự</h4>
+                        <p class="text-2xl font-bold text-purple-600" id="totalWorkersSL">0</p>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6"> <!-- Đổi từ grid-cols-2 thành grid-cols-3 -->
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="text-lg font-semibold mb-4">So sánh thời gian thực tế vs lý thuyết</h4>
+                        <div class="h-80">
+                            <canvas id="chartSL"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="text-lg font-semibold mb-4">Phân bổ sản lượng theo nhóm</h4>
+                        <div class="h-80">
+                            <canvas id="chartSLPie"></canvas>
+                        </div>
+                    </div>
+                    <!-- THÊM BIỂU ĐỒ MỚI -->
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="text-lg font-semibold mb-4">Sản lượng theo tổ trong nhóm</h4>
+                        <div class="h-80">
+                            <canvas id="chartSLTeam"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="mt-6">
+                    <h4 class="text-lg font-semibold mb-4">Chi tiết dữ liệu sản lượng</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <!-- Trong phần Data Table của báo cáo Sản Lượng Nhóm -->
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nhóm
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổ</th>
+                                    <!-- THÊM DÒNG NÀY -->
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ca</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã CV
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SL thực
+                                        tế</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số người
+                                        làm</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời
+                                        gian thực tế</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời
+                                        gian lý thuyết</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hiệu
+                                        suất</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ghi chú
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableSL" class="divide-y divide-gray-200">
+                                <!-- Data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Báo cáo Lỗi Phát Sinh -->
+        <div id="loi" class="report-section hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
+                        Báo Cáo Lỗi Phát Sinh
+                    </h2>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Bộ lọc dữ liệu</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                            <input type="date" id="dateFromLoi" onchange="applyFilterLoi()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                            <input type="date" id="dateToLoi" onchange="applyFilterLoi()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Vị Trí Phát Sinh</label>
+                            <select id="positionLoi" onchange="applyFilterLoi()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Tất cả vị trí</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button onclick="resetFilterLoi()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                            <i class="fas fa-undo mr-2"></i>Đặt lại
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-red-100 p-4 rounded-lg">
+                        <h4 class="text-red-800 font-semibold">Tổng lỗi</h4>
+                        <p class="text-2xl font-bold text-red-600" id="totalErrorsLoi">0</p>
+                    </div>
+                    <div class="bg-orange-100 p-4 rounded-lg">
+                        <h4 class="text-orange-800 font-semibold">Lỗi hôm nay</h4>
+                        <p class="text-2xl font-bold text-orange-600" id="todayErrorsLoi">0</p>
+                    </div>
+                    <div class="bg-yellow-100 p-4 rounded-lg">
+                        <h4 class="text-yellow-800 font-semibold">Vị trí nhiều lỗi nhất</h4>
+                        <p class="text-lg font-bold text-yellow-600" id="topErrorPositionLoi">-</p>
+                    </div>
+                    <div class="bg-purple-100 p-4 rounded-lg">
+                        <h4 class="text-purple-800 font-semibold">Tỷ lệ lỗi TB</h4>
+                        <p class="text-2xl font-bold text-purple-600" id="avgErrorRateLoi">0%</p>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="text-lg font-semibold mb-4">Phân bổ lỗi theo vị trí</h4>
+                        <div class="h-80">
+                            <canvas id="chartLoiPie"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white border rounded-lg p-4">
+                        <h4 class="text-lg font-semibold mb-4">Top mã lỗi phát sinh</h4>
+                        <div class="h-80">
+                            <canvas id="chartLoiLine"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top Errors Table -->
+                <div class="mt-6">
+                    <h4 class="text-lg font-semibold mb-4">Top 10 mã lỗi phát sinh nhiều nhất</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">STT</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã lỗi
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lỗi
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vị trí
+                                        phát sinh</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nơi xử
+                                        lý</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tỷ lệ
+                                        (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableLoi" class="divide-y divide-gray-200">
+                                <!-- Data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Báo cáo Đánh Bóng -->
+        <div id="danhbong" class="report-section hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-gem text-purple-600 mr-3"></i>
+                        Báo Cáo Hoàn Thiện Đánh Bóng
+                    </h2>
+                </div>
+
+                <!-- Filters -->
+                <!-- Trong phần Filters của báo cáo Đánh Bóng -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Bộ lọc dữ liệu</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4"> <!-- Đổi từ grid-cols-2 thành grid-cols-3 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                            <input type="date" id="dateFromDB" onchange="applyFilterDB()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                            <input type="date" id="dateToDB" onchange="applyFilterDB()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <!-- THÊM DROPDOWN CA LÀM VIỆC MỚI -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Ca Làm Việc</label>
+                            <select id="shiftDB" onchange="applyFilterDB()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">Tất cả ca</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button onclick="resetFilterDB()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                            <i class="fas fa-undo mr-2"></i>Đặt lại
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-purple-100 p-4 rounded-lg">
+                        <h4 class="text-purple-800 font-semibold">Tổng sản lượng</h4>
+                        <p class="text-2xl font-bold text-purple-600" id="totalProductionDB">0</p>
+                    </div>
+                    <div class="bg-blue-100 p-4 rounded-lg">
+                        <h4 class="text-blue-800 font-semibold">Thời gian TB</h4>
+                        <p class="text-2xl font-bold text-blue-600" id="avgTimeDB">0h</p>
+                    </div>
+                    <div class="bg-green-100 p-4 rounded-lg">
+                        <h4 class="text-green-800 font-semibold">Hiệu suất</h4>
+                        <p class="text-2xl font-bold text-green-600" id="efficiencyDB">0%</p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white border rounded-lg p-4 mb-6">
+                    <h4 class="text-lg font-semibold mb-4">Xu hướng sản lượng đánh bóng theo thời gian</h4>
+                    <div class="h-96">
+                        <canvas id="chartDB"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="mt-6">
+                    <h4 class="text-lg font-semibold mb-4">Chi tiết hoàn thiện đánh bóng</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <!-- Trong phần Data Table của báo cáo Đánh Bóng -->
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã CV
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên chi
+                                        tiết</th>
+                                    <!-- THÊM DÒNG NÀY -->
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ca</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SL thực
+                                        tế</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời
+                                        gian thực tế</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thời
+                                        gian lý thuyết</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hiệu
+                                        suất (%)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ghi chú
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableDB" class="divide-y divide-gray-200">
+                                <!-- Data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Báo cáo Hàng Nhận -->
+        <div id="hangnhan" class="report-section hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-truck-loading text-green-600 mr-3"></i>
+                        Tổng Hợp Số Lượng Hàng Nhận
+                    </h2>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Bộ lọc dữ liệu</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                            <input type="date" id="dateFromHN" onchange="applyFilterHN()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                            <input type="date" id="dateToHN" onchange="applyFilterHN()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Loại thống kê</label>
+                            <select id="periodHN" onchange="applyFilterHN()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="daily">Theo ngày</option>
+                                <option value="weekly">Theo tuần</option>
+                                <option value="monthly">Theo tháng</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button onclick="resetFilterHN()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                            <i class="fas fa-undo mr-2"></i>Đặt lại
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-green-100 p-4 rounded-lg">
+                        <h4 class="text-green-800 font-semibold">Tổng hàng nhận</h4>
+                        <p class="text-2xl font-bold text-green-600" id="totalReceiveHN">0</p>
+                    </div>
+                    <div class="bg-blue-100 p-4 rounded-lg">
+                        <h4 class="text-blue-800 font-semibold">Trung bình/ngày</h4>
+                        <p class="text-2xl font-bold text-blue-600" id="avgDailyHN">0</p>
+                    </div>
+                    <div class="bg-purple-100 p-4 rounded-lg">
+                        <h4 class="text-purple-800 font-semibold">Ngày cao nhất</h4>
+                        <p class="text-lg font-bold text-purple-600" id="maxDayHN">-</p>
+                    </div>
+                    <div class="bg-orange-100 p-4 rounded-lg">
+                        <h4 class="text-orange-800 font-semibold">Tăng trưởng</h4>
+                        <p class="text-2xl font-bold text-orange-600" id="growthHN">0%</p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white border rounded-lg p-4 mb-6">
+                    <h4 class="text-lg font-semibold mb-4">Biểu đồ xu hướng hàng nhận</h4>
+                    <div class="h-96">
+                        <canvas id="chartHN"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="mt-6">
+                    <h4 class="text-lg font-semibold mb-4">Chi tiết hàng nhận</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày
+                                        nhận</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lượng
+                                        nhận</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">So với
+                                        hôm trước</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tỷ lệ
+                                        thay đổi (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableHN" class="divide-y divide-gray-200">
+                                <!-- Data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Báo cáo Hàng Giao -->
+        <div id="hanggiao" class="report-section hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-shipping-fast text-orange-600 mr-3"></i>
+                        Tổng Hợp Số Lượng Hàng Giao
+                    </h2>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">Bộ lọc dữ liệu</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
+                            <input type="date" id="dateFromHG" onchange="applyFilterHG()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Đến ngày</label>
+                            <input type="date" id="dateToHG" onchange="applyFilterHG()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Loại thống kê</label>
+                            <select id="periodHG" onchange="applyFilterHG()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="daily">Theo ngày</option>
+                                <option value="weekly">Theo tuần</option>
+                                <option value="monthly">Theo tháng</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button onclick="resetFilterHG()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
+                            <i class="fas fa-undo mr-2"></i>Đặt lại
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-orange-100 p-4 rounded-lg">
+                        <h4 class="text-orange-800 font-semibold">Tổng hàng giao</h4>
+                        <p class="text-2xl font-bold text-orange-600" id="totalDeliveryHG">0</p>
+                    </div>
+                    <div class="bg-blue-100 p-4 rounded-lg">
+                        <h4 class="text-blue-800 font-semibold">Trung bình/ngày</h4>
+                        <p class="text-2xl font-bold text-blue-600" id="avgDailyHG">0</p>
+                    </div>
+                    <div class="bg-purple-100 p-4 rounded-lg">
+                        <h4 class="text-purple-800 font-semibold">Ngày cao nhất</h4>
+                        <p class="text-lg font-bold text-purple-600" id="maxDayHG">-</p>
+                    </div>
+                    <div class="bg-green-100 p-4 rounded-lg">
+                        <h4 class="text-green-800 font-semibold">Tăng trưởng</h4>
+                        <p class="text-2xl font-bold text-green-600" id="growthHG">0%</p>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white border rounded-lg p-4 mb-6">
+                    <h4 class="text-lg font-semibold mb-4">Biểu đồ xu hướng hàng giao</h4>
+                    <div class="h-96">
+                        <canvas id="chartHG"></canvas>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="mt-6">
+                    <h4 class="text-lg font-semibold mb-4">Chi tiết hàng giao</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white border border-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngày
+                                        giao</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số lượng
+                                        giao</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">So với
+                                        hôm trước</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tỷ lệ
+                                        thay đổi (%)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableHG" class="divide-y divide-gray-200">
+                                <!-- Data will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white p-8 rounded-xl shadow-2xl">
+            <div class="flex items-center space-x-4">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p class="text-lg font-medium">Đang tải dữ liệu...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden z-50">
+        <div class="flex items-center space-x-2">
+            <i class="fas fa-check-circle"></i>
+            <span id="toastMessage">Thông báo</span>
+        </div>
+    </div>
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <script>
+        // Constants for AppSheet connection
+        const appId = '684ad0ab-ffc5-4c21-a959-f5e023c668e3';
+        const accessKey = 'V2-jOfc3-JvKqz-lxeNm-FS8O6-1RK08-Bu5SX-erQVj-Jp2S9';
+        const region = 'www';
+
+        // Chart instances
+        let charts = {};
+
+        // Global data storage - Lưu trữ toàn bộ dữ liệu
+        let globalData = {
+            data3D: [], // Bảng trien_khai_3d_laze_dt
+            dataPause: [], // Bảng tam_dung
+            dataProduction: [],
+            dataError: [],
+            dataPolishing: [],
+            dataReceive: [],
+            dataDelivery: [],
+            isLoaded: false
+        };
+
+        // Helper function to get yesterday's date
+        function getYesterday() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            return yesterday.toISOString().split('T')[0];
+        }
+
+        // Function to fetch data from AppSheet
+        async function fetchAppSheetData(tableName) {
+            try {
+                const requestBody = {
+                    "Action": "Find",
+                    "Properties": {},
+                    "Rows": []
+                };
+
+                console.log('Calling API:', tableName);
+
+                const response = await fetch(`https://api.appsheet.com/api/v2/apps/${appId}/tables/${tableName}/Action`, {
+                    method: 'POST',
+                    headers: {
+                        'ApplicationAccessKey': accessKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log(`API Response for ${tableName}:`, data.length, 'records');
+
+                if (!Array.isArray(data)) {
+                    throw new Error('Invalid data format received');
+                }
+
+                return data;
+            } catch (error) {
+                console.error(`Failed to fetch data from ${tableName}:`, error);
+                return [];
+            }
+        }
+
+        // Load all data at once
+        async function loadAllData() {
+            if (globalData.isLoaded) {
+                console.log('Data already loaded, using cached data');
+                return;
+            }
+
+            try {
+                showLoading(true);
+                showToast('Đang tải toàn bộ dữ liệu...', 'warning');
+
+                // Load all tables in parallel - SỬA LẠI DANH SÁCH BẢNG
+                const [
+                    data3D,
+                    dataPause, // Thay đổi từ data3DParent thành dataPause
+                    dataProduction,
+                    dataError,
+                    dataPolishing,
+                    dataReceive,
+                    dataDelivery
+                ] = await Promise.all([
+                    fetchAppSheetData('trien_khai_3d_laze_dt'), // Bảng chính
+                    fetchAppSheetData('tam_dung'),              // Bảng tạm dừng
+                    fetchAppSheetData('ke_hoach_pkt_dt'),
+                    fetchAppSheetData('tong_hop_loi'),
+                    fetchAppSheetData('hoan_thien_danh_bong_dt'),
+                    fetchAppSheetData('so_giao_nhan'),
+                    fetchAppSheetData('giao_kho_vp')
+                ]);
+
+                // Store in global data
+                globalData.data3D = data3D;
+                globalData.dataPause = dataPause; // Lưu dữ liệu tạm dừng
+                globalData.dataProduction = dataProduction;
+                globalData.dataError = dataError;
+                globalData.dataPolishing = dataPolishing;
+                globalData.dataReceive = dataReceive;
+                globalData.dataDelivery = dataDelivery;
+                globalData.isLoaded = true;
+
+                console.log('All data loaded:', {
+                    '3D Data': data3D.length,
+                    'Pause Data': dataPause.length, // Thay đổi log
+                    'Production': dataProduction.length,
+                    'Error': dataError.length,
+                    'Polishing': dataPolishing.length,
+                    'Receive': dataReceive.length,
+                    'Delivery': dataDelivery.length
+                });
+
+                // Populate all dropdowns with real data
+                populateAllDropdowns();
+
+                showToast('Tải dữ liệu thành công!', 'success');
+
+            } catch (error) {
+                console.error('Error loading all data:', error);
+                showToast('Lỗi khi tải dữ liệu: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        function populateTeamDropdown() {
+            const select = document.getElementById('teamSL');
+            if (!select) return;
+
+            // Gom nhóm các tổ
+            const teamGroups = {
+                '0': 'Tổ Hành chính',
+                '1': 'Tổ 1',
+                '2': 'Tổ 2',
+                '3': 'Tổ 3'
+            };
+
+            select.innerHTML = '<option value="">Tất cả tổ</option>';
+
+            Object.entries(teamGroups).forEach(([value, label]) => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = label;
+                select.appendChild(option);
+            });
+        }
+
+        function populateErrorPositionDropdown() {
+            const select = document.getElementById('positionLoi');
+            if (!select) return;
+
+            // Các vị trí cố định
+            const positions = ['Phôi', 'PKY', 'PSX', 'PKT'];
+
+            select.innerHTML = '<option value="">Tất cả vị trí</option>';
+            positions.forEach(position => {
+                const option = document.createElement('option');
+                option.value = position;
+                option.textContent = position;
+                select.appendChild(option);
+            });
+        }
+
+        function populate3DShiftDropdown() {
+            const select = document.getElementById('shift3d');
+            if (!select) return;
+
+            // Lấy ca làm việc từ cả hai bảng
+            const shifts3D = globalData.data3D
+                .map(item => item.ca_lam_viec)
+                .filter(Boolean)
+                .map(shift => shift.toString().trim());
+
+            const shiftsPause = globalData.dataPause
+                .map(item => item.ca_lam_viec)
+                .filter(Boolean)
+                .map(shift => shift.toString().trim());
+
+            // Gộp và loại bỏ trùng lặp
+            const allShifts = [...new Set([...shifts3D, ...shiftsPause])].sort();
+
+            select.innerHTML = '<option value="">Tất cả ca</option>';
+
+            allShifts.forEach(shift => {
+                const option = document.createElement('option');
+                option.value = shift;
+                option.textContent = shift;
+                select.appendChild(option);
+            });
+        }
+
+        // Thêm hàm populate ca làm việc cho Sản Lượng Nhóm
+        function populateProductionShiftDropdown() {
+            const select = document.getElementById('shiftSL');
+            if (!select) return;
+
+            // Lấy các giá trị ca_lam_viec từ dữ liệu sản lượng
+            const shifts = [...new Set(globalData.dataProduction
+                .map(item => item.ca_lam_viec)
+                .filter(Boolean)
+                .map(shift => shift.toString().trim())
+            )].sort();
+
+            select.innerHTML = '<option value="">Tất cả ca</option>';
+
+            shifts.forEach(shift => {
+                const option = document.createElement('option');
+                option.value = shift;
+                option.textContent = shift;
+                select.appendChild(option);
+            });
+        }
+
+        // Thêm hàm populate ca làm việc cho Đánh Bóng
+        function populatePolishingShiftDropdown() {
+            const select = document.getElementById('shiftDB');
+            if (!select) return;
+
+            // Lấy các giá trị ca_lam_viec từ dữ liệu đánh bóng
+            const shifts = [...new Set(globalData.dataPolishing
+                .map(item => item.ca_lam_viec)
+                .filter(Boolean)
+                .map(shift => shift.toString().trim())
+            )].sort();
+
+            select.innerHTML = '<option value="">Tất cả ca</option>';
+
+            shifts.forEach(shift => {
+                const option = document.createElement('option');
+                option.value = shift;
+                option.textContent = shift;
+                select.appendChild(option);
+            });
+        }
+
+        // Populate all dropdowns with real data
+        function populateAllDropdowns() {
+            // 3D Machine dropdowns - Lấy từ cả hai bảng
+            const machines3D = [...new Set(globalData.data3D.map(item => item.so_may).filter(Boolean))];
+            const machinesPause = [...new Set(globalData.dataPause.map(item => item.so_may).filter(Boolean))];
+            const allMachines = [...new Set([...machines3D, ...machinesPause])];
+
+            populateDropdown('machine3d', allMachines.sort(), 'Tất cả máy');
+
+            // Populate ca làm việc cho 3D từ cả hai bảng
+            populate3DShiftDropdown();
+
+            // Production dropdowns - Sắp xếp nhóm theo thứ tự
+            const groups = [...new Set(globalData.dataProduction.map(item => item.nhom).filter(Boolean))];
+            populateDropdown('groupSL', groups.sort(), 'Tất cả nhóm');
+            populateTeamDropdown();
+            populateProductionShiftDropdown();
+            populatePolishingShiftDropdown();
+            populateErrorPositionDropdown();
+        }
+
+        // Helper function to populate dropdown
+        function populateDropdown(elementId, options, defaultText) {
+            const select = document.getElementById(elementId);
+            if (!select) return;
+
+            select.innerHTML = `<option value="">${defaultText}</option>`;
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                select.appendChild(optionElement);
+            });
+        }
+
+        // Refresh all data
+        async function refreshAllData() {
+            globalData.isLoaded = false;
+            await loadAllData();
+
+            // Refresh current report
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab) {
+                const reportId = activeTab.getAttribute('onclick').match(/'(.+)'/)[1];
+                loadReportData(reportId);
+            }
+        }
+
+        // Show/Hide loading
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('hidden', !show);
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+
+            toastMessage.textContent = message;
+
+            // Remove existing classes
+            toast.classList.remove('bg-green-500', 'bg-red-500', 'bg-yellow-500');
+
+            // Add appropriate class based on type
+            if (type === 'error') {
+                toast.classList.add('bg-red-500');
+            } else if (type === 'warning') {
+                toast.classList.add('bg-yellow-500');
+            } else {
+                toast.classList.add('bg-green-500');
+            }
+
+            toast.classList.remove('hidden');
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Show specific report
+        function showReport(reportId) {
+            // Hide all reports
+            document.querySelectorAll('.report-section').forEach(section => {
+                section.classList.add('hidden');
+            });
+
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-600', 'active');
+            });
+
+            // Show selected report
+            document.getElementById(reportId).classList.remove('hidden');
+
+            // Add active class to clicked tab
+            event.target.classList.add('border-blue-500', 'text-blue-600', 'active');
+
+            // Load data for the selected report
+            loadReportData(reportId);
+        }
+
+        // Load data for specific report (using cached data)
+        async function loadReportData(reportId) {
+            if (!globalData.isLoaded) {
+                await loadAllData();
+            }
+
+            switch (reportId) {
+                case 'may3d':
+                    load3DReport();
+                    break;
+                case 'sanluong':
+                    loadProductionReport();
+                    break;
+                case 'loi':
+                    loadErrorReport();
+                    break;
+                case 'danhbong':
+                    loadPolishingReport();
+                    break;
+                case 'hangnhan':
+                    loadReceiveReport();
+                    break;
+                case 'hanggiao':
+                    loadDeliveryReport();
+                    break;
+            }
+        }
+
+        // Filter data based on criteria
+        function filterData(data, filters) {
+            return data.filter(item => {
+                // Date filter
+                if (filters.dateFrom && filters.dateTo && item[filters.dateField]) {
+                    const itemDate = new Date(item[filters.dateField]);
+                    const fromDate = new Date(filters.dateFrom);
+                    const toDate = new Date(filters.dateTo);
+
+                    fromDate.setHours(0, 0, 0, 0);
+                    toDate.setHours(23, 59, 59, 999);
+                    itemDate.setHours(0, 0, 0, 0);
+
+                    if (itemDate < fromDate || itemDate > toDate) {
+                        return false;
+                    }
+                }
+
+                // Other filters
+                for (const [field, value] of Object.entries(filters)) {
+                    if (field.startsWith('date') || !value) continue;
+
+                    // Xử lý ca làm việc từ cột ca_lam_viec
+                    if (field === 'ca_lam_viec' && value) {
+                        const itemShift = item.ca_lam_viec ? item.ca_lam_viec.toString().trim() : '';
+                        if (itemShift !== value) {
+                            return false;
+                        }
+                    }
+                    else if (field === 'to' && filters.to) {
+                        // Logic lọc tổ gom nhóm - SỬA LẠI ĐỂ XỬ LÝ TỔ HÀNH CHÍNH KẾT HỢP
+                        const teamValue = item.to ? item.to.toString() : '';
+                        if (filters.to === '0') {
+                            // Tổ hành chính - KIỂM TRA CẢ TRƯỜNG HỢP ĐƠN LẺ VÀ KẾT HỢP
+                            let hasAdminTeam = false;
+
+                            if (teamValue.includes(',')) {
+                                // Trường hợp có nhiều tổ như "0, 1/3" hoặc "2/3, 0"
+                                const teams = teamValue.split(',').map(t => t.trim());
+                                hasAdminTeam = teams.includes('0');
+                            } else {
+                                // Trường hợp tổ đơn lẻ
+                                hasAdminTeam = teamValue === '0';
+                            }
+
+                            if (!hasAdminTeam) return false;
+                        } else {
+                            // Kiểm tra chính xác theo pattern cho tổ 1, 2, 3 - GIỮ NGUYÊN
+                            let isMatch = false;
+                            if (teamValue.includes(',')) {
+                                // Trường hợp có nhiều tổ như "1/3, 2/3"
+                                const teams = teamValue.split(',').map(t => t.trim());
+                                isMatch = teams.some(team => {
+                                    if (filters.to === '1') {
+                                        return team.startsWith('1/') || team === '1';
+                                    } else if (filters.to === '2') {
+                                        return team.startsWith('2/') || team === '2';
+                                    } else if (filters.to === '3') {
+                                        return team.startsWith('3/') || team === '3';
+                                    }
+                                    return false;
+                                });
+                            } else {
+                                // Trường hợp chỉ có 1 tổ
+                                if (filters.to === '1') {
+                                    isMatch = teamValue.startsWith('1/') || teamValue === '1';
+                                } else if (filters.to === '2') {
+                                    isMatch = teamValue.startsWith('2/') || teamValue === '2';
+                                } else if (filters.to === '3') {
+                                    isMatch = teamValue.startsWith('3/') || teamValue === '3';
+                                }
+                            }
+
+                            if (!isMatch) return false;
+                        }
+                    } else if (field === 'position' && filters.position) {
+                        if (!item.noi_phat_sinh_loi || !item.noi_phat_sinh_loi.includes(value)) {
+                            return false;
+                        }
+                    } else if (item[field] !== undefined && item[field] != value) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+        }
+
+        // ========== 3D MACHINE REPORT ==========
+        function load3DReport() {
+            const filters = {
+                dateFrom: document.getElementById('dateFrom3d').value,
+                dateTo: document.getElementById('dateTo3d').value,
+                dateField: 'ngay_tao',
+                so_may: document.getElementById('machine3d').value,
+                ca_lam_viec: document.getElementById('shift3d').value // Đổi thành ca_lam_viec
+            };
+
+            // Filter data từ bảng trien_khai_3d_laze_dt
+            const filteredData = filterData(globalData.data3D, filters);
+
+            // Process and update display
+            const processedData = process3DData(filteredData);
+            update3DSummary(processedData);
+            update3DChart(processedData);
+            update3DTable(processedData);
+        }
+
+        function process3DData(data) {
+            const allMachines = [...new Set(data.map(item => item.so_may).filter(Boolean))];
+            const machines = allMachines.length > 0 ? allMachines : ['3D AUTO2', '3D CƠ', '3D AUTO3'];
+
+            const processedData = {
+                machines: machines,
+                chuanBi: [],
+                chayThu: [],
+                giaCong: [],
+                gaLap: [],
+                tamDung: [],
+                tableData: [],
+                summary: {
+                    totalTime: 0,
+                    workingTime: 0,
+                    downTime: 0,
+                    efficiency: 0
+                }
+            };
+
+            console.log('Processing 3D Data:', data);
+            console.log('Found machines:', machines);
+
+            machines.forEach(machine => {
+                const machineData = data.filter(item => item.so_may === machine);
+
+                console.log(`Processing machine ${machine}:`, machineData);
+
+                let chuanBiTime = 0;
+                let chayThuTime = 0;
+                let giaCongTime = 0;
+                let gaLapTime = 0;
+                let tamDungTime = 0;
+
+                // Tính tổng thời gian từ bảng trien_khai_3d_laze_dt
+                machineData.forEach(item => {
+                    const cb = parseFloat(item.thoi_gian_chuan_bi || 0);
+                    const ct = parseFloat(item.thoi_gian_chay_thu || 0);
+                    const gc = parseFloat(item.thoi_gian_gia_cong || 0);
+                    const gl = parseFloat(item.tong_thoi_gian_ga_lap || 0);
+
+                    chuanBiTime += cb;
+                    chayThuTime += ct;
+                    giaCongTime += gc;
+                    gaLapTime += gl;
+
+                    console.log(`Item data:`, {
+                        machine: item.so_may,
+                        id: item.id_trien_khai_3d_laze,
+                        chuanBi: cb,
+                        chayThu: ct,
+                        giaCong: gc,
+                        gaLap: gl
+                    });
+                });
+
+                // LẤY THỜI GIAN TẠM DỪNG TỪ BẢNG tam_dung
+                // Lọc theo máy và các bộ lọc hiện tại
+                const filters = {
+                    dateFrom: document.getElementById('dateFrom3d').value,
+                    dateTo: document.getElementById('dateTo3d').value,
+                    dateField: 'ngay_tao',
+                    so_may: machine,
+                    ca_lam_viec: document.getElementById('shift3d').value
+                };
+
+                const pauseData = filterData(globalData.dataPause, filters);
+
+                pauseData.forEach(pauseItem => {
+                    const td = parseFloat(pauseItem.Thoi_Gian_Thuc_Te || 0);
+                    tamDungTime += td;
+
+                    console.log(`Pause data for ${machine}:`, {
+                        id: pauseItem.id_tam_dung,
+                        machine: pauseItem.so_may,
+                        tamDung: td
+                    });
+                });
+
+                // TÍNH TỔNG THỜI GIAN THỰC TẾ
+                const actualTotalTime = chuanBiTime + chayThuTime + giaCongTime + gaLapTime + tamDungTime;
+
+                console.log(`Machine ${machine} totals:`, {
+                    chuanBi: chuanBiTime,
+                    chayThu: chayThuTime,
+                    giaCong: giaCongTime,
+                    gaLap: gaLapTime,
+                    tamDung: tamDungTime,
+                    total: actualTotalTime
+                });
+
+                if (actualTotalTime > 0) {
+                    const chuanBiPercent = Math.round((chuanBiTime / actualTotalTime) * 100);
+                    const chayThuPercent = Math.round((chayThuTime / actualTotalTime) * 100);
+                    const giaCongPercent = Math.round((giaCongTime / actualTotalTime) * 100);
+                    const gaLapPercent = Math.round((gaLapTime / actualTotalTime) * 100);
+                    const tamDungPercent = Math.round((tamDungTime / actualTotalTime) * 100);
+
+                    processedData.chuanBi.push(chuanBiPercent);
+                    processedData.chayThu.push(chayThuPercent);
+                    processedData.giaCong.push(giaCongPercent);
+                    processedData.gaLap.push(gaLapPercent);
+                    processedData.tamDung.push(tamDungPercent);
+
+                    // Tạo ghi chú tổng hợp
+                    const notes = [];
+                    if (machineData.length > 0 && machineData[0].giai_trinh) {
+                        notes.push('3D: ' + machineData[0].giai_trinh);
+                    }
+                    if (pauseData.length > 0 && pauseData[0].giai_trinh) {
+                        notes.push('Dừng: ' + pauseData[0].giai_trinh);
+                    }
+
+                    processedData.tableData.push({
+                        machine: machine,
+                        shift: 'Tất cả',
+                        chuanBi: chuanBiPercent,
+                        chayThu: chayThuPercent,
+                        giaCong: giaCongPercent,
+                        gaLap: gaLapPercent,
+                        tamDung: tamDungPercent,
+                        note: notes.length > 0 ? notes.join(' | ') : '-',
+                        actualTimes: {
+                            chuanBi: chuanBiTime,
+                            chayThu: chayThuTime,
+                            giaCong: giaCongTime,
+                            gaLap: gaLapTime,
+                            tamDung: tamDungTime,
+                            total: actualTotalTime
+                        }
+                    });
+                } else {
+                    processedData.chuanBi.push(0);
+                    processedData.chayThu.push(0);
+                    processedData.giaCong.push(0);
+                    processedData.gaLap.push(0);
+                    processedData.tamDung.push(0);
+
+                    processedData.tableData.push({
+                        machine: machine,
+                        shift: 'Tất cả',
+                        chuanBi: 0,
+                        chayThu: 0,
+                        giaCong: 0,
+                        gaLap: 0,
+                        tamDung: 0,
+                        note: '-',
+                        actualTimes: {
+                            chuanBi: 0,
+                            chayThu: 0,
+                            giaCong: 0,
+                            gaLap: 0,
+                            tamDung: 0,
+                            total: 0
+                        }
+                    });
+                }
+
+                // CẬP NHẬT SUMMARY
+                processedData.summary.totalTime += actualTotalTime;
+                processedData.summary.workingTime += giaCongTime;
+                processedData.summary.downTime += tamDungTime;
+            });
+
+            // Tính hiệu suất tổng thể
+            if (processedData.summary.totalTime > 0) {
+                processedData.summary.efficiency = Math.round((processedData.summary.workingTime / processedData.summary.totalTime) * 100);
+            }
+
+            return processedData;
+        }
+
+        // Thêm kiểm tra dữ liệu
+        function validateTimeData(item) {
+            const times = [
+                parseFloat(item.thoi_gian_chuan_bi || 0),
+                parseFloat(item.thoi_gian_chay_thu || 0),
+                parseFloat(item.thoi_gian_gia_cong || 0),
+                parseFloat(item.tong_thoi_gian_ga_lap || 0),
+                parseFloat(item.thoi_gian_tam_dung || 0)
+            ];
+
+            // Cảnh báo nếu có giá trị bất thường
+            times.forEach((time, index) => {
+                if (time > 1440) { // > 24 giờ
+                    console.warn(`Thời gian bất thường: ${time} phút cho máy ${item.so_may}`);
+                }
+            });
+
+            return times;
+        }
+
+        function update3DSummary(data) {
+            document.getElementById('totalTime3d').textContent = Math.round(data.summary.totalTime) + ' phút';
+            document.getElementById('workingTime3d').textContent = Math.round(data.summary.workingTime) + ' phút';
+            document.getElementById('downTime3d').textContent = Math.round(data.summary.downTime) + ' phút';
+            document.getElementById('efficiency3d').textContent = data.summary.efficiency + '%';
+        }
+
+        function update3DChart(data) {
+            if (charts.chart3d) {
+                charts.chart3d.destroy();
+            }
+
+            const ctx = document.getElementById('chart3d').getContext('2d');
+            charts.chart3d = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.machines,
+                    datasets: [
+                        {
+                            label: 'Chuẩn bị',
+                            data: data.chuanBi,
+                            backgroundColor: '#FFA500', // Màu vàng cam cho Chuẩn bị
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Chạy thử',
+                            data: data.chayThu,
+                            backgroundColor: '#3B82F6', // Màu xanh dương cho Chạy thử
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Gia công',
+                            data: data.giaCong,
+                            backgroundColor: '#22C55E', // Màu xanh lá cho Gia công
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Gá lắp',
+                            data: data.gaLap,
+                            backgroundColor: '#9CA3AF', // Màu xám cho Gá lắp
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Tạm dừng',
+                            data: data.tamDung,
+                            backgroundColor: '#FF4500', // Màu cam đỏ cho Tạm dừng (Dừng)
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            grid: {
+                                display: false
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            max: 100,
+                            ticks: {
+                                callback: function (value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + context.parsed.y + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function update3DTable(data) {
+            const tbody = document.getElementById('table3d');
+            tbody.innerHTML = '';
+
+            // Lấy giá trị ca được chọn
+            const selectedShift = document.getElementById('shift3d').value;
+
+            data.tableData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+
+                // Hiển thị ca từ dữ liệu thực tế hoặc theo selection
+                let shiftDisplay = 'Tất cả';
+                if (selectedShift) {
+                    shiftDisplay = selectedShift;
+                } else {
+                    // Nếu không có filter, có thể hiển thị tất cả ca từ dữ liệu
+                    shiftDisplay = 'Tất cả ca';
+                }
+
+                // Xử lý ghi chú - giới hạn độ dài hiển thị
+                const noteDisplay = row.note && row.note !== '-' ?
+                    (row.note.length > 50 ? row.note.substring(0, 50) + '...' : row.note) : '-';
+
+                tr.innerHTML = `
+           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.machine}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${shiftDisplay}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.chuanBi}%</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.chayThu}%</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.giaCong}%</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.gaLap}%</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.tamDung}%</td>
+           <td class="px-6 py-4 text-sm text-gray-500 max-w-xs" title="${row.note}">${noteDisplay}</td>
+       `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ========== PRODUCTION REPORT ==========
+        function loadProductionReport() {
+            const filters = {
+                dateFrom: document.getElementById('dateFromSL').value,
+                dateTo: document.getElementById('dateToSL').value,
+                dateField: 'ngay_tao',
+                nhom: document.getElementById('groupSL').value,
+                to: document.getElementById('teamSL').value,
+                ca_lam_viec: document.getElementById('shiftSL').value
+            };
+
+            const filteredData = filterData(globalData.dataProduction, filters);
+            const processedData = processProductionData(filteredData);
+
+            updateProductionSummary(processedData);
+            updateProductionChart(processedData);
+            updateProductionBarChart(processedData);
+            updateProductionTeamChart(processedData); // THÊM DÒNG NÀY
+            updateProductionTable(processedData);
+        }
+
+        // SỬA HÀM XỬ LÝ DỮ LIỆU CHO BIỂU ĐỒ TỔ - GOM THEO NHÓM VỚI 4 TỔ CỐ ĐỊNH
+        function processTeamChart(data, processedData, selectedGroup) {
+            // 4 tổ cố định cho mỗi nhóm
+            const fixedTeams = ['Hành chính', 'Tổ 1', 'Tổ 2', 'Tổ 3'];
+
+            if (selectedGroup) {
+                // Khi có chọn nhóm cụ thể - hiển thị 4 tổ của nhóm đó
+                const teamGroups = {
+                    'Hành chính': 0,
+                    'Tổ 1': 0,
+                    'Tổ 2': 0,
+                    'Tổ 3': 0
+                };
+
+                data.forEach(item => {
+                    if (item.nhom === selectedGroup) {
+                        const teamValue = item.to ? item.to.toString() : '';
+
+                        if (teamValue.includes(',')) {
+                            // Trường hợp có nhiều tổ
+                            const teams = teamValue.split(',').map(t => t.trim());
+                            const teamCount = teams.length;
+
+                            teams.forEach(team => {
+                                const teamName = formatTeamNameForChart(team);
+                                if (teamGroups.hasOwnProperty(teamName)) {
+                                    // Chia đều sản lượng cho các tổ
+                                    teamGroups[teamName] += Math.round(parseInt(item.sl_thuc_te || 0) / teamCount);
+                                }
+                            });
+                        } else {
+                            // Trường hợp tổ đơn lẻ
+                            const teamName = formatTeamNameForChart(teamValue);
+                            if (teamGroups.hasOwnProperty(teamName)) {
+                                teamGroups[teamName] += parseInt(item.sl_thuc_te || 0);
+                            }
+                        }
+                    }
+                });
+
+                // Sắp xếp theo thứ tự cố định
+                processedData.teamLabels = fixedTeams;
+                processedData.teamData = fixedTeams.map(team => teamGroups[team]);
+
+            } else {
+                // Khi không chọn nhóm - hiển thị tất cả các nhóm
+                const allGroups = [...new Set(data.map(item => item.nhom).filter(Boolean))].sort();
+
+                const groupData = {};
+
+                allGroups.forEach(groupName => {
+                    groupData[groupName] = {
+                        'Hành chính': 0,
+                        'Tổ 1': 0,
+                        'Tổ 2': 0,
+                        'Tổ 3': 0
+                    };
+                });
+
+                data.forEach(item => {
+                    const groupName = item.nhom || 'Không xác định';
+                    if (!groupData[groupName]) {
+                        groupData[groupName] = {
+                            'Hành chính': 0,
+                            'Tổ 1': 0,
+                            'Tổ 2': 0,
+                            'Tổ 3': 0
+                        };
+                    }
+
+                    const teamValue = item.to ? item.to.toString() : '';
+
+                    if (teamValue.includes(',')) {
+                        const teams = teamValue.split(',').map(t => t.trim());
+                        const teamCount = teams.length;
+
+                        teams.forEach(team => {
+                            const teamName = formatTeamNameForChart(team);
+                            if (groupData[groupName].hasOwnProperty(teamName)) {
+                                groupData[groupName][teamName] += Math.round(parseInt(item.sl_thuc_te || 0) / teamCount);
+                            }
+                        });
+                    } else {
+                        const teamName = formatTeamNameForChart(teamValue);
+                        if (groupData[groupName].hasOwnProperty(teamName)) {
+                            groupData[groupName][teamName] += parseInt(item.sl_thuc_te || 0);
+                        }
+                    }
+                });
+
+                // Chuẩn bị dữ liệu cho biểu đồ grouped bar
+                processedData.teamLabels = allGroups;
+                processedData.teamData = {
+                    'Hành chính': allGroups.map(group => groupData[group]['Hành chính']),
+                    'Tổ 1': allGroups.map(group => groupData[group]['Tổ 1']),
+                    'Tổ 2': allGroups.map(group => groupData[group]['Tổ 2']),
+                    'Tổ 3': allGroups.map(group => groupData[group]['Tổ 3'])
+                };
+            }
+        }
+
+        // THÊM HÀM FORMAT TÊN TỔ CHO BIỂU ĐỒ
+        function formatTeamNameForChart(teamValue) {
+            if (!teamValue) return 'Không xác định';
+
+            const teamStr = teamValue.toString();
+
+            if (teamStr === '0') return 'Hành chính';
+            if (teamStr === '1/3' || teamStr === '1/2' || teamStr === '1') return 'Tổ 1';
+            if (teamStr === '2/3' || teamStr === '2/2' || teamStr === '2') return 'Tổ 2';
+            if (teamStr === '3/3' || teamStr === '3') return 'Tổ 3';
+
+            // Trường hợp khác - lấy số đầu tiên
+            const match = teamStr.match(/^(\d+)/);
+            return match ? (match[1] === '0' ? 'Hành chính' : 'Tổ ' + match[1]) : teamStr;
+        }
+
+        // SỬA HÀM TẠO BIỂU ĐỒ TỔ - 4 MÀU CỐ ĐỊNH CHO 4 TỔ
+        function updateProductionTeamChart(data) {
+            if (charts.chartSLTeam) {
+                charts.chartSLTeam.destroy();
+            }
+
+            const ctx = document.getElementById('chartSLTeam').getContext('2d');
+
+            // 4 màu cố định cho 4 tổ
+            const teamColors = {
+                'Hành chính': '#ef4444',  // Đỏ
+                'Tổ 1': '#22c55e',        // Xanh lá
+                'Tổ 2': '#3b82f6',        // Xanh dương
+                'Tổ 3': '#f97316'         // Cam
+            };
+
+            const selectedGroup = document.getElementById('groupSL').value;
+
+            if (selectedGroup) {
+                // Khi chọn nhóm cụ thể - hiển thị 4 tổ của nhóm đó
+                charts.chartSLTeam = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.teamLabels,
+                        datasets: [{
+                            label: 'Sản lượng',
+                            data: data.teamData,
+                            backgroundColor: data.teamLabels.map(team => teamColors[team]),
+                            borderWidth: 1,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function (value) {
+                                        return value.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return context.label + ': ' + context.raw.toLocaleString();
+                                    }
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: `Sản lượng các tổ - ${selectedGroup}`
+                            }
+                        }
+                    }
+                });
+            } else {
+                // Khi không chọn nhóm - hiển thị grouped bar chart
+                const datasets = [
+                    {
+                        label: 'Hành chính',
+                        data: data.teamData['Hành chính'],
+                        backgroundColor: teamColors['Hành chính'],
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Tổ 1',
+                        data: data.teamData['Tổ 1'],
+                        backgroundColor: teamColors['Tổ 1'],
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Tổ 2',
+                        data: data.teamData['Tổ 2'],
+                        backgroundColor: teamColors['Tổ 2'],
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Tổ 3',
+                        data: data.teamData['Tổ 3'],
+                        backgroundColor: teamColors['Tổ 3'],
+                        borderWidth: 1
+                    }
+                ];
+
+                charts.chartSLTeam = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.teamLabels,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function (value) {
+                                        return value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 0
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return context.dataset.label + ': ' + context.raw.toLocaleString();
+                                    }
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'So sánh sản lượng các tổ theo nhóm'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function processProductionData(data) {
+            const selectedGroup = document.getElementById('groupSL').value;
+            const selectedTeam = document.getElementById('teamSL').value;
+            const selectedShift = document.getElementById('shiftSL').value;
+
+            let filteredData = data;
+            if (selectedGroup) {
+                filteredData = filteredData.filter(item => item.nhom === selectedGroup);
+            }
+
+            // THÊM LOGIC LỌC CA LÀM VIỆC MỚI
+            if (selectedShift) {
+                filteredData = filteredData.filter(item => {
+                    const itemShift = item.ca_lam_viec ? item.ca_lam_viec.toString().trim() : '';
+                    return itemShift === selectedShift;
+                });
+            }
+
+            // Lọc theo tổ gom nhóm - SỬA LẠI ĐỂ XỬ LÝ TỔ HÀNH CHÍNH KẾT HỢP
+            if (selectedTeam) {
+                filteredData = filteredData.filter(item => {
+                    const teamValue = item.to ? item.to.toString() : '';
+                    if (selectedTeam === '0') {
+                        // Tổ hành chính - KIỂM TRA CẢ TRƯỜNG HỢP ĐƠN LẺ VÀ KẾT HỢP
+                        let hasAdminTeam = false;
+
+                        if (teamValue.includes(',')) {
+                            // Trường hợp có nhiều tổ như "0, 1/3" hoặc "2/3, 0"
+                            const teams = teamValue.split(',').map(t => t.trim());
+                            hasAdminTeam = teams.includes('0');
+                        } else {
+                            // Trường hợp tổ đơn lẻ
+                            hasAdminTeam = teamValue === '0';
+                        }
+
+                        return hasAdminTeam; // TRẢ VỀ TRUE NẾU CÓ TỔ HÀNH CHÍNH
+                    } else {
+                        // Kiểm tra chính xác cho tổ 1, 2, 3 - GIỮ NGUYÊN LOGIC CŨ
+                        if (teamValue.includes(',')) {
+                            // Trường hợp có nhiều tổ
+                            const teams = teamValue.split(',').map(t => t.trim());
+                            return teams.some(team => {
+                                if (selectedTeam === '1') {
+                                    return team.startsWith('1/') || team === '1';
+                                } else if (selectedTeam === '2') {
+                                    return team.startsWith('2/') || team === '2';
+                                } else if (selectedTeam === '3') {
+                                    return team.startsWith('3/') || team === '3';
+                                }
+                                return false;
+                            });
+                        } else {
+                            // Trường hợp chỉ có 1 tổ
+                            if (selectedTeam === '1') {
+                                return teamValue.startsWith('1/') || teamValue === '1';
+                            } else if (selectedTeam === '2') {
+                                return teamValue.startsWith('2/') || teamValue === '2';
+                            } else if (selectedTeam === '3') {
+                                return teamValue.startsWith('3/') || teamValue === '3';
+                            }
+                            return false;
+                        }
+                    }
+                });
+            }
+
+            const processedData = {
+                labels: [],
+                actual: [],
+                theoretical: [],
+                pieData: [],
+                teamLabels: [], // THÊM MỚI
+                teamData: [],   // THÊM MỚI
+                tableData: [],
+                summary: {
+                    totalProduction: 0,
+                    avgEfficiency: 0,
+                    totalWorkers: 0
+                }
+            };
+
+            let finalData;
+
+            // Chỉ tách riêng khi có lọc tổ cụ thể
+            if (selectedTeam) {
+                // Tách từng record thành các dòng riêng biệt theo tổ
+                const expandedData = [];
+
+                filteredData.forEach(item => {
+                    const teamValue = item.to ? item.to.toString() : '';
+
+                    if (teamValue.includes(',')) {
+                        // Nếu có nhiều tổ, tách thành các dòng riêng
+                        const teams = teamValue.split(',').map(t => t.trim());
+
+                        // CHỌN CÁC TỔ THUỘC NHÓM ĐƯỢC CHỌN (BAO GỒM TỔ HÀNH CHÍNH)
+                        const validTeams = teams.filter(team => {
+                            if (selectedTeam === '0') {
+                                return team === '0'; // TỔ HÀNH CHÍNH
+                            } else if (selectedTeam === '1') {
+                                return team.startsWith('1/') || team === '1';
+                            } else if (selectedTeam === '2') {
+                                return team.startsWith('2/') || team === '2';
+                            } else if (selectedTeam === '3') {
+                                return team.startsWith('3/') || team === '3';
+                            }
+                            return false;
+                        });
+
+                        const teamCount = teams.length; // Chia theo tổng số tổ gốc
+
+                        validTeams.forEach(team => {
+                            expandedData.push({
+                                ...item,
+                                to: team,
+                                // Chia đều dữ liệu cho các tổ
+                                sl_thuc_te: Math.round((parseInt(item.sl_thuc_te || 0)) / teamCount),
+                                so_nguoi_lam: Math.round((parseInt(item.so_nguoi_lam || 0)) / teamCount),
+                                Thoi_Gian_Thuc_Te: (parseFloat(item.Thoi_Gian_Thuc_Te || 0)) / teamCount,
+                                hoan_thanh_dk: (parseFloat(item.hoan_thanh_dk || 0)) / teamCount
+                            });
+                        });
+                    } else {
+                        // Nếu chỉ có 1 tổ, giữ nguyên
+                        expandedData.push(item);
+                    }
+                });
+
+                finalData = expandedData;
+            } else {
+                // Không lọc tổ - giữ nguyên dữ liệu gốc
+                finalData = filteredData;
+            }
+
+            // Thu thập tất cả mã nhân viên unique
+            const uniqueWorkerCodes = new Set();
+
+            finalData.forEach(item => {
+                if (item.Code) {
+                    // Xử lý trường hợp có nhiều mã code cách nhau bởi dấu phẩy
+                    const codes = item.Code.toString().split(',');
+                    codes.forEach(code => {
+                        const cleanCode = code.trim();
+                        if (cleanCode) {
+                            uniqueWorkerCodes.add(cleanCode);
+                        }
+                    });
+                }
+            });
+
+            // Hiển thị dữ liệu
+            finalData.forEach(item => {
+                const actualTime = parseFloat(item.Thoi_Gian_Thuc_Te || 0);
+                const theoreticalTime = parseFloat(item.hoan_thanh_dk || 0);
+                const production = parseInt(item.sl_thuc_te || 0);
+                const workers = parseInt(item.so_nguoi_lam || 0);
+
+                const efficiency = theoreticalTime > 0 && actualTime > 0 ?
+                    Math.round((theoreticalTime / actualTime) * 100) : 0;
+
+                // Format ngày từ thoi_gian_bat_dau
+                let formattedDate = '-';
+                let sortDate = ''; // Thêm biến để sort
+                if (item.thoi_gian_bat_dau) {
+                    try {
+                        const date = new Date(item.thoi_gian_bat_dau);
+                        formattedDate = date.toLocaleDateString('vi-VN');
+                        sortDate = item.thoi_gian_bat_dau; // Lưu ngày gốc để sort
+                    } catch (e) {
+                        formattedDate = '-';
+                        sortDate = '';
+                    }
+                }
+
+                // Format tên tổ dựa trên việc có lọc hay không
+                let teamDisplay;
+                if (selectedTeam) {
+                    // Khi có lọc tổ - hiển thị số tổ đơn giản
+                    teamDisplay = formatTeamNameSimple(item.to);
+                } else {
+                    // Khi không lọc - hiển thị tên tổ gốc
+                    teamDisplay = formatTeamNameOriginal(item.to);
+                }
+
+                processedData.tableData.push({
+                    date: formattedDate,
+                    sortDate: sortDate, // Thêm field để sort
+                    group: item.nhom || '-',
+                    team: teamDisplay,
+                    shift: item.ca_lam_viec || '-', // THÊM CA LÀM VIỆC
+                    maCV: item.ma_cv || '-',
+                    production: production,
+                    workers: workers,
+                    actualTime: actualTime,
+                    theoreticalTime: theoreticalTime,
+                    efficiency: efficiency,
+                    note: item.giai_trinh || '-' // Thêm trường ghi chú
+                });
+
+                processedData.summary.totalProduction += production;
+            });
+
+            // SẮP XẾP THEO NGÀY MỚI NHẤT LEN ĐẦU
+            processedData.tableData.sort((a, b) => {
+                if (!a.sortDate && !b.sortDate) return 0;
+                if (!a.sortDate) return 1;
+                if (!b.sortDate) return -1;
+
+                // Sắp xếp giảm dần (mới nhất lên đầu)
+                return new Date(b.sortDate) - new Date(a.sortDate);
+            });
+
+            // Chuẩn bị dữ liệu cho chart
+            if (selectedTeam) {
+                // Khi có lọc tổ - nhóm theo tổ con
+                const chartGroups = {};
+
+                finalData.forEach(item => {
+                    const teamValue = item.to ? item.to.toString() : '';
+                    const displayLabel = formatTeamNameSimple(teamValue);
+
+                    if (!chartGroups[teamValue]) {
+                        chartGroups[teamValue] = {
+                            label: displayLabel,
+                            actualTime: 0,
+                            theoreticalTime: 0,
+                            production: 0
+                        };
+                    }
+
+                    chartGroups[teamValue].actualTime += parseFloat(item.Thoi_Gian_Thuc_Te || 0);
+                    chartGroups[teamValue].theoreticalTime += parseFloat(item.hoan_thanh_dk || 0);
+                    chartGroups[teamValue].production += parseInt(item.sl_thuc_te || 0);
+                });
+
+                Object.values(chartGroups).forEach(group => {
+                    processedData.labels.push(group.label);
+                    processedData.actual.push(group.actualTime);
+                    processedData.theoretical.push(group.theoreticalTime);
+                    processedData.pieData.push(Math.round(group.production));
+                });
+            } else if (selectedShift) {
+                // THÊM MỚI: Khi có lọc ca - nhóm theo ca
+                const chartGroups = {};
+
+                finalData.forEach(item => {
+                    const shiftValue = item.ca_lam_viec || 'Không xác định';
+
+                    if (!chartGroups[shiftValue]) {
+                        chartGroups[shiftValue] = {
+                            label: shiftValue,
+                            actualTime: 0,
+                            theoreticalTime: 0,
+                            production: 0
+                        };
+                    }
+
+                    chartGroups[shiftValue].actualTime += parseFloat(item.Thoi_Gian_Thuc_Te || 0);
+                    chartGroups[shiftValue].theoreticalTime += parseFloat(item.hoan_thanh_dk || 0);
+                    chartGroups[shiftValue].production += parseInt(item.sl_thuc_te || 0);
+                });
+
+                Object.values(chartGroups).forEach(group => {
+                    processedData.labels.push(group.label);
+                    processedData.actual.push(group.actualTime);
+                    processedData.theoretical.push(group.theoreticalTime);
+                    processedData.pieData.push(Math.round(group.production));
+                });
+            } else {
+                // Khi không lọc tổ và ca - nhóm theo nhóm
+                const groups = [...new Set(finalData.map(item => item.nhom).filter(Boolean))];
+
+                // SẮP XẾP CÁC NHÓM THEO TÊN TỪ NHỎ ĐẾN LỚN
+                const sortedGroups = groups.sort((a, b) => a.localeCompare(b));
+
+                sortedGroups.forEach(group => {
+                    const groupData = finalData.filter(item => item.nhom === group);
+
+                    let actualTime = 0;
+                    let theoreticalTime = 0;
+                    let production = 0;
+
+                    groupData.forEach(item => {
+                        actualTime += parseFloat(item.Thoi_Gian_Thuc_Te || 0);
+                        theoreticalTime += parseFloat(item.hoan_thanh_dk || 0);
+                        production += parseInt(item.sl_thuc_te || 0);
+                    });
+
+                    processedData.labels.push(group);
+                    processedData.actual.push(actualTime);
+                    processedData.theoretical.push(theoreticalTime);
+                    processedData.pieData.push(Math.round(production));
+                });
+            }
+
+            // THÊM XỬ LÝ DỮ LIỆU CHO BIỂU ĐỒ TỔ
+            processTeamChart(finalData, processedData, selectedGroup);
+
+            // Tính summary - SỬA ĐỔI PHẦN NÀY
+            processedData.summary.totalWorkers = uniqueWorkerCodes.size; // Số người duy nhất
+
+            const totalEfficiency = processedData.tableData.reduce((sum, item) => sum + item.efficiency, 0);
+            processedData.summary.avgEfficiency = processedData.tableData.length > 0 ?
+                Math.round(totalEfficiency / processedData.tableData.length) : 0;
+
+            return processedData;
+        }
+
+        // Hàm format tên tổ đơn giản (khi có lọc)
+        function formatTeamNameSimple(teamValue) {
+            if (!teamValue) return 'Không xác định';
+
+            const teamStr = teamValue.toString();
+
+            if (teamStr === '0') return 'Hành chính'; // ĐẢM BẢO DÒNG NÀY CÓ
+            if (teamStr === '1/3') return 'Tổ 1';
+            if (teamStr === '2/3') return 'Tổ 2';
+            if (teamStr === '3/3') return 'Tổ 3';
+            if (teamStr === '1/2') return 'Tổ 1';
+            if (teamStr === '2/2') return 'Tổ 2';
+
+            // Các trường hợp khác - lấy số đầu tiên
+            const match = teamStr.match(/^(\d+)/);
+            return match ? (match[1] === '0' ? 'Hành chính' : 'Tổ ' + match[1]) : teamStr;
+        }
+
+        // Hàm format tên tổ gốc (khi không lọc)
+        function formatTeamNameOriginal(teamValue) {
+            if (!teamValue) return 'Không xác định';
+
+            const teamStr = teamValue.toString();
+
+            // XỬ LÝ TỔ HÀNH CHÍNH
+            if (teamStr === '0') return 'Hành chính';
+
+            if (teamStr.includes(',')) {
+                // Trường hợp có nhiều tổ như "1/3, 2/3"
+                return teamStr.split(',').map(t => {
+                    const clean = t.trim();
+                    if (clean === '0') return 'Hành chính'; // THÊM DÒNG NÀY
+                    if (clean === '1/3') return 'Tổ 1';
+                    if (clean === '2/3') return 'Tổ 2';
+                    if (clean === '3/3') return 'Tổ 3';
+                    if (clean === '1/2') return 'Tổ 1';
+                    if (clean === '2/2') return 'Tổ 2';
+                    return clean;
+                }).join(', ');
+            }
+
+            // Trường hợp tổ đơn lẻ
+            if (teamStr === '1/3') return 'Tổ 1';
+            if (teamStr === '2/3') return 'Tổ 2';
+            if (teamStr === '3/3') return 'Tổ 3';
+            if (teamStr === '1/2') return 'Tổ 1';
+            if (teamStr === '2/2') return 'Tổ 2';
+
+            return teamStr;
+        }
+
+        // Cập nhật hàm formatTeamName để hiển thị tên tổ chi tiết
+        function formatTeamName(teamValue) {
+            if (!teamValue) return 'Không xác định';
+
+            const teamStr = teamValue.toString();
+
+            if (teamStr === '0') return 'Hành chính';
+            if (teamStr === '1/3') return '1';
+            if (teamStr === '2/3') return '2';
+            if (teamStr === '3/3') return '3';
+            if (teamStr === '1/2') return '1';
+            if (teamStr === '2/2') return '2';
+
+            return teamStr;
+        }
+
+        function updateProductionSummary(data) {
+            document.getElementById('totalProductionSL').textContent = data.summary.totalProduction.toLocaleString();
+            document.getElementById('avgEfficiencySL').textContent = data.summary.avgEfficiency + '%';
+            document.getElementById('totalWorkersSL').textContent = data.summary.totalWorkers;
+        }
+
+        function updateProductionChart(data) {
+            if (charts.chartSL) {
+                charts.chartSL.destroy();
+            }
+
+            const ctx = document.getElementById('chartSL').getContext('2d');
+            charts.chartSL = new Chart(ctx, {
+                type: 'bar',
+                data: {  // THÊM PHẦN NÀY - BỊ THIẾU
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Thời gian thực tế (phút)',
+                            data: data.actual,
+                            backgroundColor: '#ef4444',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Thời gian lý thuyết (phút)',
+                            data: data.theoretical,
+                            backgroundColor: '#22c55e',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return value + ' phút';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateProductionBarChart(data) {
+            if (charts.chartSLPie) {
+                charts.chartSLPie.destroy();
+            }
+
+            const ctx = document.getElementById('chartSLPie').getContext('2d');
+            charts.chartSLPie = new Chart(ctx, {
+                type: 'bar', // THAY ĐỔI: từ 'pie' thành 'bar'
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Sản lượng',
+                        data: data.pieData,
+                        backgroundColor: [
+                            '#ef4444',
+                            '#f97316',
+                            '#22c55e',
+                            '#3b82f6',
+                            '#8b5cf6',
+                            '#ec4899',
+                            '#f59e0b',
+                            '#10b981'
+                        ],
+                        borderWidth: 1,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // Ẩn legend vì chỉ có 1 dataset
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((context.raw / total) * 100) : 0;
+                                    return [
+                                        'Sản lượng: ' + context.raw.toLocaleString(),
+                                        'Tỷ lệ: ' + percentage + '%'
+                                    ];
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Sản lượng theo nhóm'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateProductionTable(data) {
+            const tbody = document.getElementById('tableSL');
+            tbody.innerHTML = '';
+
+            data.tableData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+
+                const efficiencyClass = row.efficiency >= 100 ? 'text-green-600' :
+                    row.efficiency >= 80 ? 'text-yellow-600' : 'text-red-600';
+
+                const workersClass = row.workers >= 5 ? 'text-blue-600 font-medium' : 'text-gray-600';
+
+                // Xử lý ghi chú - giới hạn độ dài hiển thị
+                const noteDisplay = row.note && row.note !== '-' ?
+                    (row.note.length > 50 ? row.note.substring(0, 50) + '...' : row.note) : '-';
+
+                // THÊM HIỂN THỊ CA LÀM VIỆC
+                const shiftDisplay = row.shift || '-';
+
+                tr.innerHTML = `
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.date}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.group}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.team}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${shiftDisplay}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.maCV}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.production.toLocaleString()}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm ${workersClass}">${row.workers} người</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.actualTime.toFixed(1)} phút</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.theoreticalTime.toFixed(1)} phút</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${efficiencyClass}">${row.efficiency}%</td>
+           <td class="px-6 py-4 text-sm text-gray-500 max-w-xs" title="${row.note}">${noteDisplay}</td>
+       `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ========== ERROR REPORT ==========
+        function loadErrorReport() {
+            const filters = {
+                dateFrom: document.getElementById('dateFromLoi').value,
+                dateTo: document.getElementById('dateToLoi').value,
+                dateField: 'ngay_bao_loi',
+                position: document.getElementById('positionLoi').value
+            };
+
+            const filteredData = filterData(globalData.dataError, filters);
+            const processedData = processErrorData(filteredData);
+
+            updateErrorSummary(processedData);
+            updateErrorPieChart(processedData);
+            updateErrorLineChart(processedData);
+            updateErrorTable(processedData);
+        }
+
+        function processErrorData(data) {
+            // Định nghĩa 4 vị trí cụ thể cần thống kê
+            const predefinedPositions = ['Phôi', 'PKY', 'PSX', 'PKT'];
+
+            const processedData = {
+                pieLabels: predefinedPositions,
+                pieData: [],
+                barLabels: [],
+                barData: [],
+                tableData: [],
+                summary: {
+                    totalErrors: 0,
+                    todayErrors: 0,
+                    topPosition: '',
+                    avgErrorRate: 0
+                }
+            };
+
+            // Đếm lỗi theo từng vị trí - CHIA ĐỀU CHO CÁC VỊ TRÍ
+            const positionCounts = {
+                'Phôi': 0,
+                'PKY': 0,
+                'PSX': 0,
+                'PKT': 0
+            };
+
+            // Tính tổng số lỗi thực tế từ cột sl_loi
+            let totalActualErrors = 0;
+
+            data.forEach(item => {
+                const errorCount = parseInt(item.sl_loi || 0);
+                totalActualErrors += errorCount;
+
+                if (item.noi_phat_sinh_loi) {
+                    const positionString = item.noi_phat_sinh_loi.toString();
+
+                    // Tìm tất cả vị trí hợp lệ trong bản ghi này
+                    const validPositions = [];
+
+                    predefinedPositions.forEach(pos => {
+                        if (positionString.includes(pos)) {
+                            validPositions.push(pos);
+                        }
+                    });
+
+                    // CHIA ĐỀU SỐ LƯỢNG LỖI CHO CÁC VỊ TRÍ HỢP LỆ
+                    if (validPositions.length > 0) {
+                        const errorPerPosition = errorCount / validPositions.length;
+
+                        validPositions.forEach(position => {
+                            positionCounts[position] += errorPerPosition;
+                        });
+
+                        // Debug log để kiểm tra
+                        console.log(`Mã lỗi: ${item.ma_loi}, SL: ${errorCount}, Vị trí: [${validPositions.join(', ')}], Chia mỗi vị trí: ${errorPerPosition}`);
+                    }
+                }
+            });
+
+            processedData.summary.totalErrors = totalActualErrors;
+
+            // Chuẩn bị dữ liệu cho pie chart - Làm tròn số liệu
+            predefinedPositions.forEach(pos => {
+                processedData.pieData.push(Math.round(positionCounts[pos]));
+            });
+
+            // Tìm vị trí có nhiều lỗi nhất
+            const maxErrors = Math.max(...Object.values(positionCounts));
+            processedData.summary.topPosition = Object.keys(positionCounts).find(key => positionCounts[key] === maxErrors) || '-';
+
+            // Đếm lỗi hôm nay
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            processedData.summary.todayErrors = data.filter(item => {
+                if (!item.ngay_bao_loi) return false;
+
+                try {
+                    const itemDate = new Date(item.ngay_bao_loi);
+                    itemDate.setHours(0, 0, 0, 0);
+
+                    return itemDate.getTime() === today.getTime();
+                } catch (error) {
+                    console.error('Error parsing date for today errors:', item.ngay_bao_loi, error);
+                    return false;
+                }
+            }).reduce((sum, item) => sum + parseInt(item.sl_loi || 0), 0);
+
+            // ============ SỬA PHẦN NÀY - TÍNH TỶ LỆ LỖI THEO SẢN LƯỢNG ============
+            // Lấy bộ lọc từ UI để áp dụng cho dữ liệu sản lượng
+            const errorFilters = {
+                dateFrom: document.getElementById('dateFromLoi').value,
+                dateTo: document.getElementById('dateToLoi').value,
+                dateField: 'ngay_tao' // Dùng field ngày của bảng sản xuất
+            };
+
+            // Lọc dữ liệu sản lượng trong cùng khoảng thời gian với lỗi
+            const productionDataInSamePeriod = filterData(globalData.dataProduction, errorFilters);
+
+            // Tính tổng sản lượng trong khoảng thời gian này
+            const totalProduction = productionDataInSamePeriod.reduce((sum, item) => {
+                return sum + parseInt(item.sl_thuc_te || 0);
+            }, 0);
+
+            // Tính tỷ lệ lỗi = (Số lỗi / Tổng sản lượng) × 100%
+            processedData.summary.avgErrorRate = totalProduction > 0 ?
+                Math.round((totalActualErrors / totalProduction) * 100 * 100) / 100 : 0; // Làm tròn 2 chữ số thập phân
+
+            // Debug log để kiểm tra
+            console.log('Error Rate Calculation:', {
+                totalErrors: totalActualErrors,
+                totalProduction: totalProduction,
+                errorRate: processedData.summary.avgErrorRate + '%',
+                dateRange: `${errorFilters.dateFrom} to ${errorFilters.dateTo}`,
+                productionRecords: productionDataInSamePeriod.length
+            });
+
+            // Nhóm lỗi theo mã lỗi cho bar chart
+            const errorCodeGroups = {};
+            data.forEach(item => {
+                const errorCode = item.ma_loi || 'Không xác định';
+                const errorCount = parseInt(item.sl_loi || 0);
+
+                if (errorCode && errorCode !== 'Không xác định') {
+                    errorCodeGroups[errorCode] = (errorCodeGroups[errorCode] || 0) + errorCount;
+                }
+            });
+
+            // Sắp xếp theo số lượng lỗi giảm dần
+            const sortedErrorCodes = Object.entries(errorCodeGroups)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            processedData.barLabels = sortedErrorCodes.map(([code, count]) => code);
+            processedData.barData = sortedErrorCodes.map(([code, count]) => count);
+
+            // Đếm lỗi theo mã lỗi cho bảng
+            const errorCounts = {};
+            data.forEach(item => {
+                const errorCode = item.ma_loi || 'Không xác định';
+                const errorCount = parseInt(item.sl_loi || 0);
+
+                if (!errorCounts[errorCode]) {
+                    errorCounts[errorCode] = {
+                        count: 0,
+                        positions: new Set(),
+                        handlers: new Set()
+                    };
+                }
+                errorCounts[errorCode].count += errorCount;
+
+                if (item.noi_phat_sinh_loi) {
+                    const positions = item.noi_phat_sinh_loi.toString().split(',').map(p => p.trim());
+                    positions.forEach(pos => {
+                        errorCounts[errorCode].positions.add(pos);
+                    });
+                }
+
+                if (item.noi_xu_ly_loi) {
+                    const handlers = item.noi_xu_ly_loi.toString().split(',').map(h => h.trim());
+                    handlers.forEach(handler => {
+                        errorCounts[errorCode].handlers.add(handler);
+                    });
+                }
+            });
+
+            // Sắp xếp bảng theo số lượng lỗi giảm dần
+            processedData.tableData = Object.entries(errorCounts)
+                .map(([code, info]) => ({
+                    errorCode: code,
+                    count: info.count,
+                    positions: Array.from(info.positions).join(', '),
+                    handlers: Array.from(info.handlers).join(', '),
+                    percentage: totalActualErrors > 0 ? Math.round((info.count / totalActualErrors) * 100) : 0
+                }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 10)
+                .map((item, index) => ({
+                    ...item,
+                    rank: index + 1
+                }));
+
+            return processedData;
+        }
+
+        function updateErrorBarChart(data) {
+            if (charts.chartLoiBar) {
+                charts.chartLoiBar.destroy();
+            }
+
+            const ctx = document.getElementById('chartLoiLine').getContext('2d');
+            charts.chartLoiBar = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.barLabels,
+                    datasets: [{
+                        label: 'Số lượng lỗi',
+                        data: data.barData,
+                        backgroundColor: [
+                            '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4',
+                            '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'
+                        ],
+                        borderColor: '#ffffff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // THÊM DÒNG NÀY ĐỂ XOAY BIỂU ĐỒ THÀNH DỌC
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { // Đổi từ y thành x (vì đã xoay)
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1,
+                                callback: function (value) {
+                                    return value + ' lỗi';
+                                }
+                            }
+                        },
+                        y: { // Đổi từ x thành y (vì đã xoay)
+                            ticks: {
+                                maxRotation: 0, // Không xoay label
+                                minRotation: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((context.raw / total) * 100) : 0;
+                                    return context.label + ': ' + context.raw + ' lỗi (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+
+        // Cập nhật hàm loadErrorReport để gọi hàm mới
+        function loadErrorReport() {
+            const filters = {
+                dateFrom: document.getElementById('dateFromLoi').value,
+                dateTo: document.getElementById('dateToLoi').value,
+                dateField: 'ngay_bao_loi',
+                position: document.getElementById('positionLoi').value
+            };
+
+            const filteredData = filterData(globalData.dataError, filters);
+            const processedData = processErrorData(filteredData);
+
+            updateErrorSummary(processedData);
+            updateErrorPieChart(processedData);
+            updateErrorBarChart(processedData); // Đổi từ updateErrorLineChart thành updateErrorBarChart
+            updateErrorTable(processedData);
+        }
+
+        function updateErrorSummary(data) {
+            document.getElementById('totalErrorsLoi').textContent = data.summary.totalErrors.toLocaleString();
+            document.getElementById('todayErrorsLoi').textContent = data.summary.todayErrors.toLocaleString();
+            document.getElementById('topErrorPositionLoi').textContent = data.summary.topPosition;
+
+            // Hiển thị tỷ lệ lỗi với 2 chữ số thập phân
+            document.getElementById('avgErrorRateLoi').textContent = data.summary.avgErrorRate.toFixed(2) + '%';
+        }
+
+        function updateErrorPieChart(data) {
+            if (charts.chartLoiPie) {
+                charts.chartLoiPie.destroy();
+            }
+
+            const ctx = document.getElementById('chartLoiPie').getContext('2d');
+            charts.chartLoiPie = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: data.pieLabels,
+                    datasets: [{
+                        data: data.pieData,
+                        backgroundColor: [
+                            '#ef4444',  // Phôi - Đỏ
+                            '#f97316',  // PKY - Cam
+                            '#22c55e',  // PSX - Xanh lá
+                            '#3b82f6'   // PKT - Xanh dương
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 40,    // TĂNG PADDING ĐỂ TẠO KHÔNG GIAN CHO LABELS
+                            bottom: 40,
+                            left: 40,
+                            right: 40
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false // TẮT LEGEND MẶC ĐỊNH
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function (context) {
+                                    return 'Vị trí: ' + context[0].label;
+                                },
+                                label: function (context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? Math.round((context.raw / total) * 100) : 0;
+                                    return [
+                                        'Số lỗi phân bổ: ' + context.raw,
+                                        'Tỷ lệ: ' + percentage + '%',
+                                        '(Đã chia đều cho các vị trí chung)'
+                                    ];
+                                }
+                            }
+                        }
+                    }
+                },
+                plugins: [{
+                    afterDraw: function (chart) {
+                        const ctx = chart.ctx;
+                        const data = chart.data;
+                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
+
+                        const chartArea = chart.chartArea;
+                        const centerX = (chartArea.left + chartArea.right) / 2;
+                        const centerY = (chartArea.top + chartArea.bottom) / 2;
+                        const radius = Math.min(chartArea.right - chartArea.left, chartArea.bottom - chartArea.top) / 2.5; // GIẢM THÊM RADIUS
+
+                        const colors = ['#ef4444', '#f97316', '#22c55e', '#3b82f6'];
+
+                        data.labels.forEach((label, index) => {
+                            const value = data.datasets[0].data[index];
+                            const percentage = total > 0 ? Math.round((value / total) * 100) : 0;
+
+                            // Tính góc cho mỗi segment
+                            let startAngle = -Math.PI / 2; // Bắt đầu từ 12 giờ
+                            for (let i = 0; i < index; i++) {
+                                startAngle += (data.datasets[0].data[i] / total) * 2 * Math.PI;
+                            }
+                            const endAngle = startAngle + (value / total) * 2 * Math.PI;
+                            const midAngle = (startAngle + endAngle) / 2;
+
+                            // Tính vị trí cho label - ĐIỀU CHỈNH KHOẢNG CÁCH
+                            const labelRadius = radius + 50; // GIẢM KHOẢNG CÁCH TỪ 60 XUỐNG 50
+                            const labelX = centerX + Math.cos(midAngle) * labelRadius;
+                            const labelY = centerY + Math.sin(midAngle) * labelRadius;
+
+                            // Vẽ đường nối
+                            ctx.beginPath();
+                            ctx.moveTo(centerX + Math.cos(midAngle) * radius, centerY + Math.sin(midAngle) * radius);
+                            ctx.lineTo(labelX - (Math.cos(midAngle) > 0 ? 8 : -8), labelY); // GIẢM OFFSET TỪ 10 XUỐNG 8
+                            ctx.strokeStyle = colors[index];
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+
+                            // Vẽ text với background
+                            const text = `${label}: ${percentage}%`;
+                            ctx.font = 'bold 10px Arial'; // GIẢM FONT SIZE TỪ 11px XUỐNG 10px
+                            ctx.textAlign = Math.cos(midAngle) > 0 ? 'left' : 'right';
+
+                            // Vẽ background cho text
+                            const textMetrics = ctx.measureText(text);
+                            const textWidth = textMetrics.width + 6; // GIẢM PADDING TỪ 8 XUỐNG 6
+                            const textHeight = 14; // GIẢM HEIGHT TỪ 16 XUỐNG 14
+                            const bgX = Math.cos(midAngle) > 0 ? labelX - 3 : labelX - textWidth + 3; // GIẢM OFFSET
+                            const bgY = labelY - textHeight / 2;
+
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                            ctx.fillRect(bgX, bgY, textWidth, textHeight);
+
+                            // Vẽ text
+                            ctx.fillStyle = colors[index];
+                            ctx.fillText(text, labelX, labelY + 2); // GIẢM OFFSET TỪ 3 XUỐNG 2
+                        });
+                    }
+                }]
+            });
+        }
+
+        function updateErrorLineChart(data) {
+            if (charts.chartLoiLine) {
+                charts.chartLoiLine.destroy();
+            }
+
+            const ctx = document.getElementById('chartLoiLine').getContext('2d');
+            charts.chartLoiLine = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.lineLabels,
+                    datasets: [{
+                        label: 'Số lượng lỗi',
+                        data: data.lineData,
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateErrorTable(data) {
+            const tbody = document.getElementById('tableLoi');
+            tbody.innerHTML = '';
+
+            data.tableData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+
+                const percentageClass = row.percentage >= 20 ? 'text-red-600 font-bold' :
+                    row.percentage >= 10 ? 'text-orange-600 font-medium' : 'text-gray-600';
+
+                tr.innerHTML = `
+                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.rank}</td>
+                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.errorCode}</td>
+                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">${row.count}</td>
+                   <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">${row.positions}</td>
+                   <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">${row.handlers}</td>
+                   <td class="px-6 py-4 whitespace-nowrap text-sm ${percentageClass}">${row.percentage}%</td>
+               `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ========== POLISHING REPORT ==========
+        function loadPolishingReport() {
+            const filters = {
+                dateFrom: document.getElementById('dateFromDB').value,
+                dateTo: document.getElementById('dateToDB').value,
+                dateField: 'ngay_tao',
+                ca_lam_viec: document.getElementById('shiftDB').value // THÊM DÒNG NÀY
+            };
+
+            const filteredData = filterData(globalData.dataPolishing, filters);
+            const processedData = processPolishingData(filteredData);
+
+            updatePolishingSummary(processedData);
+            updatePolishingChart(processedData);
+            updatePolishingTable(processedData);
+        }
+
+        function processPolishingData(data) {
+            const selectedShift = document.getElementById('shiftDB').value; // THÊM MỚI
+
+            // THÊM LOGIC LỌC CA LÀM VIỆC
+            let filteredData = data;
+            if (selectedShift) {
+                filteredData = data.filter(item => {
+                    const itemShift = item.ca_lam_viec ? item.ca_lam_viec.toString().trim() : '';
+                    return itemShift === selectedShift;
+                });
+            }
+
+            const processedData = {
+                labels: [],
+                actualData: [],
+                tableData: [],
+                summary: {
+                    totalProduction: 0,
+                    avgTime: 0,
+                    efficiency: 0
+                }
+            };
+
+            // Group by date hoặc shift tùy theo filter
+            const dateGroups = {};
+
+            if (selectedShift) {
+                // Nếu có lọc ca - nhóm theo ngày trong ca đó
+                filteredData.forEach(item => {
+                    const date = item.ngay_tao ? item.ngay_tao.toString().split('T')[0] : '';
+                    const groupKey = `${date}_${item.ca_lam_viec || 'Unknown'}`;
+
+                    if (!dateGroups[groupKey]) {
+                        dateGroups[groupKey] = {
+                            production: 0,
+                            actualTime: 0,
+                            items: [],
+                            shift: item.ca_lam_viec || 'Không xác định',
+                            date: date
+                        };
+                    }
+                    dateGroups[groupKey].production += parseInt(item.sl_thuc_te || 0);
+                    dateGroups[groupKey].actualTime += parseFloat(item.Thoi_Gian_Thuc_Te || 0);
+                    dateGroups[groupKey].items.push(item);
+                });
+            } else {
+                // Nếu không lọc ca - nhóm theo ngày
+                filteredData.forEach(item => {
+                    const date = item.ngay_tao ? item.ngay_tao.toString().split('T')[0] : '';
+                    if (!dateGroups[date]) {
+                        dateGroups[date] = {
+                            production: 0,
+                            actualTime: 0,
+                            items: []
+                        };
+                    }
+                    dateGroups[date].production += parseInt(item.sl_thuc_te || 0);
+                    dateGroups[date].actualTime += parseFloat(item.Thoi_Gian_Thuc_Te || 0);
+                    dateGroups[date].items.push(item);
+                });
+            }
+
+            // Sort dates and prepare chart data
+            const sortedKeys = Object.keys(dateGroups).sort();
+
+            if (selectedShift) {
+                // Hiển thị theo ca + ngày
+                processedData.labels = sortedKeys.map(key => {
+                    const group = dateGroups[key];
+                    const date = new Date(group.date);
+                    return `${date.toLocaleDateString('vi-VN')} (${group.shift})`;
+                });
+            } else {
+                // Hiển thị theo ngày
+                processedData.labels = sortedKeys.map(date => {
+                    const d = new Date(date);
+                    return d.toLocaleDateString('vi-VN');
+                });
+            }
+
+            sortedKeys.forEach(key => {
+                const group = dateGroups[key];
+                processedData.actualData.push(group.production);
+            });
+
+            // Prepare table data
+            filteredData.forEach(item => {
+                const actualTime = parseFloat(item.Thoi_Gian_Thuc_Te || 0);
+                const theoreticalTime = parseFloat(item.hoan_thanh_dk || 0);
+                const efficiency = theoreticalTime > 0 && actualTime > 0 ?
+                    Math.round((theoreticalTime / actualTime) * 100) : 0;
+
+                processedData.tableData.push({
+                    date: item.ngay_tao ? new Date(item.ngay_tao).toLocaleDateString('vi-VN') : '-',
+                    maCV: item.ma_cv || '-',
+                    tenChiTiet: item.ten_chi_tiet || '-',
+                    shift: item.ca_lam_viec || '-', // THÊM CA LÀM VIỆC
+                    production: parseInt(item.sl_thuc_te || 0),
+                    actualTime: actualTime,
+                    theoreticalTime: theoreticalTime,
+                    efficiency: efficiency,
+                    note: item.giai_trinh || '-' // Thêm trường ghi chú
+                });
+            });
+
+            // SẮP XẾP THEO NGÀY MỚI NHẤT LEN ĐẦU
+            processedData.tableData.sort((a, b) => {
+                // Chuyển đổi ngày VN về Date để so sánh
+                const parseVietnameseDate = (dateStr) => {
+                    if (dateStr === '-') return new Date(0);
+                    const parts = dateStr.split('/');
+                    if (parts.length === 3) {
+                        // Định dạng dd/mm/yyyy
+                        return new Date(parts[2], parts[1] - 1, parts[0]);
+                    }
+                    return new Date(dateStr);
+                };
+
+                const dateA = parseVietnameseDate(a.date);
+                const dateB = parseVietnameseDate(b.date);
+
+                return dateB - dateA; // Sắp xếp giảm dần (mới nhất lên đầu)
+            });
+
+            // Calculate summary
+            processedData.summary.totalProduction = filteredData.reduce((sum, item) => sum + parseInt(item.sl_thuc_te || 0), 0);
+            processedData.summary.avgTime = filteredData.length > 0 ?
+                filteredData.reduce((sum, item) => sum + parseFloat(item.Thoi_Gian_Thuc_Te || 0), 0) / filteredData.length : 0;
+
+            const totalEfficiency = processedData.tableData.reduce((sum, item) => sum + item.efficiency, 0);
+            processedData.summary.efficiency = processedData.tableData.length > 0 ?
+                Math.round(totalEfficiency / processedData.tableData.length) : 0;
+
+            return processedData;
+        }
+
+        function updatePolishingSummary(data) {
+            document.getElementById('totalProductionDB').textContent = data.summary.totalProduction.toLocaleString();
+            document.getElementById('avgTimeDB').textContent = data.summary.avgTime.toFixed(1) + ' phút';
+            document.getElementById('efficiencyDB').textContent = data.summary.efficiency + '%';
+        }
+
+        function updatePolishingChart(data) {
+            if (charts.chartDB) {
+                charts.chartDB.destroy();
+            }
+
+            const ctx = document.getElementById('chartDB').getContext('2d');
+            charts.chartDB = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Sản lượng thực tế',
+                            data: data.actualData,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updatePolishingTable(data) {
+            const tbody = document.getElementById('tableDB');
+            tbody.innerHTML = '';
+
+            data.tableData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+
+                const efficiencyClass = row.efficiency >= 100 ? 'text-green-600' :
+                    row.efficiency >= 80 ? 'text-yellow-600' : 'text-red-600';
+
+                // Xử lý ghi chú - giới hạn độ dài hiển thị
+                const noteDisplay = row.note && row.note !== '-' ?
+                    (row.note.length > 50 ? row.note.substring(0, 50) + '...' : row.note) : '-';
+
+                // THÊM HIỂN THỊ CA LÀM VIỆC
+                const shiftDisplay = row.shift || '-';
+
+                tr.innerHTML = `
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.date}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.maCV}</td>
+           <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">${row.tenChiTiet}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${shiftDisplay}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.production.toLocaleString()}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.actualTime.toFixed(1)} phút</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.theoreticalTime.toFixed(1)} phút</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${efficiencyClass}">${row.efficiency}%</td>
+           <td class="px-6 py-4 text-sm text-gray-500 max-w-xs" title="${row.note}">${noteDisplay}</td>
+       `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ========== RECEIVE REPORT ==========
+        function loadReceiveReport() {
+            const filters = {
+                dateFrom: document.getElementById('dateFromHN').value,
+                dateTo: document.getElementById('dateToHN').value,
+                dateField: 'ngay_nhan'
+            };
+
+            const period = document.getElementById('periodHN').value;
+            const filteredData = filterData(globalData.dataReceive, filters);
+            const processedData = processReceiveData(filteredData, period);
+
+            updateReceiveSummary(processedData);
+            updateReceiveChart(processedData);
+            updateReceiveTable(processedData);
+        }
+
+        function processReceiveData(data, period) {
+            const processedData = {
+                labels: [],
+                receiveData: [],
+                tableData: [],
+                summary: {
+                    totalReceive: 0,
+                    avgDaily: 0,
+                    maxDay: '',
+                    growth: 0
+                }
+            };
+
+            // Group data by period
+            const groups = {};
+            data.forEach(item => {
+                const date = item.ngay_nhan ? item.ngay_nhan.toString().split('T')[0] : '';
+                let groupKey = date;
+
+                if (period === 'weekly') {
+                    const d = new Date(date);
+                    const weekStart = new Date(d.setDate(d.getDate() - d.getDay()));
+                    groupKey = weekStart.toISOString().split('T')[0];
+                } else if (period === 'monthly') {
+                    groupKey = date.substring(0, 7); // YYYY-MM
+                }
+
+                if (!groups[groupKey]) {
+                    groups[groupKey] = {
+                        quantity: 0,
+                        date: date
+                    };
+                }
+                groups[groupKey].quantity += parseInt(item.sl_nhan || 0);
+            });
+
+            // Sort and prepare chart data
+            const sortedKeys = Object.keys(groups).sort();
+            processedData.labels = sortedKeys.map(key => {
+                if (period === 'weekly') {
+                    const d = new Date(key);
+                    return `Tuần ${Math.ceil((d.getDate()) / 7)} - ${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+                } else if (period === 'monthly') {
+                    const [year, month] = key.split('-');
+                    return `${month}/${year}`;
+                } else {
+                    const d = new Date(key);
+                    return d.toLocaleDateString('vi-VN');
+                }
+            });
+
+            processedData.receiveData = sortedKeys.map(key => groups[key].quantity);
+
+            // Prepare table data
+            const dailyData = {};
+            data.forEach(item => {
+                const date = item.ngay_nhan ? item.ngay_nhan.toString().split('T')[0] : '';
+                if (!dailyData[date]) {
+                    dailyData[date] = 0;
+                }
+                dailyData[date] += parseInt(item.sl_nhan || 0);
+            });
+
+            // SẮP XẾP THEO NGÀY MỚI NHẤT LEN ĐẦU
+            const sortedDates = Object.keys(dailyData).sort((a, b) => new Date(b) - new Date(a));
+
+            processedData.tableData = sortedDates.map((date, index) => {
+                const quantity = dailyData[date];
+                let change = 0;
+                let changePercent = 0;
+                let prevQuantity = 0;
+
+                // TÌM NGÀY LIỀN KỀ TRƯỚC ĐÓ TRONG DANH SÁCH (không phải theo lịch)
+                if (index < sortedDates.length - 1) {
+                    const prevDate = sortedDates[index + 1]; // Ngày trước đó trong danh sách đã sắp xếp
+                    prevQuantity = dailyData[prevDate] || 0;
+                    change = quantity - prevQuantity;
+                    changePercent = prevQuantity > 0 ? Math.round((change / prevQuantity) * 100) : 0;
+                }
+
+                return {
+                    date: new Date(date).toLocaleDateString('vi-VN'),
+                    quantity: quantity,
+                    change: change,
+                    changePercent: changePercent,
+                    sortDate: date
+                };
+            });
+
+            // Calculate summary
+            processedData.summary.totalReceive = Object.values(dailyData).reduce((sum, qty) => sum + qty, 0);
+            processedData.summary.avgDaily = sortedDates.length > 0 ?
+                Math.round(processedData.summary.totalReceive / sortedDates.length) : 0;
+
+            // Find max day
+            const maxQuantity = Math.max(...Object.values(dailyData));
+            const maxDate = Object.keys(dailyData).find(date => dailyData[date] === maxQuantity);
+            processedData.summary.maxDay = maxDate ? new Date(maxDate).toLocaleDateString('vi-VN') : '-';
+
+            // Calculate growth (compare first and last period)
+            if (processedData.receiveData.length >= 2) {
+                const firstPeriod = processedData.receiveData[0];
+                const lastPeriod = processedData.receiveData[processedData.receiveData.length - 1];
+                processedData.summary.growth = firstPeriod > 0 ?
+                    Math.round(((lastPeriod - firstPeriod) / firstPeriod) * 100) : 0;
+            }
+
+            return processedData;
+        }
+
+        function updateReceiveSummary(data) {
+            document.getElementById('totalReceiveHN').textContent = data.summary.totalReceive.toLocaleString();
+            document.getElementById('avgDailyHN').textContent = data.summary.avgDaily.toLocaleString();
+            document.getElementById('maxDayHN').textContent = data.summary.maxDay;
+
+            const growthElement = document.getElementById('growthHN');
+            growthElement.textContent = (data.summary.growth >= 0 ? '+' : '') + data.summary.growth + '%';
+            growthElement.className = data.summary.growth >= 0 ? 'text-2xl font-bold text-green-600' : 'text-2xl font-bold text-red-600';
+        }
+
+        function updateReceiveChart(data) {
+            if (charts.chartHN) {
+                charts.chartHN.destroy();
+            }
+
+            const ctx = document.getElementById('chartHN').getContext('2d');
+            charts.chartHN = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Số lượng hàng nhận',
+                        data: data.receiveData,
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#22c55e',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + context.raw.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateReceiveTable(data) {
+            const tbody = document.getElementById('tableHN');
+            tbody.innerHTML = '';
+
+            data.tableData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+
+                const changeClass = row.change > 0 ? 'text-green-600' :
+                    row.change < 0 ? 'text-red-600' : 'text-gray-500';
+                const changeIcon = row.change > 0 ? '↗' : row.change < 0 ? '↘' : '→';
+
+                tr.innerHTML = `
+                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.date}</td>
+                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.quantity.toLocaleString()}</td>
+                   <td class="px-6 py-4 whitespace-nowrap text-sm ${changeClass}">${changeIcon} ${Math.abs(row.change).toLocaleString()}</td>
+                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${changeClass}">${row.changePercent}%</td>
+               `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ========== DELIVERY REPORT ==========
+        function loadDeliveryReport() {
+            const filters = {
+                dateFrom: document.getElementById('dateFromHG').value,
+                dateTo: document.getElementById('dateToHG').value,
+                dateField: 'ngay_dong_goi'
+            };
+
+            const period = document.getElementById('periodHG').value;
+            const filteredData = filterData(globalData.dataDelivery, filters);
+            const processedData = processDeliveryData(filteredData, period);
+
+            updateDeliverySummary(processedData);
+            updateDeliveryChart(processedData);
+            updateDeliveryTable(processedData);
+        }
+
+        function processDeliveryData(data, period) {
+            const processedData = {
+                labels: [],
+                deliveryData: [],
+                tableData: [],
+                summary: {
+                    totalDelivery: 0,
+                    avgDaily: 0,
+                    maxDay: '',
+                    growth: 0
+                }
+            };
+
+            // Group data by period
+            const groups = {};
+            data.forEach(item => {
+                const date = item.ngay_dong_goi ? item.ngay_dong_goi.toString().split('T')[0] : '';
+                let groupKey = date;
+
+                if (period === 'weekly') {
+                    const d = new Date(date);
+                    const weekStart = new Date(d.setDate(d.getDate() - d.getDay()));
+                    groupKey = weekStart.toISOString().split('T')[0];
+                } else if (period === 'monthly') {
+                    groupKey = date.substring(0, 7); // YYYY-MM
+                }
+
+                if (!groups[groupKey]) {
+                    groups[groupKey] = {
+                        quantity: 0,
+                        date: date
+                    };
+                }
+                groups[groupKey].quantity += parseInt(item.sll || 0);
+            });
+
+            // Sort and prepare chart data
+            const sortedKeys = Object.keys(groups).sort();
+            processedData.labels = sortedKeys.map(key => {
+                if (period === 'weekly') {
+                    const d = new Date(key);
+                    return `Tuần ${Math.ceil((d.getDate()) / 7)} - ${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+                } else if (period === 'monthly') {
+                    const [year, month] = key.split('-');
+                    return `${month}/${year}`;
+                } else {
+                    const d = new Date(key);
+                    return d.toLocaleDateString('vi-VN');
+                }
+            });
+
+            processedData.deliveryData = sortedKeys.map(key => groups[key].quantity);
+
+            // Prepare table data
+            const dailyData = {};
+            data.forEach(item => {
+                const date = item.ngay_dong_goi ? item.ngay_dong_goi.toString().split('T')[0] : '';
+                if (!dailyData[date]) {
+                    dailyData[date] = 0;
+                }
+                dailyData[date] += parseInt(item.sll || 0);
+            });
+
+            // SẮP XẾP THEO NGÀY MỚI NHẤT LEN ĐẦU
+            const sortedDates = Object.keys(dailyData).sort((a, b) => new Date(b) - new Date(a));
+
+            processedData.tableData = sortedDates.map((date, index) => {
+                const quantity = dailyData[date];
+                let change = 0;
+                let changePercent = 0;
+                let prevQuantity = 0;
+
+                // TÌM NGÀY LIỀN KỀ TRƯỚC ĐÓ TRONG DANH SÁCH (không phải theo lịch)
+                if (index < sortedDates.length - 1) {
+                    const prevDate = sortedDates[index + 1]; // Ngày trước đó trong danh sách đã sắp xếp
+                    prevQuantity = dailyData[prevDate] || 0;
+                    change = quantity - prevQuantity;
+                    changePercent = prevQuantity > 0 ? Math.round((change / prevQuantity) * 100) : 0;
+                }
+
+                return {
+                    date: new Date(date).toLocaleDateString('vi-VN'),
+                    quantity: quantity,
+                    change: change,
+                    changePercent: changePercent,
+                    sortDate: date
+                };
+            });
+
+            // Calculate summary
+            processedData.summary.totalDelivery = Object.values(dailyData).reduce((sum, qty) => sum + qty, 0);
+            processedData.summary.avgDaily = sortedDates.length > 0 ?
+                Math.round(processedData.summary.totalDelivery / sortedDates.length) : 0;
+
+            // Find max day
+            const maxQuantity = Math.max(...Object.values(dailyData));
+            const maxDate = Object.keys(dailyData).find(date => dailyData[date] === maxQuantity);
+            processedData.summary.maxDay = maxDate ? new Date(maxDate).toLocaleDateString('vi-VN') : '-';
+
+            // Calculate growth (compare first and last period)
+            if (processedData.deliveryData.length >= 2) {
+                const firstPeriod = processedData.deliveryData[0];
+                const lastPeriod = processedData.deliveryData[processedData.deliveryData.length - 1];
+                processedData.summary.growth = firstPeriod > 0 ?
+                    Math.round(((lastPeriod - firstPeriod) / firstPeriod) * 100) : 0;
+            }
+
+            return processedData;
+        }
+
+        function updateDeliverySummary(data) {
+            document.getElementById('totalDeliveryHG').textContent = data.summary.totalDelivery.toLocaleString();
+            document.getElementById('avgDailyHG').textContent = data.summary.avgDaily.toLocaleString();
+            document.getElementById('maxDayHG').textContent = data.summary.maxDay;
+
+            const growthElement = document.getElementById('growthHG');
+            growthElement.textContent = (data.summary.growth >= 0 ? '+' : '') + data.summary.growth + '%';
+            growthElement.className = data.summary.growth >= 0 ? 'text-2xl font-bold text-green-600' : 'text-2xl font-bold text-red-600';
+        }
+
+        function updateDeliveryChart(data) {
+            if (charts.chartHG) {
+                charts.chartHG.destroy();
+            }
+
+            const ctx = document.getElementById('chartHG').getContext('2d');
+            charts.chartHG = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Số lượng hàng giao',
+                        data: data.deliveryData,
+                        borderColor: '#f97316',
+                        backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#f97316',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + context.raw.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateDeliveryTable(data) {
+            const tbody = document.getElementById('tableHG');
+            tbody.innerHTML = '';
+
+            data.tableData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
+
+                const changeClass = row.change > 0 ? 'text-green-600' :
+                    row.change < 0 ? 'text-red-600' : 'text-gray-500';
+                const changeIcon = row.change > 0 ? '↗' : row.change < 0 ? '↘' : '→';
+
+                tr.innerHTML = `
+                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.date}</td>
+                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.quantity.toLocaleString()}</td>
+                   <td class="px-6 py-4 whitespace-nowrap text-sm ${changeClass}">${changeIcon} ${Math.abs(row.change).toLocaleString()}</td>
+                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${changeClass}">${row.changePercent}%</td>
+               `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ========== FILTER FUNCTIONS ==========
+        function applyFilter3D() {
+            load3DReport();
+        }
+
+        function resetFilter3D() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            document.getElementById('dateFrom3d').value = yesterdayStr;
+            document.getElementById('dateTo3d').value = yesterdayStr;
+            document.getElementById('machine3d').value = '';
+            document.getElementById('shift3d').value = ''; // Reset ca làm việc
+            load3DReport();
+        }
+
+        function applyFilterSL() {
+            loadProductionReport();
+        }
+
+        function resetFilterSL() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            document.getElementById('dateFromSL').value = yesterdayStr;
+            document.getElementById('dateToSL').value = yesterdayStr;
+            document.getElementById('groupSL').value = '';
+            document.getElementById('teamSL').value = '';
+            document.getElementById('shiftSL').value = ''; // THÊM DÒNG NÀY
+            loadProductionReport();
+        }
+
+        function applyFilterLoi() {
+            loadErrorReport();
+        }
+
+        function resetFilterLoi() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            document.getElementById('dateFromLoi').value = yesterdayStr;
+            document.getElementById('dateToLoi').value = yesterdayStr;
+            document.getElementById('positionLoi').value = '';
+            loadErrorReport();
+        }
+
+        function applyFilterDB() {
+            loadPolishingReport();
+        }
+
+        function resetFilterDB() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            document.getElementById('dateFromDB').value = yesterdayStr;
+            document.getElementById('dateToDB').value = yesterdayStr;
+            document.getElementById('shiftDB').value = ''; // THÊM DÒNG NÀY
+            loadPolishingReport();
+        }
+
+        function applyFilterHN() {
+            loadReceiveReport();
+        }
+
+        function resetFilterHN() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            document.getElementById('dateFromHN').value = yesterdayStr;
+            document.getElementById('dateToHN').value = yesterdayStr;
+            document.getElementById('periodHN').value = 'daily';
+            loadReceiveReport();
+        }
+
+        function applyFilterHG() {
+            loadDeliveryReport();
+        }
+
+        function resetFilterHG() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            document.getElementById('dateFromHG').value = yesterdayStr;
+            document.getElementById('dateToHG').value = yesterdayStr;
+            document.getElementById('periodHG').value = 'daily';
+            loadDeliveryReport();
+        }
+
+        // ========== INITIALIZATION ==========
+        document.addEventListener('DOMContentLoaded', async function () {
+            // Set default dates - Ngày hôm qua
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+            // Set dates for all reports - Mặc định là ngày hôm qua
+            document.getElementById('dateFrom3d').value = yesterdayStr;
+            document.getElementById('dateTo3d').value = yesterdayStr;
+
+            document.getElementById('dateFromSL').value = yesterdayStr;
+            document.getElementById('dateToSL').value = yesterdayStr;
+
+            document.getElementById('dateFromLoi').value = yesterdayStr;
+            document.getElementById('dateToLoi').value = yesterdayStr;
+
+            document.getElementById('dateFromDB').value = yesterdayStr;
+            document.getElementById('dateToDB').value = yesterdayStr;
+
+            document.getElementById('dateFromHN').value = yesterdayStr;
+            document.getElementById('dateToHN').value = yesterdayStr;
+
+            document.getElementById('dateFromHG').value = yesterdayStr;
+            document.getElementById('dateToHG').value = yesterdayStr;
+
+            // Load all data once at startup
+            await loadAllData();
+
+            // Show first report by default
+            load3DReport();
+
+            // Welcome message
+            showToast('Hệ thống đã sẵn sàng! Tất cả dữ liệu đã được tải.');
+        });
+
+        // Export functions (optional)
+        window.exportToExcel = function (reportType) {
+            showToast('Chức năng xuất Excel đang được phát triển', 'warning');
+        };
+
+        window.exportToPDF = function (reportType) {
+            showToast('Chức năng xuất PDF đang được phát triển', 'warning');
+        };
+
+        window.printReport = function () {
+            window.print();
+        };
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey) {
+                switch (e.key) {
+                    case '1':
+                        e.preventDefault();
+                        document.querySelector('[onclick*="may3d"]').click();
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        document.querySelector('[onclick*="sanluong"]').click();
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        document.querySelector('[onclick*="loi"]').click();
+                        break;
+                    case 'r':
+                        e.preventDefault();
+                        refreshAllData();
+                        break;
+                }
+            }
+        });
+
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        }, false);
+
+        document.onkeydown = function (e) {
+            if (e.keyCode == 123) {
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+                return false;
+            }
+            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+                return false;
+            }
+        };
+
+    </script>
+
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Hide scrollbar but keep functionality */
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+            /* Chrome, Safari and Opera */
+        }
+
+        /* Smooth scrolling for tabs */
+        nav {
+            scroll-behavior: smooth;
+        }
+
+        /* Optional: Add scroll indicators */
+        @media (max-width: 1024px) {
+            .container.mx-auto {
+                position: relative;
+            }
+
+            .container.mx-auto::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 20px;
+                height: 100%;
+                background: linear-gradient(to left, rgba(255, 255, 255, 0.8), transparent);
+                pointer-events: none;
+            }
+        }
+
+        /* Ensure tabs don't shrink */
+        .tab-btn {
+            min-width: fit-content;
+        }
+
+        /* Print styles */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            .report-section {
+                page-break-inside: avoid;
+            }
+
+            .bg-white {
+                background: white !important;
+            }
+        }
+
+        /* Animation for loading */
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Responsive table */
+        @media (max-width: 768px) {
+            .overflow-x-auto table {
+                font-size: 12px;
+            }
+
+            .overflow-x-auto th,
+            .overflow-x-auto td {
+                padding: 8px 12px;
+            }
+        }
+
+        /* Responsive cho 3 biểu đồ */
+        @media (max-width: 1024px) {
+            .grid.lg\:grid-cols-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 1024px) and (max-width: 1280px) {
+            .grid.lg\:grid-cols-3>div:last-child {
+                grid-column: 1 / -1;
+                /* Biểu đồ thứ 3 sẽ chiếm full width trên màn hình vừa */
+            }
+        }
+
+        /* Chart container responsive */
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+
+        /* Tab active indicator */
+        .tab-btn.active {
+            position: relative;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+        }
+
+        /* Loading overlay improvement */
+        #loading {
+            backdrop-filter: blur(4px);
+        }
+
+        /* Filter section enhancement */
+        .bg-gray-50 {
+            border-left: 4px solid #3b82f6;
+        }
+
+        /* Summary cards hover effect */
+        .bg-blue-100:hover,
+        .bg-green-100:hover,
+        .bg-red-100:hover,
+        .bg-yellow-100:hover,
+        .bg-purple-100:hover,
+        .bg-orange-100:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+    </style>
+</body>
+
+</html>
