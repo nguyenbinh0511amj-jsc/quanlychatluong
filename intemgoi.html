@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh sách đơn hàng</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                background: white;
+                font-family: "Times New Roman", Times, serif;
+            }
+
+            @page {
+                size: A4;
+                margin: 1.5mm;
+            }
+
+            .print-page {
+                page-break-after: always;
+            }
+
+            .print-container {
+                display: block !important;
+            }
+
+            .print-row {
+                display: flex;
+                flex-wrap: nowrap;
+                margin-bottom: 1px;
+            }
+
+            .print-item {
+                width: 60mm;
+                height: 14mm;
+                border: 2px solid black !important;
+                margin: 1px;
+                padding: 0;
+            }
+
+            /* Tem có dòng đánh bóng sẽ cao hơn */
+            .print-item.has-danh-bong {
+                height: 21mm;
+            }
+
+            .label-content {
+                width: 100%;
+                height: 100%;
+            }
+
+            .text-column {
+                width: 100%;
+                height: 100%;
+            }
+
+            .label-table {
+                width: 100%;
+                height: 100%;
+                table-layout: fixed;
+            }
+
+            /* Cho tem bình thường (2 dòng) */
+            .label-table.normal tr {
+                height: 50%;
+            }
+
+            /* Cho tem có đánh bóng (3 dòng) */
+            .label-table.has-danh-bong tr:nth-child(1) {
+                height: 38%;
+            }
+            .label-table.has-danh-bong tr:nth-child(2) {
+                height: 38%;
+            }
+            .label-table.has-danh-bong tr:nth-child(3) {
+                height: 24%;
+            }
+
+            .sizeso1 {
+                font-size: 14px;
+            }
+
+            .sizeten {
+                font-size: 12px;
+            }
+
+            .sizeso2 {
+                font-size: 14px;
+            }
+
+            .sizeso3 {
+                font-size: 16px;
+            }
+
+            .table-cell {
+                font-weight: bold;
+                white-space: nowrap;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
+                line-height: 1;
+            }
+
+            .left-cell {
+                width: 15mm !important;
+                border-right: 1px solid rgba(179, 176, 176, 0.911);
+                overflow: hidden;
+                white-space: nowrap;
+            }
+
+            .auto-size {
+                white-space: nowrap;
+                overflow: hidden;
+                width: 45mm;
+                height: 6.5mm;
+            }
+
+            .text-center {
+                text-align: center;
+            }
+
+            tr:first-child .table-cell {
+                border-bottom: 1px solid rgba(179, 176, 176, 0.911);
+                width: 100%;
+            }
+
+            tr:nth-child(2) .table-cell {
+                border-bottom: 1px solid rgba(179, 176, 176, 0.911);
+                width: 100%;
+            }
+
+            /* Style cho dòng đánh bóng */
+            .danh-bong-text {
+                font-size: 14px !important;
+                font-weight: bold;
+                white-space: nowrap;
+                height: 6.5mm;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            .sticky-container,
+            .sticky-header,
+            .sticky-pagination {
+                position: static;
+                border: none;
+            }
+        }
+
+        @media screen and (max-width: 768px) {
+
+            .table-responsive {
+                overflow-x: auto;
+                width: 100%;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            table {
+                min-width: 800px;
+            }
+
+            td,
+            th {
+                padding: 0.5rem !important;
+            }
+
+            .mobile-header {
+                padding: 0.75rem !important;
+            }
+
+            .mobile-header h1 {
+                font-size: 1.25rem !important;
+            }
+
+            .qr-mobile {
+                width: 64px !important;
+                height: 64px !important;
+            }
+
+            .pagination-info {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: center;
+                padding: 1rem 0;
+            }
+
+            .pagination-container {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                padding: 0.5rem 0;
+            }
+
+            .pagination-wrapper {
+                display: flex;
+                justify-content: center;
+                min-width: max-content;
+                gap: 0.25rem;
+            }
+
+            .pagination-button {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.875rem;
+            }
+
+            .pagination-text {
+                text-align: center;
+                white-space: nowrap;
+            }
+
+            .sticky-pagination {
+                top: 160px;
+            }
+        }
+
+        /* Sticky styles */
+        .sticky-container {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            background-color: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            background-color: white;
+            padding: 1rem;
+        }
+
+        .sticky-pagination {
+            position: sticky;
+            top: 100px;
+            z-index: 30;
+            background-color: white;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .content-wrapper {
+            padding-top: 1rem;
+        }
+
+        .spacing-buffer {
+            height: 1px;
+            background: transparent;
+        }
+
+        /* Pagination styles */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pagination-wrapper {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .pagination-button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.375rem;
+            background-color: white;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 2.5rem;
+            text-align: center;
+            line-height: 1;
+        }
+
+        .pagination-button:hover {
+            background-color: #f7fafc;
+        }
+
+        .pagination-button.active {
+            background-color: #4299e1;
+            color: white;
+            border-color: #4299e1;
+        }
+
+        .pagination-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #edf2f7;
+        }
+
+        /* Style cho indicator đánh bóng */
+        .danh-bong-indicator {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 6px;
+            font-size: 10px;
+            background-color: #fee2e2;
+            color: #dc2626;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    <div class="container mx-auto max-w-7xl no-print">
+        <!-- Sticky container for both header and pagination -->
+        <div class="sticky-container">
+            <!-- Sticky header -->
+            <div class="sticky-header">
+                <div
+                    class="flex flex-col md:flex-row justify-center items-center gap-4 bg-white p-4 rounded-lg shadow no-print mobile-header">
+                    <div class="flex flex-col md:flex-row gap-4 items-center w-full md:w-auto">
+                        <div class="relative w-full md:w-64">
+                            <input type="text" id="searchInput" placeholder="Tìm kiếm..."
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <span class="absolute right-3 top-2.5 text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm text-gray-600">Hiển thị</label>
+                            <select id="rowsPerPage" class="border rounded px-2 py-1" onchange="changeRowsPerPage()">
+                                <option value="50">50</option>
+                                <option value="250">250</option>
+                                <option value="500">500</option>
+                                <option value="1000">1000</option>
+                                <option value="-1">Tất cả</option>
+                            </select>
+                            <span class="text-sm text-gray-600">dòng</span>
+                        </div>
+                        <button id="printSelectedButton" onclick="printSelectedOrders()"
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full md:w-auto">
+                            In đã chọn
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sticky pagination -->
+            <div class="sticky-pagination">
+                <div class="px-4 pb-3 flex items-center justify-center border-gray-200 no-print bg-white">
+                    <div class="pagination-container">
+                        <div class="pagination-wrapper" id="pagination">
+                            <button class="pagination-button" onclick="goToPage('first')" id="firstPage">««</button>
+                            <button class="pagination-button" onclick="goToPage('prev')" id="prevPage">«</button>
+                            <div id="pageNumbers" class="flex gap-2"></div>
+                            <button class="pagination-button" onclick="goToPage('next')" id="nextPage">»</button>
+                            <button class="pagination-button" onclick="goToPage('last')" id="lastPage">»»</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="text-center py-8 no-print">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto"></div>
+            <p class="mt-4 text-gray-600 text-lg">Đang tải dữ liệu...</p>
+        </div>
+
+        <div id="tableContainer" class="hidden print:block">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden print:shadow-none">
+                <div class="table-responsive">
+                    <table class="min-w-full divide-y divide-gray-200 no-print">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-center w-12">
+                                    <input type="checkbox" id="selectAll" onclick="toggleSelectAll()"
+                                        style="transform: scale(1.5);" />
+                                </th>
+                                <th class="px-4 py-3 text-center w-16">STT</th>
+                                <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">
+                                    ORDER KD
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">
+                                    TÊN CHI TIẾT
+                                </th>
+                                <th class="px-4 py-3 text-right text-xs uppercase tracking-wider w-20">
+                                    SLL
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="orderTableBody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="printTemplate" class="hidden"></div>
+    </div>
+
+    <script>
+        const appId = '04a82add-ca65-43d2-876d-5564d1e9d921';
+        const accessKey = 'V2-ILllp-nmvuk-RaTjK-1Pyph-sGfmy-e2TJr-Z0w1l-rNQue';
+        const region = 'www';
+        const tableName = 'so_giao_nhan';
+        let originalData = [];
+        let currentPage = 1;
+        let itemsPerPage = 50;
+        let filteredData = [];
+        let danhBongData = []; // Dữ liệu từ bảng chi_tiet_danh_bong
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('tableContainer').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('tableContainer').style.display = 'block';
+        }
+
+        function changeRowsPerPage() {
+            itemsPerPage = parseInt(document.getElementById('rowsPerPage').value);
+            currentPage = 1;
+            renderTable(filteredData);
+        }
+
+        function calculateTotalPages(data) {
+            return Math.ceil(data.length / itemsPerPage);
+        }
+
+        function updatePaginationInfo(data) {
+            const totalPages = calculateTotalPages(data);
+
+            document.getElementById('firstPage').disabled = currentPage === 1;
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+            document.getElementById('lastPage').disabled = currentPage === totalPages;
+
+            const pageNumbers = document.getElementById('pageNumbers');
+            pageNumbers.innerHTML = '';
+
+            const isMobile = window.innerWidth <= 768;
+            const maxVisiblePages = isMobile ? 3 : 5;
+
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.className = `pagination-button ${i === currentPage ? 'active' : ''}`;
+                pageButton.textContent = i;
+                pageButton.onclick = () => goToPage(i);
+                pageNumbers.appendChild(pageButton);
+            }
+        }
+
+        // Thêm event listener cho resize window
+        window.addEventListener('resize', () => {
+            if (filteredData.length > 0) {
+                updatePaginationInfo(filteredData);
+            }
+        });
+
+        function goToPage(page) {
+            const totalPages = calculateTotalPages(filteredData);
+
+            switch (page) {
+                case 'first':
+                    currentPage = 1;
+                    break;
+                case 'prev':
+                    currentPage = Math.max(1, currentPage - 1);
+                    break;
+                case 'next':
+                    currentPage = Math.min(totalPages, currentPage + 1);
+                    break;
+                case 'last':
+                    currentPage = totalPages;
+                    break;
+                default:
+                    currentPage = parseInt(page);
+            }
+
+            renderTable(filteredData);
+        }
+
+        function filterTable() {
+            const searchText = document.getElementById('searchInput').value.toLowerCase();
+            filteredData = originalData.filter(order =>
+                order.order_kd?.toLowerCase().includes(searchText) ||
+                order.ten_chi_tiet?.toLowerCase().includes(searchText)
+            );
+            currentPage = 1;
+            renderTable(filteredData);
+        }
+
+        function adjustFontSize(element, type = 'detail') {
+            const text = element.textContent;
+            let fontSize;
+
+            if (type === 'orderKd') {
+                if (text.length <= 10) {
+                    fontSize = 10;
+                } else if (text.length <= 15) {
+                    fontSize = 9;
+                } else if (text.length <= 20) {
+                    fontSize = 7;
+                } else {
+                    fontSize = 6;
+                }
+            } else {
+                if (text.length < 25) {
+                    fontSize = 14;
+                } else if (text.length < 30) {
+                    fontSize = 9;
+                } else {
+                    fontSize = 8;
+                }
+            }
+
+            element.style.fontSize = fontSize + 'px';
+            element.style.fontWeight = 'bold';
+        }
+
+        function createLabelHTML(order, quantity) {
+            const labelQuantity = order.sl_tem_goi === 0 ? 0 : (parseInt(order.sl_tem_goi) || 1);
+            const unit = quantity === 1 ? 'PC' : 'PCS';
+            
+            // Kiểm tra xem có trong danh sách đánh bóng không
+            const isDanhBong = danhBongData.includes(order.ten_chi_tiet);
+            
+            return `
+                <div class="print-item ${isDanhBong ? 'has-danh-bong' : ''}">
+                    <div class="label-content">
+                        <div class="text-column">
+                            <table class="label-table ${isDanhBong ? 'has-danh-bong' : 'normal'}">
+                                <tr>
+                                    <td class="table-cell left-cell text-center sizeso1" id="orderKd-${order.order_kd}">${order.order_kd}</td>
+                                    <td class="table-cell right-cell text-center auto-size" id="text-${order.order_kd}">${order.ten_chi_tiet}</td>
+                                </tr>
+                                <tr>
+                                    <td class="table-cell left-cell text-center sizeso2">Số lượng</td>
+                                    <td class="table-cell right-cell text-center sizeso3">${quantity} ${unit}</td>
+                                </tr>
+                                ${isDanhBong ? `
+                                <tr>
+                                    <td colspan="2" class="table-cell text-center danh-bong-text">
+                                        HÀNG ĐÃ ĐÁNH BÓNG
+                                    </td>
+                                </tr>
+                                ` : ''}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function printSelectedOrders() {
+            const selectedOrders = Array.from(document.querySelectorAll('.orderCheckbox:checked'))
+                .map(checkbox => JSON.parse(checkbox.getAttribute('data-order')));
+
+            if (selectedOrders.length === 0) {
+                alert('Vui lòng chọn ít nhất một đơn hàng để in.');
+                return;
+            }
+
+            const tempPrintContainer = document.createElement('div');
+            tempPrintContainer.className = 'print-container';
+
+            for (let order of selectedOrders) {
+                const printPage = document.createElement('div');
+                printPage.className = 'print-page';
+
+                const totalQuantity = parseInt(order.sll);
+                const labelQuantity = order.sl_tem_goi ? parseInt(order.sl_tem_goi) : 0;
+
+                let currentRow = '';
+                let labelsHTML = '';
+
+                if (labelQuantity > 0) {
+                    for (let i = 0; i < Math.floor(totalQuantity / labelQuantity); i++) {
+                        currentRow += createLabelHTML(order, labelQuantity);
+
+                        if ((i + 1) % 4 === 0) {
+                            labelsHTML += `<div class="print-row">${currentRow}</div>`;
+                            currentRow = '';
+                        }
+                    }
+
+                    if (totalQuantity % labelQuantity > 0) {
+                        currentRow += createLabelHTML(order, totalQuantity % labelQuantity);
+                    }
+
+                    if (currentRow) {
+                        while (currentRow.split('print-item').length - 1 < 4) {
+                            currentRow += `<div class="print-item" style="visibility: hidden;"></div>`;
+                        }
+                        labelsHTML += `<div class="print-row">${currentRow}</div>`;
+                    }
+                }
+
+                printPage.innerHTML = labelsHTML;
+                tempPrintContainer.appendChild(printPage);
+            }
+
+            document.body.appendChild(tempPrintContainer);
+
+            setTimeout(() => {
+                document.querySelectorAll('.auto-size').forEach(element => {
+                    adjustFontSize(element, 'detail');
+                });
+
+                document.querySelectorAll('[id^="orderKd-"]').forEach(element => {
+                    adjustFontSize(element, 'orderKd');
+                });
+
+                window.print();
+                tempPrintContainer.remove();
+            }, 100);
+        }
+
+        function toggleSelectAll() {
+            const isChecked = document.getElementById('selectAll').checked;
+            document.querySelectorAll('.orderCheckbox').forEach(checkbox => checkbox.checked = isChecked);
+        }
+
+        function renderTable(data) {
+            const tableBody = document.getElementById('orderTableBody');
+            tableBody.innerHTML = '';
+
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = Math.min(start + itemsPerPage, data.length);
+            const dataToRender = data.slice(start, end);
+
+            dataToRender.forEach((order, index) => {
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100';
+
+                // Kiểm tra xem có trong danh sách đánh bóng không
+                const isDanhBong = danhBongData.includes(order.ten_chi_tiet);
+
+                row.innerHTML = `
+                    <td class="px-4 py-3 text-center">
+                        <input type="checkbox" class="orderCheckbox" data-order='${JSON.stringify(order)}' style="transform: scale(1.5);">
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="text-sm text-gray-500">${start + index + 1}</span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="text-sm font-medium text-gray-900">${order.order_kd || ''}</span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="text-sm text-gray-500">${order.ten_chi_tiet || ''}</span>
+                        ${isDanhBong ? '<span class="danh-bong-indicator">Hàng đánh bóng</span>' : ''}
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-right">
+                        <span class="text-sm text-gray-500">${order.sll || '0'}</span>
+                    </td>
+                `;
+
+                tableBody.appendChild(row);
+            });
+
+            updatePaginationInfo(data);
+        }
+
+        function loadDanhBongData() {
+            const apiUrl = `https://${region}.appsheet.com/api/v2/apps/${appId}/tables/chi_tiet_danh_bong/Action`;
+            
+            return fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'ApplicationAccessKey': accessKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    Action: 'Find',
+                    Properties: {
+                        Locale: 'vi-VN',
+                        Timezone: 'Asia/Ho_Chi_Minh'
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    danhBongData = data.map(item => item.ten_chi_tiet);
+                    console.log('Loaded danh bong data:', danhBongData.length, 'items');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading danh bong data:', error);
+                danhBongData = []; // Đảm bảo danhBongData là array rỗng nếu có lỗi
+            });
+        }
+
+        function loadMainData() {
+            const apiUrl = `https://${region}.appsheet.com/api/v2/apps/${appId}/tables/${tableName}/Action`;
+
+            return fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'ApplicationAccessKey': accessKey,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    Action: 'Find',
+                    Properties: {
+                        Locale: 'vi-VN',
+                        Timezone: 'Asia/Ho_Chi_Minh'
+                    }
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    data.reverse();
+                    originalData = data;
+                    filteredData = data;
+                    renderTable(data);
+                    console.log('Loaded main data:', data.length, 'items');
+                }
+            });
+        }
+
+        async function loadData() {
+            showLoading();
+            
+            try {
+                // Tải cả hai bảng song song
+                await Promise.all([
+                    loadDanhBongData(),
+                    loadMainData()
+                ]);
+                
+                hideLoading();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                hideLoading();
+                alert('Có lỗi xảy ra khi tải dữ liệu. Vui lòng thử lại sau.');
+            }
+        }
+
+        const debouncedFilter = debounce(() => filterTable(), 300);
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        document.getElementById('searchInput').addEventListener('input', debouncedFilter);
+
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+
+</html>
