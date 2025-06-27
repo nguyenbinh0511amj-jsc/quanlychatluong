@@ -482,7 +482,7 @@
                 }));
 
                 filteredData = [...allData];
-                populateLanGiaoFilter();
+                populateLanGiaoFilter(allData); // Khởi tạo với toàn bộ dữ liệu
                 updateStats();
                 renderCurrentPage();
 
@@ -531,7 +531,8 @@
                 dateFormatted = formatDate(date);
             }
 
-            filteredData = allData.filter(item => {
+            // Bước 1: Lọc theo ngày và tìm kiếm trước
+            let tempFilteredData = allData.filter(item => {
                 // Search filter
                 if (search) {
                     const searchableText = [
@@ -543,16 +544,34 @@
                     if (!searchableText.includes(search)) return false;
                 }
 
-                // Lan giao filter
-                if (lanGiao !== 'all' && item.lan_giao !== lanGiao) {
-                    return false;
-                }
-
                 // Date filter
                 if (dateFormatted && item._formattedDate !== dateFormatted) {
                     return false;
                 }
 
+                return true;
+            });
+
+            // Bước 2: Kiểm tra xem có dữ liệu nào sau khi lọc theo ngày không
+            // Nếu có ngày được chọn nhưng không có dữ liệu, thì dùng toàn bộ dữ liệu cho bộ lọc lần giao
+            let dataForLanGiaoFilter;
+            if (dateFormatted && tempFilteredData.length === 0) {
+                // Nếu chọn ngày nhưng không có dữ liệu, hiển thị tất cả lần giao
+                dataForLanGiaoFilter = allData;
+            } else {
+                // Nếu không chọn ngày hoặc có dữ liệu, dùng dữ liệu đã lọc
+                dataForLanGiaoFilter = tempFilteredData;
+            }
+
+            // Bước 3: Cập nhật bộ lọc lần giao
+            populateLanGiaoFilter(dataForLanGiaoFilter);
+
+            // Bước 4: Áp dụng bộ lọc lần giao cuối cùng
+            filteredData = tempFilteredData.filter(item => {
+                // Lan giao filter
+                if (lanGiao !== 'all' && item.lan_giao !== lanGiao) {
+                    return false;
+                }
                 return true;
             });
 
@@ -582,27 +601,934 @@
         }
 
         // Lan giao filter
-        function populateLanGiaoFilter() {
+        function populateLanGiaoFilter(dataToFilter = allData) {
             const lanGiaoSet = new Set();
-            allData.forEach(item => {
+            dataToFilter.forEach(item => {
                 if (item.lan_giao && item.lan_giao.trim()) {
                     lanGiaoSet.add(item.lan_giao.trim());
                 }
             });
 
             const select = document.getElementById('lanGiaoFilter');
+            const currentValue = select.value; // Lưu giá trị hiện tại
             select.innerHTML = '<option value="all">Tất cả lần giao</option>';
 
-            Array.from(lanGiaoSet).sort((a, b) => {
-                const numA = parseInt(a) || 0;
-                const numB = parseInt(b) || 0;
-                return numA - numB;
-            }).forEach(lanGiao => {
+            // Sắp xếp theo ngày mới nhất lên đầu
+            const sortedLanGiao = Array.from(lanGiaoSet).sort((a, b) => {
+                // Parse ngày từ format "3/1/24-01"
+                const parseDate = (dateStr) => {
+                    try {
+                        const [datePart] = dateStr.split('-');
+                        const [day, month, year] = datePart.split('/');
+                        // Chuyển đổi năm 2 chữ số thành 4 chữ số
+                        const fullYear = parseInt(year) + (parseInt(year) < 50 ? 2000 : 1900);
+                        return new Date(fullYear, parseInt(month) - 1, parseInt(day));
+                    } catch (e) {
+                        return new Date(0); // Fallback date
+                    }
+                };
+
+                const dateA = parseDate(a);
+                const dateB = parseDate(b);
+
+                // Sắp xếp ngày mới nhất lên đầu (dateB - dateA)
+                return dateB - dateA;
+            });
+
+            sortedLanGiao.forEach(lanGiao => {
                 const option = document.createElement('option');
                 option.value = lanGiao;
                 option.textContent = `Lần ${lanGiao}`;
                 select.appendChild(option);
             });
+
+            // Khôi phục giá trị nếu vẫn tồn tại trong danh sách mới
+            if (sortedLanGiao.includes(currentValue)) {
+                select.value = currentValue;
+            } else {
+                select.value = 'all'; // Reset về "Tất cả" nếu giá trị cũ không còn
+            }
+        }
+
+        // Table rendering
+        function renderCurrentPage() {
+            const tbody = document.getElementById('table-body');
+            const startIndex = currentPage * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, filteredData.length);
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="14" class="text-center p-8">Không có dữ liệu</td></tr>';
+                updatePaginationInfo(0, 0, 0);
+                return;
+            }
+
+            // Use DocumentFragment for better performance
+            const fragment = document.createDocumentFragment();
+
+            pageData.forEach(item => {
+                const row = createTableRow(item);
+                fragment.appendChild(row);
+            });
+
+            tbody.innerHTML = '';
+            tbody.appendChild(fragment);
+
+            updatePaginationInfo(startIndex + 1, endIndex, filteredData.length);
+            updateSelectAllCheckbox();
+        }
+
+        function createTableRow(item) {
+            const row = document.createElement('tr');
+            row.setAttribute('data-row-id', item._id);
+
+            const isExported = item.thoi_han === 'Đã xuất';
+            const isSelected = selectedRows.has(item._id);
+
+            if (isSelected) {
+                row.classList.add('selected');
+            }
+
+            const status = isExported
+                ? '<span class="status-badge status-exported">Đã xuất</span>'
+                : '<span class="status-badge status-pending">Chưa xuất</span>';
+
+            row.innerHTML = `
+               <td><input type="checkbox" class="checkbox-custom row-checkbox" ${isSelected ? 'checked' : ''}></td>
+               <td>${item.order_kd || ''}</td>
+               <td>${item.so_dh || ''}</td>
+               <td>${item.order_phoi || ''}</td>
+               <td>${item.order_vat_lieu || ''}</td>
+               <td title="${item.ten_chi_tiet || ''}">${truncateText(item.ten_chi_tiet || '', 20)}</td>
+               <td>${item.dvt || ''}</td>
+               <td><strong>${item.sll || ''}</strong></td>
+               <td>${item._formattedDate}</td>
+               <td>${item.Label}</td>
+               <td>${item.loai_giay_to || ''}</td>
+               <td title="${item.ghi_chu || ''}">${truncateText(item.ghi_chu || '', 15)}</td>
+               <td>${item.so_goi || ''}</td>
+               <td>${item.lan_giao || ''}</td>
+           `;
+
+            return row;
+        }
+
+        function truncateText(text, length) {
+            return text.length > length ? text.substring(0, length) + '...' : text;
+        }
+
+        // Pagination
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            const pagination = document.getElementById('pagination');
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            // Previous button
+            html += `<button ${currentPage === 0 ? 'disabled' : ''} onclick="goToPage(${currentPage - 1})">
+               <i class="fas fa-chevron-left"></i>
+           </button>`;
+
+            // Page numbers
+            const startPage = Math.max(0, currentPage - 2);
+            const endPage = Math.min(totalPages - 1, currentPage + 2);
+
+            if (startPage > 0) {
+                html += `<button onclick="goToPage(0)">1</button>`;
+                if (startPage > 1) {
+                    html += '<span>...</span>';
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">
+                   ${i + 1}
+               </button>`;
+            }
+
+            if (endPage < totalPages - 1) {
+                if (endPage < totalPages - 2) {
+                    html += '<span>...</span>';
+                }
+                html += `<button onclick="goToPage(${totalPages - 1})">${totalPages}</button>`;
+            }
+
+            // Next button
+            html += `<button ${currentPage >= totalPages - 1 ? 'disabled' : ''} onclick="goToPage(${currentPage + 1})">
+               <i class="fas fa-chevron-right"></i>
+           </button>`;
+
+            pagination.innerHTML = html;
+        }
+
+        function updatePaginationInfo(start, end, total) {
+            document.getElementById('paginationInfo').textContent =
+                `Hiển thị ${start} - ${end} của ${total} kết quả`;
+        }
+
+        function goToPage(page) {
+            const totalPages = Math.ceil(filteredData.length / pageSize);
+            if (page < 0 || page >= totalPages) return;
+
+            currentPage = page;
+            renderCurrentPage();
+            updatePagination();
+        }
+
+        function changePageSize(newSize) {
+            pageSize = parseInt(newSize);
+            currentPage = 0;
+            renderCurrentPage();
+            updatePagination();
+        }
+
+        // Selection handling
+        function handleRowSelection(checkbox, rowId) {
+            const row = checkbox.closest('tr');
+
+            if (checkbox.checked) {
+                selectedRows.set(rowId, true);
+                row.classList.add('selected');
+            } else {
+                selectedRows.delete(rowId);
+                row.classList.remove('selected');
+            }
+
+            updateStats();
+            updateSelectAllCheckbox();
+        }
+
+        function updateSelectAllCheckbox() {
+            const checkbox = document.getElementById('selectAllCheckbox');
+            const currentPageIds = getCurrentPageRowIds();
+            const selectedInCurrentPage = currentPageIds.filter(id => selectedRows.has(id)).length;
+
+            if (selectedInCurrentPage === 0) {
+                checkbox.indeterminate = false;
+                checkbox.checked = false;
+            } else if (selectedInCurrentPage === currentPageIds.length) {
+                checkbox.indeterminate = false;
+                checkbox.checked = true;
+            } else {
+                checkbox.indeterminate = true;
+            }
+        }
+
+        function getCurrentPageRowIds() {
+            return Array.from(document.querySelectorAll('#table-body tr[data-row-id]'))
+                .map(row => row.getAttribute('data-row-id'));
+        }
+
+        function selectAllCurrentPage() {
+            const currentPageIds = getCurrentPageRowIds();
+            currentPageIds.forEach(id => selectedRows.set(id, true));
+
+            // Update UI
+            document.querySelectorAll('#table-body .row-checkbox').forEach(checkbox => {
+                checkbox.checked = true;
+                checkbox.closest('tr').classList.add('selected');
+            });
+
+            updateStats();
+            updateSelectAllCheckbox();
+        }
+
+        function selectAllFiltered() {
+            filteredData.forEach(item => selectedRows.set(item._id, true));
+
+            // Update current page UI
+            document.querySelectorAll('#table-body .row-checkbox').forEach(checkbox => {
+                checkbox.checked = true;
+                checkbox.closest('tr').classList.add('selected');
+            });
+
+            updateStats();
+            updateSelectAllCheckbox();
+        }
+
+        function clearAllSelection() {
+            selectedRows.clear();
+
+            // Update UI
+            document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.querySelectorAll('tr.selected').forEach(row => {
+                row.classList.remove('selected');
+            });
+
+            updateStats();
+            updateSelectAllCheckbox();
+        }
+
+        // Export functionality
+        function generateExport() {
+            const selectedItems = allData.filter(item => selectedRows.has(item._id));
+
+            if (selectedItems.length === 0) {
+                alert('Vui lòng chọn ít nhất một dòng để in biên bản');
+                return;
+            }
+
+            generateExportTemplate(selectedItems);
+        }
+
+        function generateExportTemplate(selectedItems) {
+            const printArea = document.getElementById('printArea');<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIÊN BẢN CHECK GIAO KHO VP</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            font-family: 'Times New Roman', Times, serif;
+            box-sizing: border-box;
+        }
+
+        @media print {
+            body>*:not(#printArea) {
+                display: none !important;
+            }
+
+            #printArea {
+                display: block !important;
+            }
+        }
+
+        #printArea {
+            display: none;
+        }
+
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-exported {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .table-container {
+            overflow: auto;
+            max-height: 60vh;
+        }
+
+        table {
+            width: 100%;
+            min-width: 1200px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #e5e7eb;
+            padding: 8px 4px;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tbody tr.selected {
+            background-color: #dbeafe;
+        }
+
+        tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+
+        tbody tr.selected:hover {
+            background-color: #bfdbfe;
+        }
+
+        .checkbox-custom {
+            width: 16px;
+            height: 16px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Fixed column widths */
+        th:nth-child(1),
+        td:nth-child(1) {
+            width: 40px;
+        }
+
+        th:nth-child(2),
+        td:nth-child(2) {
+            width: 80px;
+        }
+
+        th:nth-child(3),
+        td:nth-child(3) {
+            width: 80px;
+        }
+
+        th:nth-child(4),
+        td:nth-child(4) {
+            width: 80px;
+        }
+
+        th:nth-child(5),
+        td:nth-child(5) {
+            width: 80px;
+        }
+
+        th:nth-child(6),
+        td:nth-child(6) {
+            width: 150px;
+        }
+
+        th:nth-child(7),
+        td:nth-child(7) {
+            width: 50px;
+        }
+
+        th:nth-child(8),
+        td:nth-child(8) {
+            width: 60px;
+        }
+
+        th:nth-child(9),
+        td:nth-child(9) {
+            width: 80px;
+        }
+
+        th:nth-child(10),
+        td:nth-child(10) {
+            width: 80px;
+        }
+
+        th:nth-child(11),
+        td:nth-child(11) {
+            width: 70px;
+        }
+
+        th:nth-child(12),
+        td:nth-child(12) {
+            width: 100px;
+        }
+
+        th:nth-child(13),
+        td:nth-child(13) {
+            width: 60px;
+        }
+
+        th:nth-child(14),
+        td:nth-child(14) {
+            width: 60px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f3f4f6;
+        }
+
+        .pagination button.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .page-size-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bulk-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-stack {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .mobile-stack>div {
+                width: 100%;
+            }
+
+            .bulk-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .pagination {
+                flex-wrap: wrap;
+                gap: 4px;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <div id="printArea"></div>
+
+    <!-- Header -->
+    <header class="bg-white border-b p-4">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-500 p-2 rounded text-white">
+                    <i class="fas fa-warehouse"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">GIAO KHO VP</h1>
+                    <!-- <p class="text-sm text-gray-500">BIÊN BẢN CHECK GIAO KHO VP</p> -->
+                </div>
+            </div>
+
+            <div class="bulk-actions">
+                <button id="selectAllBtn" class="btn-secondary">
+                    <i class="fas fa-check-square mr-1"></i>Chọn tất cả trang
+                </button>
+                <button id="selectAllFilteredBtn" class="btn-secondary">
+                    <i class="fas fa-check-double mr-1"></i>Chọn tất cả lọc (<span id="filteredCount">0</span>)
+                </button>
+                <button id="clearSelectionBtn" class="btn-secondary">
+                    <i class="fas fa-times mr-1"></i>Bỏ chọn
+                </button>
+                <button id="exportBtn" class="btn-primary">
+                    <i class="fas fa-print mr-1"></i>In (<span id="selectedCount">0</span>)
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3 mobile-stack">
+            <div class="md:col-span-3">
+                <input type="text" placeholder="Tìm kiếm..." class="w-full p-2 border rounded" id="searchInput">
+            </div>
+            <select id="lanGiaoFilter" class="p-2 border rounded">
+                <option value="all">Tất cả lần giao</option>
+            </select>
+            <input type="date" id="dateFilter" class="p-2 border rounded">
+            <div class="page-size-selector">
+                <label class="text-sm">Hiển thị:</label>
+                <select id="pageSizeSelect" class="p-2 border rounded">
+                    <option value="25">25</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Statistics -->
+    <div class="bg-white border-b p-4">
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div class="p-3 border rounded">
+                <div class="text-xs text-gray-500">Tổng lệnh</div>
+                <div class="font-bold text-lg" id="totalOrdersCount">0</div>
+            </div>
+            <div class="p-3 border rounded">
+                <div class="text-xs text-gray-500">Tổng số lượng</div>
+                <div class="font-bold text-lg" id="totalQuantityCount">0</div>
+            </div>
+            <div class="p-3 border rounded">
+                <div class="text-xs text-gray-500">Chưa xuất</div>
+                <div class="font-bold text-lg" id="pendingCount">0</div>
+            </div>
+            <div class="p-3 border rounded">
+                <div class="text-xs text-gray-500">Đã xuất</div>
+                <div class="font-bold text-lg" id="exportedCount">0</div>
+            </div>
+            <div class="p-3 border rounded">
+                <div class="text-xs text-gray-500">Hiển thị</div>
+                <div class="font-bold text-lg" id="displayedCount">0</div>
+            </div>
+            <div class="p-3 border rounded">
+                <div class="text-xs text-gray-500">Đã chọn</div>
+                <div class="font-bold text-lg" id="selectedCountStat">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="p-4">
+        <div class="bg-white border rounded">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="selectAllCheckbox" class="checkbox-custom"></th>
+                            <th>Order KD</th>
+                            <th>Số PO</th>
+                            <th>Order phôi</th>
+                            <th>Order VL</th>
+                            <th>Tên chi tiết</th>
+                            <th>ĐVT</th>
+                            <th>SLL</th>
+                            <th>Ngày gói</th>
+                            <th>Label</th>
+                            <th>Xác nhận</th>
+                            <th>Ghi chú</th>
+                            <th>Số gói</th>
+                            <th>Lần giao</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr>
+                            <td colspan="14" class="text-center p-8">
+                                <div class="loading"></div>
+                                <div class="mt-2">Đang tải...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="p-4 border-t">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div class="text-sm text-gray-600" id="paginationInfo">
+                        Hiển thị 0 - 0 của 0 kết quả
+                    </div>
+                    <div class="pagination" id="pagination">
+                        <!-- Pagination buttons will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let allData = [];
+        let filteredData = [];
+        let selectedRows = new Map(); // Changed to Map for better performance
+        let currentPage = 0;
+        let pageSize = 50;
+        let isLoading = false;
+
+        const appId = '684ad0ab-ffc5-4c21-a959-f5e023c668e3';
+        const accessKey = 'V2-jOfc3-JvKqz-lxeNm-FS8O6-1RK08-Bu5SX-erQVj-Jp2S9';
+        const region = 'www';
+
+        // Utility functions
+        function debounce(func, wait) {
+            let timeout;
+            return function (...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const d = new Date(dateString);
+            return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`;
+        }
+
+        function generateRowId(item, index) {
+            return `${item.order_kd || ''}_${item.order_vat_lieu || ''}_${index}`;
+        }
+
+        // Data fetching
+        async function fetchData() {
+            if (isLoading) return;
+
+            isLoading = true;
+            updateLoadingState(true);
+
+            try {
+                const response = await fetch(`https://${region}.appsheet.com/api/v2/apps/${appId}/tables/giao_kho_vp/Action`, {
+                    method: 'POST',
+                    headers: {
+                        'ApplicationAccessKey': accessKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        Action: 'Find',
+                        Properties: {},
+                        Selector: "Filter(giao_kho_vp, true)"
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch');
+                const data = await response.json();
+                if (!Array.isArray(data)) throw new Error('Invalid data');
+
+                // Add unique IDs and process data
+                allData = data.reverse().map((item, index) => ({
+                    ...item,
+                    _id: generateRowId(item, index),
+                    _index: index,
+                    _formattedDate: formatDate(item.ngay_dong_goi)
+                }));
+
+                filteredData = [...allData];
+                populateLanGiaoFilter(allData); // Khởi tạo với toàn bộ dữ liệu
+                updateStats();
+                renderCurrentPage();
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Lỗi tải dữ liệu. Vui lòng thử lại.');
+            } finally {
+                isLoading = false;
+                updateLoadingState(false);
+            }
+        }
+
+        function updateLoadingState(loading) {
+            const tbody = document.getElementById('table-body');
+            if (loading) {
+                tbody.innerHTML = `
+                   <tr>
+                       <td colspan="14" class="text-center p-8">
+                           <div class="loading"></div>
+                           <div class="mt-2">Đang tải...</div>
+                       </td>
+                   </tr>
+               `;
+            }
+        }
+
+        function showError(message) {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = `
+               <tr>
+                   <td colspan="14" class="text-center p-8 text-red-500">
+                       <i class="fas fa-exclamation-triangle mr-2"></i>${message}
+                   </td>
+               </tr>
+           `;
+        }
+
+        // Filtering
+        const applyFilters = debounce(function () {
+            const search = document.getElementById('searchInput').value.toLowerCase().trim();
+            const lanGiao = document.getElementById('lanGiaoFilter').value;
+            const date = document.getElementById('dateFilter').value;
+
+            let dateFormatted = '';
+            if (date) {
+                dateFormatted = formatDate(date);
+            }
+
+            // Bước 1: Lọc theo ngày và tìm kiếm trước
+            let tempFilteredData = allData.filter(item => {
+                // Search filter
+                if (search) {
+                    const searchableText = [
+                        item.order_kd, item.so_dh, item.order_phoi, item.order_vat_lieu,
+                        item.ten_chi_tiet, item.dvt, item.sll, item.loai_giay_to,
+                        item.ghi_chu, item.so_goi, item.lan_giao
+                    ].join(' ').toLowerCase();
+
+                    if (!searchableText.includes(search)) return false;
+                }
+
+                // Date filter
+                if (dateFormatted && item._formattedDate !== dateFormatted) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            // Bước 2: Kiểm tra xem có dữ liệu nào sau khi lọc theo ngày không
+            // Nếu có ngày được chọn nhưng không có dữ liệu, thì dùng toàn bộ dữ liệu cho bộ lọc lần giao
+            let dataForLanGiaoFilter;
+            if (dateFormatted && tempFilteredData.length === 0) {
+                // Nếu chọn ngày nhưng không có dữ liệu, hiển thị tất cả lần giao
+                dataForLanGiaoFilter = allData;
+            } else {
+                // Nếu không chọn ngày hoặc có dữ liệu, dùng dữ liệu đã lọc
+                dataForLanGiaoFilter = tempFilteredData;
+            }
+
+            // Bước 3: Cập nhật bộ lọc lần giao
+            populateLanGiaoFilter(dataForLanGiaoFilter);
+
+            // Bước 4: Áp dụng bộ lọc lần giao cuối cùng
+            filteredData = tempFilteredData.filter(item => {
+                // Lan giao filter
+                if (lanGiao !== 'all' && item.lan_giao !== lanGiao) {
+                    return false;
+                }
+                return true;
+            });
+
+            currentPage = 0;
+            updateStats();
+            renderCurrentPage();
+            updatePagination();
+        }, 500);
+
+        // Stats
+        function updateStats() {
+            const total = allData.length;
+            const totalQuantity = allData.reduce((sum, item) => sum + parseInt(item.sll || 0), 0);
+            const pending = allData.filter(item => item.thoi_han !== 'Đã xuất').length;
+            const exported = allData.filter(item => item.thoi_han === 'Đã xuất').length;
+            const displayed = filteredData.length;
+            const selected = selectedRows.size;
+
+            document.getElementById('totalOrdersCount').textContent = total;
+            document.getElementById('totalQuantityCount').textContent = totalQuantity;
+            document.getElementById('pendingCount').textContent = pending;
+            document.getElementById('exportedCount').textContent = exported;
+            document.getElementById('displayedCount').textContent = displayed;
+            document.getElementById('selectedCountStat').textContent = selected;
+            document.getElementById('selectedCount').textContent = selected;
+            document.getElementById('filteredCount').textContent = displayed;
+        }
+
+        // Lan giao filter
+        function populateLanGiaoFilter(dataToFilter = allData) {
+            const lanGiaoSet = new Set();
+            dataToFilter.forEach(item => {
+                if (item.lan_giao && item.lan_giao.trim()) {
+                    lanGiaoSet.add(item.lan_giao.trim());
+                }
+            });
+
+            const select = document.getElementById('lanGiaoFilter');
+            const currentValue = select.value; // Lưu giá trị hiện tại
+            select.innerHTML = '<option value="all">Tất cả lần giao</option>';
+
+            // Sắp xếp theo ngày mới nhất lên đầu
+            const sortedLanGiao = Array.from(lanGiaoSet).sort((a, b) => {
+                // Parse ngày từ format "3/1/24-01"
+                const parseDate = (dateStr) => {
+                    try {
+                        const [datePart] = dateStr.split('-');
+                        const [day, month, year] = datePart.split('/');
+                        // Chuyển đổi năm 2 chữ số thành 4 chữ số
+                        const fullYear = parseInt(year) + (parseInt(year) < 50 ? 2000 : 1900);
+                        return new Date(fullYear, parseInt(month) - 1, parseInt(day));
+                    } catch (e) {
+                        return new Date(0); // Fallback date
+                    }
+                };
+
+                const dateA = parseDate(a);
+                const dateB = parseDate(b);
+
+                // Sắp xếp ngày mới nhất lên đầu (dateB - dateA)
+                return dateB - dateA;
+            });
+
+            sortedLanGiao.forEach(lanGiao => {
+                const option = document.createElement('option');
+                option.value = lanGiao;
+                option.textContent = `Lần ${lanGiao}`;
+                select.appendChild(option);
+            });
+
+            // Khôi phục giá trị nếu vẫn tồn tại trong danh sách mới
+            if (sortedLanGiao.includes(currentValue)) {
+                select.value = currentValue;
+            } else {
+                select.value = 'all'; // Reset về "Tất cả" nếu giá trị cũ không còn
+            }
         }
 
         // Table rendering
@@ -907,7 +1833,281 @@
 
                     if (hasSUS && hasGC) {
                         ghiChu = 'BBKT có dấu rửa - BV có dấu g/c lần 1';
-                    
+
+                    } else if (daurua === '' && hasBV) {
+                        // Nếu daurua trống và mailxn có chứa "Bản vẽ" hoặc "BV"
+                        ghiChu = 'BBKT có dấu rửa - BV có dấu g/c lần 1';
+                    } else if (hasBV) {
+                        // Nếu chỉ mailxn có chứa "Bản vẽ" hoặc "BV"
+                        ghiChu = 'BV có dấu g/c lần 1';
+                    } else if (hasSUS) {
+                        ghiChu = 'BBKT có dấu rửa';
+                    } else if (hasGC) {
+                        ghiChu = 'BV có dấu g/c lần 1';
+                    }
+
+                    pageContent += `
+        <tr>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1.5px; height: 23px; text-align: center; font-size: 13px;">${globalIndex}</td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1.5px; height: 23px; text-align: center; font-size: 13px;">${orderVL}</td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1.5px; height: 23px; text-align: center; font-size: 13px;">${orderKD}</td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1.5px; height: 23px; text-align: center; font-size: 13px;">${tenSP}</td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1.5px; height: 23px; text-align: center; font-size: 13px;">${soLuong}</td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 9px;"></td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 9px;"></td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 9px;">${daurua}</td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 9px;"></td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 9px;">${mailxn}</td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 9px;">${qrcode}</td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;">${soGoi}</td>
+            <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;">${ghiChu}</td>
+        </tr>
+    `;
+                });
+
+                // Thêm các dòng trống để đủ itemsPerPage dòng mỗi trang
+                const remainingRows = itemsPerPage - pageItems.length;
+                for (let i = 0; i < remainingRows; i++) {
+                    const emptyRowIndex = startIndex + pageItems.length + i + 1;
+                    pageContent += `
+                <tr>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;">${emptyRowIndex}</td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                    <td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; height: 23px; text-align: center; font-size: 13px;"></td>
+                </tr>
+            `;
+                }
+
+                // Đóng bảng và thêm footer cho mỗi trang
+                pageContent += `
+                    </tbody>
+                </table>
+                
+                <div style="text-align: center; margin-top: 10px; font-size: 13px;">
+                    <span>Thực hiện việc đến đâu tích dấu "√" vào ô tương ứng bảng bút đó.</span> <br>
+                    <span>Kiểm tra lại biên bản đã được tích đủ các ô, các cột mới được giao Kho VP</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; margin-bottom: 30px;">
+                    <div style="text-align: right; width: 40%; font-size: 13px;">
+                        <span>Người thực hiện</span>
+                    </div>
+                    <div style="text-align: left; width: 40%; font-size: 13px;">
+                        <span>Người soát xét</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+                allContent += pageContent;
+            }
+
+            printArea.innerHTML = allContent;
+
+            // Tạo iframe để in
+            const iframe = document.createElement('iframe');
+            iframe.name = 'print_frame';
+            iframe.style.position = 'absolute';
+            iframe.style.top = '-1000px';
+            iframe.style.left = '-1000px';
+            document.body.appendChild(iframe);
+
+            const frameDoc = iframe.contentWindow ? iframe.contentWindow : iframe.contentDocument.document ? iframe.contentDocument.document : iframe.contentDocument;
+            frameDoc.document.open();
+            frameDoc.document.write(`
+        <title>Biên bản check giao kho VP</title>
+        <style>
+            @page { 
+                size: A4;
+                margin: 5mm;
+            }
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+            }
+            th, td {
+                text-align: center;
+                font-size: 13px;
+                padding: 1px;
+            }
+        </style>
+        ${allContent}
+    `);
+            frameDoc.document.close();
+
+            setTimeout(function () {
+                iframe.contentWindow.focus();
+                iframe.contentWindow.print();
+                document.body.removeChild(iframe);
+            }, 500);
+        }
+
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('lanGiaoFilter').addEventListener('change', applyFilters);
+        document.getElementById('dateFilter').addEventListener('change', applyFilters);
+
+        document.getElementById('pageSizeSelect').addEventListener('change', function () {
+            changePageSize(this.value);
+        });
+
+        // Table events with delegation
+        document.getElementById('table-body').addEventListener('click', function (e) {
+            const row = e.target.closest('tr');
+            if (!row || !row.hasAttribute('data-row-id')) return;
+
+            const rowId = row.getAttribute('data-row-id');
+
+            if (e.target.type !== 'checkbox') {
+                const checkbox = row.querySelector('.row-checkbox');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    handleRowSelection(checkbox, rowId);
+                }
+            }
+        });
+
+        document.getElementById('table-body').addEventListener('change', function (e) {
+            if (e.target.classList.contains('row-checkbox')) {
+                const row = e.target.closest('tr');
+                const rowId = row.getAttribute('data-row-id');
+                handleRowSelection(e.target, rowId);
+            }
+        });
+
+        // Header controls
+        document.getElementById('selectAllCheckbox').addEventListener('change', function () {
+            if (this.checked) {
+                selectAllCurrentPage();
+            } else {
+                // Unselect current page
+                const currentPageIds = getCurrentPageRowIds();
+                currentPageIds.forEach(id => selectedRows.delete(id));
+
+                document.querySelectorAll('#table-body .row-checkbox').forEach(checkbox => {
+                    checkbox.checked = false;
+                    checkbox.closest('tr').classList.remove('selected');
+                });
+
+                updateStats();
+                updateSelectAllCheckbox();
+            }
+        });
+
+        document.getElementById('selectAllBtn').addEventListener('click', selectAllCurrentPage);
+        document.getElementById('selectAllFilteredBtn').addEventListener('click', selectAllFiltered);
+        document.getElementById('clearSelectionBtn').addEventListener('click', clearAllSelection);
+        document.getElementById('exportBtn').addEventListener('click', generateExport);
+
+        // Initialize
+        fetchData();
+
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        }, false);
+
+        document.onkeydown = function (e) {
+            if (e.keyCode == 123) {
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+                return false;
+            }
+            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+                return false;
+            }
+        };
+    </script>
+</body>
+
+</html>
+            const itemsPerPage = 36; // Số dòng tối đa mỗi trang
+            const totalPages = Math.ceil(selectedItems.length / itemsPerPage);
+
+            let allContent = '';
+
+            // Tạo từng trang
+            for (let page = 0; page < totalPages; page++) {
+                const startIndex = page * itemsPerPage;
+                const endIndex = Math.min(startIndex + itemsPerPage, selectedItems.length);
+                const pageItems = selectedItems.slice(startIndex, endIndex);
+
+                let pageContent = `
+            <div style="font-family:'Times New Roman', Times, serif; page-break-after: ${page < totalPages - 1 ? 'always' : 'auto'};">
+                <div style="text-align: center; font-weight: bold; font-size: 24px; margin-bottom: 10px;">BIÊN BẢN CHECK GIAO KHO VP</div>
+                <div style="font-weight: bold; font-style: italic; font-size: 14px;">Lần: ......... &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Giao Kho VP: ......... h ........, ngày ........ tháng ........ năm 20........</div>
+                
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid black; margin-bottom: 10px;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid black; width: 5pt; font-weight: bold; text-align: center; padding: 1px; font-size: 13px;" rowspan="2">Stt</th>
+                            <th style="border: 1px solid black; width: 55pt; font-weight: bold; text-align: center; padding: 1px; font-size: 13px;" rowspan="2">Order Vật liệu</th>
+                            <th style="border: 1px solid black; width: 55pt; font-weight: bold; text-align: center; padding: 1px; font-size: 13px;" rowspan="2">Order Kinh doanh</th>
+                            <th style="border: 1px solid black; width: 75pt; font-weight: bold; text-align: center; padding: 1px; font-size: 13px;" rowspan="2">Tên sản phẩm</th>
+                            <th style="border: 1px solid black; width: 7mm; font-weight: bold; text-align: center; padding: 1px; font-size: 13px;" rowspan="2">Số lg</th>
+                            <th style="border: 1px solid black; width: 5pt; font-weight: bold; text-align: center; padding: 1px; font-size: 15px;" colspan="7">CHECK THỰC HIỆN</th>
+                            <th style="border: 1px solid black; font-weight: bold; text-align: center; padding: 1px; font-size: 13px;" rowspan="2">Ghi chú</th>
+                        </tr>
+                        <tr>
+                            <th style="border: 1px solid black; width: 7mm; font-weight: normal; text-align: center; padding: 4px; font-size: 10px;">Dán tem</th>
+                            <th style="border: 1px solid black; width: 7mm; font-weight: normal; text-align: center; padding: 4px; font-size: 10px;">BB ktra</th>
+                            <th style="border: 1px solid black; width: 9mm; font-weight: normal; text-align: center; padding: 1px; font-size: 10px;">Dấu Rửa + Sp mới</th>
+                            <th style="border: 1px solid black; width: 7mm; font-weight: normal; text-align: center; padding: 4px; font-size: 10x;">Dấu D.gói</th>
+                            <th style="border: 1px solid black; width: 7mm; font-weight: normal; text-align: center; padding: 4px; font-size: 10x;">Mail XN</th>
+                            <th style="border: 1px solid black; width: 7mm; font-weight: normal; text-align: center; padding: 4px; font-size: 10px;">QR code</th>
+                            <th style="border: 1px solid black; width: 7pt; font-weight: normal; text-align: center; padding: 4px; font-size: 11px;">Tổng số gói</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+                // Thêm dữ liệu của trang hiện tại
+                pageItems.forEach((item, index) => {
+                    const globalIndex = startIndex + index + 1; // STT toàn cục
+                    const orderVL = item.order_vat_lieu || '';
+                    const orderKD = item.order_kd || '';
+                    const tenSP = item.ten_chi_tiet || '';
+                    const soLuong = item.sll || '';
+                    const soGoi = item.so_goi || '';
+                    const mailxn = item.loai_giay_to || '';
+                    const qrcode = item.qr_code || '';
+
+                    // Logic cho daurua
+                    let daurua = '';
+                    const dongDauRua = (item.dong_dau_rua || '').toUpperCase();
+                    const giaCongMoi = (item.gia_cong_moi || '').toUpperCase();
+
+                    const hasSUS = dongDauRua.includes('SUS');
+                    const hasGC = giaCongMoi.includes('GC');
+
+                    if (hasSUS || hasGC) {
+                        daurua = '';
+                    } else {
+                        daurua = '\\\\\\\\\\\\\\\\';
+                    }
+
+                    // Logic cho ghiChu
+                    let ghiChu = '';
+                    const mailxnUpper = mailxn.toUpperCase();
+                    const hasBV = mailxnUpper.includes('BẢN VẼ') || mailxnUpper.includes('BV');
+
+                    if (hasSUS && hasGC) {
+                        ghiChu = 'BBKT có dấu rửa - BV có dấu g/c lần 1';
+
                     } else if (daurua === '' && hasBV) {
                         // Nếu daurua trống và mailxn có chứa "Bản vẽ" hoặc "BV"
                         ghiChu = 'BBKT có dấu rửa - BV có dấu g/c lần 1';
