@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Báo Cáo Quản Lý Chất lượng</title>
+    <title>Hệ Thống Báo Cáo Sản Xuất</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
@@ -22,7 +22,7 @@
                 </div>
                 <!-- Title and subtitle -->
                 <div class="text-center">
-                    <h1 class="text-2xl md:text-3xl font-bold">Báo Cáo Quản Lý Chất Lượng</h1>
+                    <h1 class="text-2xl md:text-3xl font-bold">Báo Cáo Sản Xuất</h1>
                     <!-- <p class="text-blue-100 mt-1 md:mt-2 text-sm md:text-base">Dashboard Theo Dõi Hoạt Động Sản Xuất</p> -->
                 </div>
             </div>
@@ -75,6 +75,10 @@
                         class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
                         <i class="fas fa-sync mr-2"></i>Làm mới
                     </button>
+                    <button onclick="resetFilter3D()"
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-undo mr-2"></i>Đặt lại
+                    </button>
                 </div>
 
                 <!-- Filters -->
@@ -108,12 +112,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="mt-4">
-                        <button onclick="resetFilter3D()"
-                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
-                            <i class="fas fa-undo mr-2"></i>Đặt lại
-                        </button>
-                    </div>
+
                 </div>
 
                 <!-- Summary Cards -->
@@ -184,6 +183,11 @@
                         <i class="fas fa-chart-bar text-green-600 mr-3"></i>
                         Báo Cáo Sản Lượng Các Nhóm
                     </h2>
+
+                    <button onclick="resetFilterSL()"
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-undo mr-2"></i>Đặt lại
+                    </button>
                 </div>
 
                 <!-- Trong phần Filters của báo cáo Sản Lượng Nhóm -->
@@ -223,12 +227,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="mt-4">
-                        <button onclick="resetFilterSL()"
-                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
-                            <i class="fas fa-undo mr-2"></i>Đặt lại
-                        </button>
-                    </div>
+
                 </div>
 
                 <!-- Summary Cards -->
@@ -318,6 +317,11 @@
                         <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
                         Báo Cáo Lỗi Phát Sinh
                     </h2>
+
+                    <button onclick="resetFilterLoi()"
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-undo mr-2"></i>Đặt lại
+                    </button>
                 </div>
 
                 <!-- Filters -->
@@ -342,12 +346,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="mt-4">
-                        <button onclick="resetFilterLoi()"
-                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
-                            <i class="fas fa-undo mr-2"></i>Đặt lại
-                        </button>
-                    </div>
+
                 </div>
 
                 <!-- Summary Cards -->
@@ -423,6 +422,11 @@
                         <i class="fas fa-gem text-purple-600 mr-3"></i>
                         Báo Cáo Hoàn Thiện Đánh Bóng
                     </h2>
+
+                    <button onclick="resetFilterDB()"
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-undo mr-2"></i>Đặt lại
+                    </button>
                 </div>
 
                 <!-- Filters -->
@@ -449,12 +453,7 @@
                             </select>
                         </div>
                     </div>
-                    <div class="mt-4">
-                        <button onclick="resetFilterDB()"
-                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
-                            <i class="fas fa-undo mr-2"></i>Đặt lại
-                        </button>
-                    </div>
+
                 </div>
 
                 <!-- Summary Cards -->
@@ -526,12 +525,28 @@
                         <i class="fas fa-truck-loading text-green-600 mr-3"></i>
                         Tổng Hợp Số Lượng Hàng Nhận
                     </h2>
+
+                    <button onclick="resetFilterHN()"
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-undo mr-2"></i>Đặt lại
+                    </button>
                 </div>
 
                 <!-- Filters -->
+                <!-- Filters của Hàng Nhận - SỬA LẠI THỨ TỰ -->
                 <div class="bg-gray-50 rounded-lg p-4 mb-6">
                     <h3 class="text-lg font-semibold mb-4">Bộ lọc dữ liệu</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- ĐƯA LOẠI THỐNG KÊ LÊN ĐẦU -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Loại thống kê</label>
+                            <select id="periodHN" onchange="onPeriodChangeHN()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="daily">Theo ngày</option>
+                                <option value="weekly">Theo tuần</option>
+                                <option value="monthly">Theo tháng</option>
+                            </select>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
                             <input type="date" id="dateFromHN" onchange="applyFilterHN()"
@@ -542,22 +557,8 @@
                             <input type="date" id="dateToHN" onchange="applyFilterHN()"
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Loại thống kê</label>
-                            <select id="periodHN" onchange="applyFilterHN()"
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                                <option value="daily">Theo ngày</option>
-                                <option value="weekly">Theo tuần</option>
-                                <option value="monthly">Theo tháng</option>
-                            </select>
-                        </div>
                     </div>
-                    <div class="mt-4">
-                        <button onclick="resetFilterHN()"
-                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
-                            <i class="fas fa-undo mr-2"></i>Đặt lại
-                        </button>
-                    </div>
+
                 </div>
 
                 <!-- Summary Cards -->
@@ -622,12 +623,28 @@
                         <i class="fas fa-shipping-fast text-orange-600 mr-3"></i>
                         Tổng Hợp Số Lượng Hàng Giao
                     </h2>
+
+                    <button onclick="resetFilterHG()"
+                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                        <i class="fas fa-undo mr-2"></i>Đặt lại
+                    </button>
                 </div>
 
                 <!-- Filters -->
+                <!-- Filters của Hàng Giao - SỬA LẠI THỨ TỰ -->
                 <div class="bg-gray-50 rounded-lg p-4 mb-6">
                     <h3 class="text-lg font-semibold mb-4">Bộ lọc dữ liệu</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- ĐƯA LOẠI THỐNG KÊ LÊN ĐẦU -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Loại thống kê</label>
+                            <select id="periodHG" onchange="onPeriodChangeHG()"
+                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="daily">Theo ngày</option>
+                                <option value="weekly">Theo tuần</option>
+                                <option value="monthly">Theo tháng</option>
+                            </select>
+                        </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Từ ngày</label>
                             <input type="date" id="dateFromHG" onchange="applyFilterHG()"
@@ -638,22 +655,8 @@
                             <input type="date" id="dateToHG" onchange="applyFilterHG()"
                                 class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Loại thống kê</label>
-                            <select id="periodHG" onchange="applyFilterHG()"
-                                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                                <option value="daily">Theo ngày</option>
-                                <option value="weekly">Theo tuần</option>
-                                <option value="monthly">Theo tháng</option>
-                            </select>
-                        </div>
                     </div>
-                    <div class="mt-4">
-                        <button onclick="resetFilterHG()"
-                            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
-                            <i class="fas fa-undo mr-2"></i>Đặt lại
-                        </button>
-                    </div>
+
                 </div>
 
                 <!-- Summary Cards -->
@@ -1541,13 +1544,31 @@
                 ca_lam_viec: document.getElementById('shiftSL').value
             };
 
-            const filteredData = filterData(globalData.dataProduction, filters);
+            // THÊM BỘ LỌC LOẠI BỎ CNC_TAP VÀ XLBM_DANH_NI
+            let filteredData = filterData(globalData.dataProduction, filters);
+
+            // Lọc bỏ các dòng có dữ liệu trong cnc_tap hoặc xlbm_danh_ni
+            filteredData = filteredData.filter(item => {
+                const hasCncTap = item.cnc_tap && item.cnc_tap.toString().trim() !== '';
+                const hasXlbmDanhNi = item.xlbm_danh_ni && item.xlbm_danh_ni.toString().trim() !== '';
+
+                // Chỉ giữ lại những dòng KHÔNG có dữ liệu trong 2 cột này
+                return !hasCncTap && !hasXlbmDanhNi;
+            });
+
+            console.log('Filtered Production Data (after excluding cnc_tap and xlbm_danh_ni):', {
+                totalRecords: globalData.dataProduction.length,
+                afterDateFilter: filterData(globalData.dataProduction, filters).length,
+                afterExcludeFilter: filteredData.length,
+                excludedRecords: filterData(globalData.dataProduction, filters).length - filteredData.length
+            });
+
             const processedData = processProductionData(filteredData);
 
             updateProductionSummary(processedData);
             updateProductionChart(processedData);
             updateProductionBarChart(processedData);
-            updateProductionTeamChart(processedData); // THÊM DÒNG NÀY
+            updateProductionTeamChart(processedData);
             updateProductionTable(processedData);
         }
 
@@ -1668,7 +1689,7 @@
             return match ? (match[1] === '0' ? 'Hành chính' : 'Tổ ' + match[1]) : teamStr;
         }
 
-        // SỬA HÀM TẠO BIỂU ĐỒ TỔ - 4 MÀU CỐ ĐỊNH CHO 4 TỔ
+        // SỬA HÀM updateProductionTeamChart - HIỂN THỊ % CHO CẢ 2 TRƯỜNG HỢP
         function updateProductionTeamChart(data) {
             if (charts.chartSLTeam) {
                 charts.chartSLTeam.destroy();
@@ -1687,7 +1708,9 @@
             const selectedGroup = document.getElementById('groupSL').value;
 
             if (selectedGroup) {
-                // Khi chọn nhóm cụ thể - hiển thị 4 tổ của nhóm đó
+                // Khi chọn nhóm cụ thể - hiển thị 4 tổ của nhóm đó VỚI TỶ LỆ %
+                const totalGroupProduction = data.teamData.reduce((sum, value) => sum + value, 0);
+
                 charts.chartSLTeam = new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -1720,7 +1743,13 @@
                             tooltip: {
                                 callbacks: {
                                     label: function (context) {
-                                        return context.label + ': ' + context.raw.toLocaleString();
+                                        // HIỂN THỊ CẢ SỐ LƯỢNG VÀ TỶ LỆ % KHI CHỌN NHÓM CỤ THỂ
+                                        const percentage = totalGroupProduction > 0 ?
+                                            Math.round((context.raw / totalGroupProduction) * 100) : 0;
+                                        return [
+                                            context.label + ': ' + context.raw.toLocaleString(),
+                                            'Tỷ lệ: ' + percentage + '%'
+                                        ];
                                     }
                                 }
                             },
@@ -1732,7 +1761,7 @@
                     }
                 });
             } else {
-                // Khi không chọn nhóm - hiển thị grouped bar chart
+                // Khi không chọn nhóm - hiển thị grouped bar chart CÓ TỶ LỆ %
                 const datasets = [
                     {
                         label: 'Hành chính',
@@ -1796,7 +1825,23 @@
                             tooltip: {
                                 callbacks: {
                                     label: function (context) {
-                                        return context.dataset.label + ': ' + context.raw.toLocaleString();
+                                        // THÊM TỶ LỆ % CHO TỪNG NHÓM
+                                        const groupIndex = context.dataIndex;
+                                        const groupLabel = data.teamLabels[groupIndex];
+
+                                        // Tính tổng sản lượng của nhóm này (tất cả các tổ)
+                                        const groupTotal = datasets.reduce((sum, dataset) => {
+                                            return sum + (dataset.data[groupIndex] || 0);
+                                        }, 0);
+
+                                        // Tính tỷ lệ % của tổ này trong nhóm
+                                        const percentage = groupTotal > 0 ?
+                                            Math.round((context.raw / groupTotal) * 100) : 0;
+
+                                        return [
+                                            context.dataset.label + ': ' + context.raw.toLocaleString(),
+                                            'Tỷ lệ trong ' + groupLabel + ': ' + percentage + '%'
+                                        ];
                                     }
                                 }
                             },
@@ -1815,7 +1860,9 @@
             const selectedTeam = document.getElementById('teamSL').value;
             const selectedShift = document.getElementById('shiftSL').value;
 
+            // DỮ LIỆU ĐÃ ĐƯỢC LỌC BỎ CNC_TAP VÀ XLBM_DANH_NI TỪ HÀM TRƯỚC
             let filteredData = data;
+
             if (selectedGroup) {
                 filteredData = filteredData.filter(item => item.nhom === selectedGroup);
             }
@@ -1876,13 +1923,22 @@
                 });
             }
 
+            // Log thông tin để kiểm tra
+            console.log('Production Data Processing:', {
+                originalData: data.length,
+                afterGroupFilter: filteredData.length,
+                selectedGroup: selectedGroup,
+                selectedTeam: selectedTeam,
+                selectedShift: selectedShift
+            });
+
             const processedData = {
                 labels: [],
                 actual: [],
                 theoretical: [],
                 pieData: [],
-                teamLabels: [], // THÊM MỚI
-                teamData: [],   // THÊM MỚI
+                teamLabels: [],
+                teamData: [],
                 tableData: [],
                 summary: {
                     totalProduction: 0,
@@ -1994,6 +2050,12 @@
                     teamDisplay = formatTeamNameOriginal(item.to);
                 }
 
+                // THÊM THÔNG TIN DEBUG VÀO GHI CHÚ
+                let noteContent = item.giai_trinh || '';
+                if (item.cnc_tap || item.xlbm_danh_ni) {
+                    noteContent += ` [EXCLUDED: cnc_tap=${item.cnc_tap || 'N/A'}, xlbm=${item.xlbm_danh_ni || 'N/A'}]`;
+                }
+
                 processedData.tableData.push({
                     date: formattedDate,
                     sortDate: sortDate, // Thêm field để sort
@@ -2006,7 +2068,7 @@
                     actualTime: actualTime,
                     theoreticalTime: theoreticalTime,
                     efficiency: efficiency,
-                    note: item.giai_trinh || '-' // Thêm trường ghi chú
+                    note: noteContent || '-' // Sử dụng noteContent đã được thêm thông tin debug
                 });
 
                 processedData.summary.totalProduction += production;
@@ -2114,6 +2176,13 @@
             const totalEfficiency = processedData.tableData.reduce((sum, item) => sum + item.efficiency, 0);
             processedData.summary.avgEfficiency = processedData.tableData.length > 0 ?
                 Math.round(totalEfficiency / processedData.tableData.length) : 0;
+
+            console.log('Final Production Summary (excluding cnc_tap and xlbm_danh_ni):', {
+                totalProduction: processedData.summary.totalProduction,
+                totalWorkers: processedData.summary.totalWorkers,
+                avgEfficiency: processedData.summary.avgEfficiency,
+                recordsProcessed: finalData.length
+            });
 
             return processedData;
         }
@@ -2245,7 +2314,7 @@
 
             const ctx = document.getElementById('chartSLPie').getContext('2d');
             charts.chartSLPie = new Chart(ctx, {
-                type: 'bar', // THAY ĐỔI: từ 'pie' thành 'bar'
+                type: 'bar',
                 data: {
                     labels: data.labels,
                     datasets: [{
@@ -2286,17 +2355,13 @@
                     },
                     plugins: {
                         legend: {
-                            display: false // Ẩn legend vì chỉ có 1 dataset
+                            display: false
                         },
                         tooltip: {
                             callbacks: {
                                 label: function (context) {
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = total > 0 ? Math.round((context.raw / total) * 100) : 0;
-                                    return [
-                                        'Sản lượng: ' + context.raw.toLocaleString(),
-                                        'Tỷ lệ: ' + percentage + '%'
-                                    ];
+                                    // CHỈ HIỂN THỊ SỐ LƯỢNG, LOẠI BỎ TỶ LỆ %
+                                    return 'Sản lượng: ' + context.raw.toLocaleString();
                                 }
                             }
                         },
@@ -3050,6 +3115,42 @@
 
         // ========== RECEIVE REPORT ==========
         function loadReceiveReport() {
+            // THÊM LOGGING ĐỂ KIỂM TRA DỮ LIỆU GỐC
+            console.log('=== RAW RECEIVE DATA CHECK ===');
+            console.log('Total records in globalData.dataReceive:', globalData.dataReceive.length);
+
+            if (globalData.dataReceive.length > 0) {
+                console.log('Sample records:', globalData.dataReceive.slice(0, 5));
+
+                // Kiểm tra dữ liệu tháng hiện tại và tháng trước
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+
+                const currentMonthData = globalData.dataReceive.filter(item => {
+                    if (!item.ngay_nhan) return false;
+                    const itemDate = new Date(item.ngay_nhan);
+                    return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
+                });
+
+                const previousMonthData = globalData.dataReceive.filter(item => {
+                    if (!item.ngay_nhan) return false;
+                    const itemDate = new Date(item.ngay_nhan);
+                    return itemDate.getMonth() === (currentMonth - 1) && itemDate.getFullYear() === currentYear;
+                });
+
+                console.log(`Records in current month (${currentMonth + 1}/${currentYear}):`, currentMonthData.length);
+                console.log(`Records in previous month (${currentMonth}/${currentYear}):`, previousMonthData.length);
+
+                if (currentMonthData.length > 0) {
+                    console.log('Current month sample:', currentMonthData.slice(0, 3));
+                }
+                if (previousMonthData.length > 0) {
+                    console.log('Previous month sample:', previousMonthData.slice(0, 3));
+                }
+            }
+            console.log('=== END RAW DATA CHECK ===');
+
             const filters = {
                 dateFrom: document.getElementById('dateFromHN').value,
                 dateTo: document.getElementById('dateToHN').value,
@@ -3066,6 +3167,19 @@
         }
 
         function processReceiveData(data, period) {
+            console.log('=== PROCESSING RECEIVE DATA V2 ===');
+            console.log('Input data length:', data.length);
+            console.log('Sample data items:', data.slice(0, 3)); // Xem 3 items đầu tiên
+            console.log('Period:', period);
+
+            // Kiểm tra cấu trúc dữ liệu
+            if (data.length > 0) {
+                console.log('Data structure check:');
+                console.log('Keys in first item:', Object.keys(data[0]));
+                console.log('ngay_nhan field:', data[0].ngay_nhan);
+                console.log('sl_nhan field:', data[0].sl_nhan);
+            }
+
             const processedData = {
                 labels: [],
                 receiveData: [],
@@ -3078,69 +3192,64 @@
                 }
             };
 
-            // Group data by period
-            const groups = {};
-            data.forEach(item => {
+            // === LUÔN GROUP THEO NGÀY CHO BIỂU ĐỒ ===
+            const dailyGroups = {};
+
+            data.forEach((item, index) => {
                 const date = item.ngay_nhan ? item.ngay_nhan.toString().split('T')[0] : '';
-                let groupKey = date;
+                if (date) { // Chỉ xử lý khi có ngày hợp lệ
+                    if (!dailyGroups[date]) {
+                        dailyGroups[date] = 0;
+                    }
+                    const quantity = parseInt(item.sl_nhan || 0);
+                    dailyGroups[date] += quantity;
 
-                if (period === 'weekly') {
-                    const d = new Date(date);
-                    const weekStart = new Date(d.setDate(d.getDate() - d.getDay()));
-                    groupKey = weekStart.toISOString().split('T')[0];
-                } else if (period === 'monthly') {
-                    groupKey = date.substring(0, 7); // YYYY-MM
-                }
-
-                if (!groups[groupKey]) {
-                    groups[groupKey] = {
-                        quantity: 0,
-                        date: date
-                    };
-                }
-                groups[groupKey].quantity += parseInt(item.sl_nhan || 0);
-            });
-
-            // Sort and prepare chart data
-            const sortedKeys = Object.keys(groups).sort();
-            processedData.labels = sortedKeys.map(key => {
-                if (period === 'weekly') {
-                    const d = new Date(key);
-                    return `Tuần ${Math.ceil((d.getDate()) / 7)} - ${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-                } else if (period === 'monthly') {
-                    const [year, month] = key.split('-');
-                    return `${month}/${year}`;
+                    // Log chi tiết hơn
+                    if (index < 5) { // Log 5 items đầu tiên
+                        console.log(`Item ${index}: Date=${date}, Quantity=${quantity}, Running total for date=${dailyGroups[date]}`);
+                    }
                 } else {
-                    const d = new Date(key);
-                    return d.toLocaleDateString('vi-VN');
+                    if (index < 5) {
+                        console.log(`Item ${index}: No valid date found in:`, item);
+                    }
                 }
             });
 
-            processedData.receiveData = sortedKeys.map(key => groups[key].quantity);
-
-            // Prepare table data
-            const dailyData = {};
-            data.forEach(item => {
-                const date = item.ngay_nhan ? item.ngay_nhan.toString().split('T')[0] : '';
-                if (!dailyData[date]) {
-                    dailyData[date] = 0;
-                }
-                dailyData[date] += parseInt(item.sl_nhan || 0);
+            console.log('Final daily groups result:', dailyGroups);
+            console.log('Total days with data:', Object.keys(dailyGroups).length);
+            console.log('Date range in data:', {
+                earliest: Math.min(...Object.keys(dailyGroups).map(d => new Date(d).getTime())),
+                latest: Math.max(...Object.keys(dailyGroups).map(d => new Date(d).getTime())),
+                earliestStr: Object.keys(dailyGroups).sort()[0],
+                latestStr: Object.keys(dailyGroups).sort().reverse()[0]
             });
 
-            // SẮP XẾP THEO NGÀY MỚI NHẤT LEN ĐẦU
-            const sortedDates = Object.keys(dailyData).sort((a, b) => new Date(b) - new Date(a));
+            // Sắp xếp ngày tăng dần cho biểu đồ
+            const sortedDates = Object.keys(dailyGroups).sort((a, b) => new Date(a) - new Date(b));
+            console.log('Sorted dates for chart:', sortedDates);
 
-            processedData.tableData = sortedDates.map((date, index) => {
-                const quantity = dailyData[date];
+            processedData.labels = sortedDates.map(date => {
+                const d = new Date(date);
+                return d.toLocaleDateString('vi-VN');
+            });
+            processedData.receiveData = sortedDates.map(date => dailyGroups[date]);
+
+            console.log('Chart data prepared:', {
+                labels: processedData.labels,
+                data: processedData.receiveData
+            });
+
+            // Prepare table data (vẫn theo ngày) - SẮP XẾP NGƯỢC LẠI CHO BẢNG
+            processedData.tableData = sortedDates.slice().reverse().map((date, index, arr) => {
+                const quantity = dailyGroups[date];
                 let change = 0;
                 let changePercent = 0;
                 let prevQuantity = 0;
 
-                // TÌM NGÀY LIỀN KỀ TRƯỚC ĐÓ TRONG DANH SÁCH (không phải theo lịch)
-                if (index < sortedDates.length - 1) {
-                    const prevDate = sortedDates[index + 1]; // Ngày trước đó trong danh sách đã sắp xếp
-                    prevQuantity = dailyData[prevDate] || 0;
+                // So sánh với ngày trước đó (trong mảng đã reverse)
+                if (index < arr.length - 1) {
+                    const prevDate = arr[index + 1];
+                    prevQuantity = dailyGroups[prevDate] || 0;
                     change = quantity - prevQuantity;
                     changePercent = prevQuantity > 0 ? Math.round((change / prevQuantity) * 100) : 0;
                 }
@@ -3154,25 +3263,148 @@
                 };
             });
 
+            console.log('Table data prepared (first 3 rows):', processedData.tableData.slice(0, 3));
+
             // Calculate summary
-            processedData.summary.totalReceive = Object.values(dailyData).reduce((sum, qty) => sum + qty, 0);
+            processedData.summary.totalReceive = Object.values(dailyGroups).reduce((sum, qty) => sum + qty, 0);
             processedData.summary.avgDaily = sortedDates.length > 0 ?
                 Math.round(processedData.summary.totalReceive / sortedDates.length) : 0;
 
             // Find max day
-            const maxQuantity = Math.max(...Object.values(dailyData));
-            const maxDate = Object.keys(dailyData).find(date => dailyData[date] === maxQuantity);
+            const maxQuantity = Math.max(...Object.values(dailyGroups));
+            const maxDate = Object.keys(dailyGroups).find(date => dailyGroups[date] === maxQuantity);
             processedData.summary.maxDay = maxDate ? new Date(maxDate).toLocaleDateString('vi-VN') : '-';
 
-            // Calculate growth (compare first and last period)
-            if (processedData.receiveData.length >= 2) {
-                const firstPeriod = processedData.receiveData[0];
-                const lastPeriod = processedData.receiveData[processedData.receiveData.length - 1];
-                processedData.summary.growth = firstPeriod > 0 ?
-                    Math.round(((lastPeriod - firstPeriod) / firstPeriod) * 100) : 0;
-            }
+            console.log('Summary before growth calculation:', {
+                totalReceive: processedData.summary.totalReceive,
+                avgDaily: processedData.summary.avgDaily,
+                maxDay: processedData.summary.maxDay,
+                maxQuantity: maxQuantity
+            });
+
+            // ========== TÍNH TĂNG TRƯỞNG VỚI HÀM MỚI - GIỐNG HÀNG GIAO ==========
+            processedData.summary.growth = calculateGrowthHN(period, dailyGroups);
+
+            console.log('Final processed data summary:', processedData.summary);
+            console.log('=== END PROCESSING V2 ===');
 
             return processedData;
+        }
+
+        // HÀM TÍNH TĂNG TRƯỞNG THÔNG MINH CHO HÀNG NHẬN - TỰ ĐỘNG TÌM 2 KHOẢNG THỜI GIAN GẦN NHẤT
+        function calculateGrowthHN(period, dailyGroups) {
+            console.log('=== SMART GROWTH CALCULATION HN ===');
+            console.log('Period:', period);
+            console.log('Daily Groups Data keys count:', Object.keys(dailyGroups).length);
+
+            let currentPeriodTotal = 0;
+            let previousPeriodTotal = 0;
+
+            if (period === 'daily') {
+                // Tìm 2 ngày gần nhất có dữ liệu
+                const sortedDates = Object.keys(dailyGroups).sort().reverse(); // Mới nhất trước
+                console.log('Available dates (newest first):', sortedDates.slice(0, 5));
+
+                if (sortedDates.length >= 2) {
+                    const currentDate = sortedDates[0];
+                    const previousDate = sortedDates[1];
+
+                    currentPeriodTotal = dailyGroups[currentDate];
+                    previousPeriodTotal = dailyGroups[previousDate];
+
+                    console.log(`DAILY: Comparing ${currentDate} (${currentPeriodTotal}) vs ${previousDate} (${previousPeriodTotal})`);
+                } else {
+                    console.log('Not enough days for comparison');
+                    return 0;
+                }
+
+            } else if (period === 'weekly') {
+                // Tìm tất cả các tuần có dữ liệu
+                const weeklyTotals = {};
+
+                Object.keys(dailyGroups).forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    // Tính tuần dựa trên năm và số tuần trong năm
+                    const yearWeek = getYearWeek(date);
+
+                    if (!weeklyTotals[yearWeek]) {
+                        weeklyTotals[yearWeek] = 0;
+                    }
+                    weeklyTotals[yearWeek] += dailyGroups[dateStr];
+                });
+
+                console.log('Weekly totals found:', weeklyTotals);
+
+                const sortedWeeks = Object.keys(weeklyTotals).sort().reverse();
+                console.log('Sorted weeks (newest first):', sortedWeeks);
+
+                if (sortedWeeks.length >= 2) {
+                    const currentWeekKey = sortedWeeks[0];
+                    const previousWeekKey = sortedWeeks[1];
+
+                    currentPeriodTotal = weeklyTotals[currentWeekKey];
+                    previousPeriodTotal = weeklyTotals[previousWeekKey];
+
+                    console.log(`WEEKLY: Comparing ${currentWeekKey} (${currentPeriodTotal}) vs ${previousWeekKey} (${previousPeriodTotal})`);
+                } else {
+                    console.log('Not enough weeks for comparison');
+                    return 0;
+                }
+
+            } else if (period === 'monthly') {
+                // Tìm tất cả các tháng có dữ liệu
+                const monthlyTotals = {};
+
+                Object.keys(dailyGroups).forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+
+                    if (!monthlyTotals[monthKey]) {
+                        monthlyTotals[monthKey] = 0;
+                    }
+                    monthlyTotals[monthKey] += dailyGroups[dateStr];
+                });
+
+                console.log('Monthly totals found:', monthlyTotals);
+
+                // Sắp xếp các tháng theo thứ tự giảm dần (mới nhất trước)
+                const sortedMonths = Object.keys(monthlyTotals).sort().reverse();
+                console.log('Sorted months (newest first):', sortedMonths);
+
+                if (sortedMonths.length >= 2) {
+                    const currentMonthKey = sortedMonths[0];
+                    const previousMonthKey = sortedMonths[1];
+
+                    currentPeriodTotal = monthlyTotals[currentMonthKey];
+                    previousPeriodTotal = monthlyTotals[previousMonthKey];
+
+                    console.log(`MONTHLY: Comparing ${currentMonthKey} (${currentPeriodTotal}) vs ${previousMonthKey} (${previousPeriodTotal})`);
+                } else {
+                    console.log('Not enough months for comparison');
+                    return 0;
+                }
+            }
+
+            // Tính tỷ lệ tăng trưởng
+            let growth = 0;
+            if (previousPeriodTotal > 0) {
+                growth = Math.round(((currentPeriodTotal - previousPeriodTotal) / previousPeriodTotal) * 100);
+            } else if (currentPeriodTotal > 0) {
+                growth = 100; // Tăng 100% nếu kỳ trước không có dữ liệu
+            }
+
+            console.log('FINAL SMART CALCULATION HN:');
+            console.log('Current Period Total:', currentPeriodTotal);
+            console.log('Previous Period Total:', previousPeriodTotal);
+            console.log('Growth calculation:', {
+                formula: `((${currentPeriodTotal} - ${previousPeriodTotal}) / ${previousPeriodTotal}) * 100`,
+                result: growth,
+                interpretation: growth > 0 ? 'Tăng trưởng' : growth < 0 ? 'Giảm' : 'Không thay đổi'
+            });
+            console.log('Growth Rate:', growth + '%');
+            console.log('=== END SMART CALCULATION HN ===');
+
+            return growth;
         }
 
         function updateReceiveSummary(data) {
@@ -3262,6 +3494,42 @@
 
         // ========== DELIVERY REPORT ==========
         function loadDeliveryReport() {
+            // THÊM LOGGING ĐỂ KIỂM TRA DỮ LIỆU GỐC
+            console.log('=== RAW DELIVERY DATA CHECK ===');
+            console.log('Total records in globalData.dataDelivery:', globalData.dataDelivery.length);
+
+            if (globalData.dataDelivery.length > 0) {
+                console.log('Sample records:', globalData.dataDelivery.slice(0, 5));
+
+                // Kiểm tra dữ liệu tháng hiện tại và tháng trước
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+
+                const currentMonthData = globalData.dataDelivery.filter(item => {
+                    if (!item.ngay_dong_goi) return false;
+                    const itemDate = new Date(item.ngay_dong_goi);
+                    return itemDate.getMonth() === currentMonth && itemDate.getFullYear() === currentYear;
+                });
+
+                const previousMonthData = globalData.dataDelivery.filter(item => {
+                    if (!item.ngay_dong_goi) return false;
+                    const itemDate = new Date(item.ngay_dong_goi);
+                    return itemDate.getMonth() === (currentMonth - 1) && itemDate.getFullYear() === currentYear;
+                });
+
+                console.log(`Records in current month (${currentMonth + 1}/${currentYear}):`, currentMonthData.length);
+                console.log(`Records in previous month (${currentMonth}/${currentYear}):`, previousMonthData.length);
+
+                if (currentMonthData.length > 0) {
+                    console.log('Current month sample:', currentMonthData.slice(0, 3));
+                }
+                if (previousMonthData.length > 0) {
+                    console.log('Previous month sample:', previousMonthData.slice(0, 3));
+                }
+            }
+            console.log('=== END RAW DATA CHECK ===');
+
             const filters = {
                 dateFrom: document.getElementById('dateFromHG').value,
                 dateTo: document.getElementById('dateToHG').value,
@@ -3278,6 +3546,19 @@
         }
 
         function processDeliveryData(data, period) {
+            console.log('=== PROCESSING DELIVERY DATA V2 ===');
+            console.log('Input data length:', data.length);
+            console.log('Sample data items:', data.slice(0, 3)); // Xem 3 items đầu tiên
+            console.log('Period:', period);
+
+            // Kiểm tra cấu trúc dữ liệu
+            if (data.length > 0) {
+                console.log('Data structure check:');
+                console.log('Keys in first item:', Object.keys(data[0]));
+                console.log('ngay_dong_goi field:', data[0].ngay_dong_goi);
+                console.log('sll field:', data[0].sll);
+            }
+
             const processedData = {
                 labels: [],
                 deliveryData: [],
@@ -3290,69 +3571,64 @@
                 }
             };
 
-            // Group data by period
-            const groups = {};
-            data.forEach(item => {
+            // === LUÔN GROUP THEO NGÀY CHO BIỂU ĐỒ ===
+            const dailyGroups = {};
+
+            data.forEach((item, index) => {
                 const date = item.ngay_dong_goi ? item.ngay_dong_goi.toString().split('T')[0] : '';
-                let groupKey = date;
+                if (date) { // Chỉ xử lý khi có ngày hợp lệ
+                    if (!dailyGroups[date]) {
+                        dailyGroups[date] = 0;
+                    }
+                    const quantity = parseInt(item.sll || 0);
+                    dailyGroups[date] += quantity;
 
-                if (period === 'weekly') {
-                    const d = new Date(date);
-                    const weekStart = new Date(d.setDate(d.getDate() - d.getDay()));
-                    groupKey = weekStart.toISOString().split('T')[0];
-                } else if (period === 'monthly') {
-                    groupKey = date.substring(0, 7); // YYYY-MM
-                }
-
-                if (!groups[groupKey]) {
-                    groups[groupKey] = {
-                        quantity: 0,
-                        date: date
-                    };
-                }
-                groups[groupKey].quantity += parseInt(item.sll || 0);
-            });
-
-            // Sort and prepare chart data
-            const sortedKeys = Object.keys(groups).sort();
-            processedData.labels = sortedKeys.map(key => {
-                if (period === 'weekly') {
-                    const d = new Date(key);
-                    return `Tuần ${Math.ceil((d.getDate()) / 7)} - ${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-                } else if (period === 'monthly') {
-                    const [year, month] = key.split('-');
-                    return `${month}/${year}`;
+                    // Log chi tiết hơn
+                    if (index < 5) { // Log 5 items đầu tiên
+                        console.log(`Item ${index}: Date=${date}, Quantity=${quantity}, Running total for date=${dailyGroups[date]}`);
+                    }
                 } else {
-                    const d = new Date(key);
-                    return d.toLocaleDateString('vi-VN');
+                    if (index < 5) {
+                        console.log(`Item ${index}: No valid date found in:`, item);
+                    }
                 }
             });
 
-            processedData.deliveryData = sortedKeys.map(key => groups[key].quantity);
-
-            // Prepare table data
-            const dailyData = {};
-            data.forEach(item => {
-                const date = item.ngay_dong_goi ? item.ngay_dong_goi.toString().split('T')[0] : '';
-                if (!dailyData[date]) {
-                    dailyData[date] = 0;
-                }
-                dailyData[date] += parseInt(item.sll || 0);
+            console.log('Final daily groups result:', dailyGroups);
+            console.log('Total days with data:', Object.keys(dailyGroups).length);
+            console.log('Date range in data:', {
+                earliest: Math.min(...Object.keys(dailyGroups).map(d => new Date(d).getTime())),
+                latest: Math.max(...Object.keys(dailyGroups).map(d => new Date(d).getTime())),
+                earliestStr: Object.keys(dailyGroups).sort()[0],
+                latestStr: Object.keys(dailyGroups).sort().reverse()[0]
             });
 
-            // SẮP XẾP THEO NGÀY MỚI NHẤT LEN ĐẦU
-            const sortedDates = Object.keys(dailyData).sort((a, b) => new Date(b) - new Date(a));
+            // Sắp xếp ngày tăng dần cho biểu đồ
+            const sortedDates = Object.keys(dailyGroups).sort((a, b) => new Date(a) - new Date(b));
+            console.log('Sorted dates for chart:', sortedDates);
 
-            processedData.tableData = sortedDates.map((date, index) => {
-                const quantity = dailyData[date];
+            processedData.labels = sortedDates.map(date => {
+                const d = new Date(date);
+                return d.toLocaleDateString('vi-VN');
+            });
+            processedData.deliveryData = sortedDates.map(date => dailyGroups[date]);
+
+            console.log('Chart data prepared:', {
+                labels: processedData.labels,
+                data: processedData.deliveryData
+            });
+
+            // Prepare table data (vẫn theo ngày) - SẮP XẾP NGƯỢC LẠI CHO BẢNG
+            processedData.tableData = sortedDates.slice().reverse().map((date, index, arr) => {
+                const quantity = dailyGroups[date];
                 let change = 0;
                 let changePercent = 0;
                 let prevQuantity = 0;
 
-                // TÌM NGÀY LIỀN KỀ TRƯỚC ĐÓ TRONG DANH SÁCH (không phải theo lịch)
-                if (index < sortedDates.length - 1) {
-                    const prevDate = sortedDates[index + 1]; // Ngày trước đó trong danh sách đã sắp xếp
-                    prevQuantity = dailyData[prevDate] || 0;
+                // So sánh với ngày trước đó (trong mảng đã reverse)
+                if (index < arr.length - 1) {
+                    const prevDate = arr[index + 1];
+                    prevQuantity = dailyGroups[prevDate] || 0;
                     change = quantity - prevQuantity;
                     changePercent = prevQuantity > 0 ? Math.round((change / prevQuantity) * 100) : 0;
                 }
@@ -3366,25 +3642,164 @@
                 };
             });
 
+            console.log('Table data prepared (first 3 rows):', processedData.tableData.slice(0, 3));
+
             // Calculate summary
-            processedData.summary.totalDelivery = Object.values(dailyData).reduce((sum, qty) => sum + qty, 0);
+            processedData.summary.totalDelivery = Object.values(dailyGroups).reduce((sum, qty) => sum + qty, 0);
             processedData.summary.avgDaily = sortedDates.length > 0 ?
                 Math.round(processedData.summary.totalDelivery / sortedDates.length) : 0;
 
             // Find max day
-            const maxQuantity = Math.max(...Object.values(dailyData));
-            const maxDate = Object.keys(dailyData).find(date => dailyData[date] === maxQuantity);
+            const maxQuantity = Math.max(...Object.values(dailyGroups));
+            const maxDate = Object.keys(dailyGroups).find(date => dailyGroups[date] === maxQuantity);
             processedData.summary.maxDay = maxDate ? new Date(maxDate).toLocaleDateString('vi-VN') : '-';
 
-            // Calculate growth (compare first and last period)
-            if (processedData.deliveryData.length >= 2) {
-                const firstPeriod = processedData.deliveryData[0];
-                const lastPeriod = processedData.deliveryData[processedData.deliveryData.length - 1];
-                processedData.summary.growth = firstPeriod > 0 ?
-                    Math.round(((lastPeriod - firstPeriod) / firstPeriod) * 100) : 0;
-            }
+            console.log('Summary before growth calculation:', {
+                totalDelivery: processedData.summary.totalDelivery,
+                avgDaily: processedData.summary.avgDaily,
+                maxDay: processedData.summary.maxDay,
+                maxQuantity: maxQuantity
+            });
+
+            // ========== TÍNH TĂNG TRƯỞNG VỚI HÀM MỚI ==========
+            processedData.summary.growth = calculateGrowthHG(period, dailyGroups);
+
+            console.log('Final processed data summary:', processedData.summary);
+            console.log('=== END PROCESSING V2 ===');
 
             return processedData;
+        }
+
+        // HÀM TÍNH TĂNG TRƯỞNG THÔNG MINH - TỰ ĐỘNG TÌM 2 KHOẢNG THỜI GIAN GẦN NHẤT
+        function calculateGrowthHG(period, dailyGroups) {
+            console.log('=== SMART GROWTH CALCULATION ===');
+            console.log('Period:', period);
+            console.log('Daily Groups Data keys count:', Object.keys(dailyGroups).length);
+
+            let currentPeriodTotal = 0;
+            let previousPeriodTotal = 0;
+
+            if (period === 'daily') {
+                // Tìm 2 ngày gần nhất có dữ liệu
+                const sortedDates = Object.keys(dailyGroups).sort().reverse(); // Mới nhất trước
+                console.log('Available dates (newest first):', sortedDates.slice(0, 5));
+
+                if (sortedDates.length >= 2) {
+                    const currentDate = sortedDates[0];
+                    const previousDate = sortedDates[1];
+
+                    currentPeriodTotal = dailyGroups[currentDate];
+                    previousPeriodTotal = dailyGroups[previousDate];
+
+                    console.log(`DAILY: Comparing ${currentDate} (${currentPeriodTotal}) vs ${previousDate} (${previousPeriodTotal})`);
+                } else {
+                    console.log('Not enough days for comparison');
+                    return 0;
+                }
+
+            } else if (period === 'weekly') {
+                // Tìm tất cả các tuần có dữ liệu
+                const weeklyTotals = {};
+
+                Object.keys(dailyGroups).forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    // Tính tuần dựa trên năm và số tuần trong năm
+                    const yearWeek = getYearWeek(date);
+
+                    if (!weeklyTotals[yearWeek]) {
+                        weeklyTotals[yearWeek] = 0;
+                    }
+                    weeklyTotals[yearWeek] += dailyGroups[dateStr];
+                });
+
+                console.log('Weekly totals found:', weeklyTotals);
+
+                const sortedWeeks = Object.keys(weeklyTotals).sort().reverse();
+                console.log('Sorted weeks (newest first):', sortedWeeks);
+
+                if (sortedWeeks.length >= 2) {
+                    const currentWeekKey = sortedWeeks[0];
+                    const previousWeekKey = sortedWeeks[1];
+
+                    currentPeriodTotal = weeklyTotals[currentWeekKey];
+                    previousPeriodTotal = weeklyTotals[previousWeekKey];
+
+                    console.log(`WEEKLY: Comparing ${currentWeekKey} (${currentPeriodTotal}) vs ${previousWeekKey} (${previousPeriodTotal})`);
+                } else {
+                    console.log('Not enough weeks for comparison');
+                    return 0;
+                }
+
+            } else if (period === 'monthly') {
+                // Tìm tất cả các tháng có dữ liệu
+                const monthlyTotals = {};
+
+                Object.keys(dailyGroups).forEach(dateStr => {
+                    const date = new Date(dateStr);
+                    const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+
+                    if (!monthlyTotals[monthKey]) {
+                        monthlyTotals[monthKey] = 0;
+                    }
+                    monthlyTotals[monthKey] += dailyGroups[dateStr];
+                });
+
+                console.log('Monthly totals found:', monthlyTotals);
+
+                // Sắp xếp các tháng theo thứ tự giảm dần (mới nhất trước)
+                const sortedMonths = Object.keys(monthlyTotals).sort().reverse();
+                console.log('Sorted months (newest first):', sortedMonths);
+
+                if (sortedMonths.length >= 2) {
+                    const currentMonthKey = sortedMonths[0];
+                    const previousMonthKey = sortedMonths[1];
+
+                    currentPeriodTotal = monthlyTotals[currentMonthKey];
+                    previousPeriodTotal = monthlyTotals[previousMonthKey];
+
+                    console.log(`MONTHLY: Comparing ${currentMonthKey} (${currentPeriodTotal}) vs ${previousMonthKey} (${previousPeriodTotal})`);
+                } else {
+                    console.log('Not enough months for comparison');
+                    return 0;
+                }
+            }
+
+            // Tính tỷ lệ tăng trưởng
+            let growth = 0;
+            if (previousPeriodTotal > 0) {
+                growth = Math.round(((currentPeriodTotal - previousPeriodTotal) / previousPeriodTotal) * 100);
+            } else if (currentPeriodTotal > 0) {
+                growth = 100; // Tăng 100% nếu kỳ trước không có dữ liệu
+            }
+
+            console.log('FINAL SMART CALCULATION:');
+            console.log('Current Period Total:', currentPeriodTotal);
+            console.log('Previous Period Total:', previousPeriodTotal);
+            console.log('Growth calculation:', {
+                formula: `((${currentPeriodTotal} - ${previousPeriodTotal}) / ${previousPeriodTotal}) * 100`,
+                result: growth,
+                interpretation: growth > 0 ? 'Tăng trưởng' : growth < 0 ? 'Giảm' : 'Không thay đổi'
+            });
+            console.log('Growth Rate:', growth + '%');
+            console.log('=== END SMART CALCULATION ===');
+
+            return growth;
+        }
+
+        // HÀM PHỤ TRỢ: Tính năm-tuần cho weekly comparison
+        function getYearWeek(date) {
+            const d = new Date(date);
+            // Đặt về thứ 2 đầu tuần
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+
+            // Lấy tuần đầu tiên của năm
+            const week1 = new Date(d.getFullYear(), 0, 4);
+
+            // Tính số tuần
+            const weekNumber = 1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+
+            return `${d.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
         }
 
         function updateDeliverySummary(data) {
@@ -3463,13 +3878,79 @@
                 const changeIcon = row.change > 0 ? '↗' : row.change < 0 ? '↘' : '→';
 
                 tr.innerHTML = `
-                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.date}</td>
-                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.quantity.toLocaleString()}</td>
-                   <td class="px-6 py-4 whitespace-nowrap text-sm ${changeClass}">${changeIcon} ${Math.abs(row.change).toLocaleString()}</td>
-                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${changeClass}">${row.changePercent}%</td>
-               `;
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.date}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.quantity.toLocaleString()}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm ${changeClass}">${changeIcon} ${Math.abs(row.change).toLocaleString()}</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${changeClass}">${row.changePercent}%</td>
+       `;
                 tbody.appendChild(tr);
             });
+        }
+
+        function onPeriodChangeHN() {
+            const period = document.getElementById('periodHN').value;
+            const now = new Date();
+            let fromDateStr, toDateStr;
+
+            if (period === 'daily') {
+                // Theo ngày - từ hôm qua đến hôm nay
+                const yesterday = new Date(now);
+                yesterday.setDate(now.getDate() - 1);
+
+                fromDateStr = formatDateForInput(yesterday);
+                toDateStr = formatDateForInput(now);
+
+            } else if (period === 'weekly') {
+                // Theo tuần - từ đầu tuần trước đến cuối tuần hiện tại
+                const currentWeekStart = new Date(now);
+                const dayOfWeek = currentWeekStart.getDay();
+                const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                currentWeekStart.setDate(now.getDate() + mondayOffset);
+
+                const previousWeekStart = new Date(currentWeekStart);
+                previousWeekStart.setDate(currentWeekStart.getDate() - 7);
+
+                const currentWeekEnd = new Date(currentWeekStart);
+                currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+
+                fromDateStr = formatDateForInput(previousWeekStart);
+                toDateStr = formatDateForInput(currentWeekEnd);
+
+            } else if (period === 'monthly') {
+                // Theo tháng - từ đầu tháng trước đến hôm nay
+                const currentYear = now.getFullYear();
+                const currentMonth = now.getMonth(); // 0-based: June = 5
+
+                let previousMonth, previousYear;
+
+                if (currentMonth === 0) {
+                    previousMonth = 11;
+                    previousYear = currentYear - 1;
+                } else {
+                    previousMonth = currentMonth - 1;
+                    previousYear = currentYear;
+                }
+
+                // NGÀY 1 CỦA THÁNG TRƯỚC
+                const firstDayOfPreviousMonth = new Date(previousYear, previousMonth, 1);
+
+                fromDateStr = formatDateForInput(firstDayOfPreviousMonth);
+                toDateStr = formatDateForInput(now);
+
+                // DEBUG LOG
+                console.log('HN Current Date:', now.toDateString());
+                console.log('HN From Date:', fromDateStr, '(should be 2025-05-01)');
+                console.log('HN To Date:', toDateStr, '(should be 2025-06-24)');
+            }
+
+            // Cập nhật giá trị vào input
+            document.getElementById('dateFromHN').value = fromDateStr;
+            document.getElementById('dateToHN').value = toDateStr;
+
+            console.log(`HN Period: ${period}, Range: ${fromDateStr} to ${toDateStr}`);
+
+            // Tự động tải lại báo cáo
+            loadReceiveReport();
         }
 
         // ========== FILTER FUNCTIONS ==========
@@ -3545,31 +4026,94 @@
         }
 
         function resetFilterHN() {
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(today.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-            document.getElementById('dateFromHN').value = yesterdayStr;
-            document.getElementById('dateToHN').value = yesterdayStr;
-            document.getElementById('periodHN').value = 'daily';
-            loadReceiveReport();
+            // Đặt lại về monthly và tự động cập nhật ngày
+            document.getElementById('periodHN').value = 'monthly';
+            onPeriodChangeHN(); // Gọi hàm này để tự động cập nhật ngày
         }
 
         function applyFilterHG() {
             loadDeliveryReport();
         }
 
-        function resetFilterHG() {
-            const today = new Date();
-            const yesterday = new Date(today);
-            yesterday.setDate(today.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+        // THÊM HÀM PHỤ TRỢ ĐỂ FORMAT NGÀY ĐÚNG
+        function formatDateForInput(date) {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
 
-            document.getElementById('dateFromHG').value = yesterdayStr;
-            document.getElementById('dateToHG').value = yesterdayStr;
-            document.getElementById('periodHG').value = 'daily';
+        // SỬA LẠI HÀM CHO HÀNG GIAO - SỬ DỤNG formatDateForInput
+        function onPeriodChangeHG() {
+            const period = document.getElementById('periodHG').value;
+            const now = new Date();
+            let fromDateStr, toDateStr;
+
+            if (period === 'daily') {
+                // Theo ngày - từ hôm qua đến hôm nay
+                const yesterday = new Date(now);
+                yesterday.setDate(now.getDate() - 1);
+
+                fromDateStr = formatDateForInput(yesterday);
+                toDateStr = formatDateForInput(now);
+
+            } else if (period === 'weekly') {
+                // Theo tuần - từ đầu tuần trước đến cuối tuần hiện tại
+                const currentWeekStart = new Date(now);
+                const dayOfWeek = currentWeekStart.getDay();
+                const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                currentWeekStart.setDate(now.getDate() + mondayOffset);
+
+                const previousWeekStart = new Date(currentWeekStart);
+                previousWeekStart.setDate(currentWeekStart.getDate() - 7);
+
+                const currentWeekEnd = new Date(currentWeekStart);
+                currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+
+                fromDateStr = formatDateForInput(previousWeekStart);
+                toDateStr = formatDateForInput(currentWeekEnd);
+
+            } else if (period === 'monthly') {
+                // Theo tháng - từ đầu tháng trước đến cuối tháng hiện tại
+                const currentYear = now.getFullYear();
+                const currentMonth = now.getMonth(); // 0-based: June = 5
+
+                let previousMonth, previousYear;
+
+                if (currentMonth === 0) {
+                    previousMonth = 11;
+                    previousYear = currentYear - 1;
+                } else {
+                    previousMonth = currentMonth - 1;
+                    previousYear = currentYear;
+                }
+
+                // NGÀY 1 CỦA THÁNG TRƯỚC
+                const firstDayOfPreviousMonth = new Date(previousYear, previousMonth, 1);
+
+                // NGÀY CUỐI CỦA THÁNG HIỆN TẠI
+                const lastDayOfCurrentMonth = new Date(currentYear, currentMonth + 1, 0);
+
+                fromDateStr = formatDateForInput(firstDayOfPreviousMonth);
+                toDateStr = formatDateForInput(now);
+
+                // DEBUG LOG
+                console.log('Current Date:', now.toDateString());
+                console.log('From Date:', fromDateStr, '(should be 01/05/2025)');
+                console.log('To Date:', toDateStr, '(should be 30/06/2025)');
+            }
+
+            document.getElementById('dateFromHG').value = fromDateStr;
+            document.getElementById('dateToHG').value = toDateStr;
+
+            console.log(`HG Period: ${period}, Range: ${fromDateStr} to ${toDateStr}`);
             loadDeliveryReport();
+        }
+
+        function resetFilterHG() {
+            // Đặt lại về monthly và tự động cập nhật ngày
+            document.getElementById('periodHG').value = 'monthly';
+            onPeriodChangeHG();
         }
 
         // ========== INITIALIZATION ==========
@@ -3596,11 +4140,11 @@
             document.getElementById('dateFromDB').value = yesterdayStr;
             document.getElementById('dateToDB').value = yesterdayStr;
 
-            document.getElementById('dateFromHN').value = yesterdayStr;
-            document.getElementById('dateToHN').value = yesterdayStr;
-
-            document.getElementById('dateFromHG').value = yesterdayStr;
-            document.getElementById('dateToHG').value = yesterdayStr;
+            // Khởi tạo cả Hàng Nhận và Hàng Giao với loại thống kê mặc định
+            document.getElementById('periodHN').value = 'monthly';
+            document.getElementById('periodHG').value = 'monthly';
+            onPeriodChangeHN(); // Tự động set ngày theo loại thống kê monthly
+            onPeriodChangeHG(); // Tự động set ngày theo loại thống kê monthly
 
             // Load all data once at startup
             await loadAllData();
