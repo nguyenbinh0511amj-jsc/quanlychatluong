@@ -603,8 +603,8 @@
         };
 
         // Constants for AppSheet connection
-        const appId = '04a82add-ca65-43d2-876d-5564d1e9d921';
-        const accessKey = 'V2-ILllp-nmvuk-RaTjK-1Pyph-sGfmy-e2TJr-Z0w1l-rNQue';
+        const appId = 'e1339939-5987-4d7a-8c73-436348abf6b7';
+        const accessKey = 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL';
         const region = 'www';
 
         // Hiển thị loading indicator
@@ -695,7 +695,7 @@
                     const fileLink = document.createElement('a');
                     fileLink.textContent = "In bản vẽ";
                     const fileName = encodeURIComponent(productData.file_ban_ve);
-                    fileLink.href = `https://www.appsheet.com/template/gettablefileurl?appName=App-AMJPKT2024-648353741-24-09-27&tableName=san_pham&fileName=${fileName}`;
+                    fileLink.href = `https://www.appsheet.com/template/gettablefileurl?appName=Name=Quảnlýchấtlượng-648353741&tableName=san_pham&fileName=${fileName}`;
                     fileLink.style.color = "blue";
                     fileLink.style.textDecoration = "underline";
                     fileLink.style.cursor = "pointer";
@@ -755,7 +755,7 @@
                             // THAY ĐỔI: Lấy file_ban_ve từ dữ liệu sản phẩm
                             const productData = productCache[row.ten_chi_tiet];
                             if (productData && productData.file_ban_ve) {
-                                return '<a href="https://www.appsheet.com/template/gettablefileurl?appName=App-AMJPKT2024-648353741-24-09-27&tableName=san_pham&fileName='
+                                return '<a href="https://www.appsheet.com/template/gettablefileurl?appName=Name=Quảnlýchấtlượng-648353741&tableName=san_pham&fileName='
                                     + encodeURIComponent(productData.file_ban_ve)
                                     + '" style="color: blue; text-decoration: underline; cursor: pointer;" onclick="window.open(this.href, \'_blank\'); return false;">In bản vẽ</a>';
                             }
