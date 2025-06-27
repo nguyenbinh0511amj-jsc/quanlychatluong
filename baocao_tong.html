@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Báo Cáo Quản Lý Chất Lượng</title>
+    <link rel="shortcut icon" href="https://www.cokhithangtam.com.vn/web/image/website/1/favicon?unique=4d29ef9" type="image/x-icon">
+    <title>Báo cáo quản lý chất lượng</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
@@ -15,15 +16,17 @@
     <header class="bg-gradient-to-r from-blue-600 to-blue-800 text-white shadow-lg">
         <div class="container mx-auto px-4 py-2">
             <div class="flex items-center justify-center space-x-4">
-                <!-- Logo -->
+                <!-- Logo đẹp hơn -->
                 <div class="flex-shrink-0">
-                    <img src="https://hoangmv.github.io/inqr/AMJ.jpg" alt="August Mechanical JSC"
-                        class="h-12 w-auto md:h-16 object-contain">
+                    <div
+                        class="rounded-full bg-white shadow-lg border-4 border-blue-300 p-1 transition-transform duration-200 hover:scale-105 hover:shadow-2xl">
+                        <img src="https://hoangmv.github.io/inqr/RV_LOGO+TAG.webp"
+                            alt="August Mechanical JSC" class="h-12 w-12 md:h-16 md:w-16 object-contain rounded-full">
+                    </div>
                 </div>
                 <!-- Title and subtitle -->
                 <div class="text-center">
-                    <h1 class="text-2xl md:text-3xl font-bold">Báo Cáo Quản Lý Chất Lượng</h1>
-                    <!-- <p class="text-blue-100 mt-1 md:mt-2 text-sm md:text-base">Dashboard Theo Dõi Hoạt Động Sản Xuất</p> -->
+                    <h1 class="text-3xl md:text-3xl font-bold tracking-wide drop-shadow-lg">Báo cáo quản lý chất lượng</h1>
                 </div>
             </div>
         </div>
@@ -4193,24 +4196,24 @@
             }
         });
 
-        document.addEventListener('contextmenu', function (e) {
-            e.preventDefault();
-        }, false);
+        // document.addEventListener('contextmenu', function (e) {
+        //     e.preventDefault();
+        // }, false);
 
-        document.onkeydown = function (e) {
-            if (e.keyCode == 123) {
-                return false;
-            }
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
-                return false;
-            }
-            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
-                return false;
-            }
-            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
-                return false;
-            }
-        };
+        // document.onkeydown = function (e) {
+        //     if (e.keyCode == 123) {
+        //         return false;
+        //     }
+        //     if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+        //         return false;
+        //     }
+        //     if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+        //         return false;
+        //     }
+        //     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+        //         return false;
+        //     }
+        // };
 
     </script>
 
