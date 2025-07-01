@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="https://www.cokhithangtam.com.vn/web/image/website/1/favicon?unique=4d29ef9" type="image/x-icon">
+    <link rel="shortcut icon" href="https://www.cokhithangtam.com.vn/web/image/website/1/favicon?unique=4d29ef9"
+        type="image/x-icon">
     <title>Báo cáo quản lý chất lượng</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -20,13 +21,14 @@
                 <div class="flex-shrink-0">
                     <div
                         class="rounded-full bg-white shadow-lg border-4 border-blue-300 p-1 transition-transform duration-200 hover:scale-105 hover:shadow-2xl">
-                        <img src="https://hoangmv.github.io/inqr/RV_LOGO+TAG.webp"
-                            alt="August Mechanical JSC" class="h-12 w-12 md:h-16 md:w-16 object-contain rounded-full">
+                        <img src="https://hoangmv.github.io/inqr/RV_LOGO+TAG.webp" alt="August Mechanical JSC"
+                            class="h-12 w-12 md:h-16 md:w-16 object-contain rounded-full">
                     </div>
                 </div>
                 <!-- Title and subtitle -->
                 <div class="text-center">
-                    <h1 class="text-3xl md:text-3xl font-bold tracking-wide drop-shadow-lg">Báo cáo quản lý chất lượng</h1>
+                    <h1 class="text-3xl md:text-3xl font-bold tracking-wide drop-shadow-lg">Báo cáo quản lý chất lượng
+                    </h1>
                 </div>
             </div>
         </div>
@@ -285,10 +287,11 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nhóm
                                     </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tổ</th>
-                                    <!-- THÊM DÒNG NÀY -->
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ca</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mã CV
                                     </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tên chi
+                                        tiết</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SL thực
                                         tế</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số người
@@ -2059,19 +2062,21 @@
                     noteContent += ` [EXCLUDED: cnc_tap=${item.cnc_tap || 'N/A'}, xlbm=${item.xlbm_danh_ni || 'N/A'}]`;
                 }
 
+                // Trong hàm processProductionData, phần tạo tableData
                 processedData.tableData.push({
                     date: formattedDate,
-                    sortDate: sortDate, // Thêm field để sort
+                    sortDate: sortDate,
                     group: item.nhom || '-',
                     team: teamDisplay,
-                    shift: item.ca_lam_viec || '-', // THÊM CA LÀM VIỆC
+                    shift: item.ca_lam_viec || '-',
                     maCV: item.ma_cv || '-',
+                    tenChiTiet: item.ten_chi_tiet || '-',
                     production: production,
                     workers: workers,
                     actualTime: actualTime,
                     theoreticalTime: theoreticalTime,
                     efficiency: efficiency,
-                    note: noteContent || '-' // Sử dụng noteContent đã được thêm thông tin debug
+                    note: noteContent || '-'
                 });
 
                 processedData.summary.totalProduction += production;
@@ -2394,7 +2399,10 @@
                 const noteDisplay = row.note && row.note !== '-' ?
                     (row.note.length > 50 ? row.note.substring(0, 50) + '...' : row.note) : '-';
 
-                // THÊM HIỂN THỊ CA LÀM VIỆC
+                // Xử lý tên chi tiết - giới hạn độ dài hiển thị
+                const tenChiTietDisplay = row.tenChiTiet && row.tenChiTiet !== '-' ?
+                    (row.tenChiTiet.length > 30 ? row.tenChiTiet.substring(0, 30) + '...' : row.tenChiTiet) : '-';
+
                 const shiftDisplay = row.shift || '-';
 
                 tr.innerHTML = `
@@ -2403,6 +2411,7 @@
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.team}</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${shiftDisplay}</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.maCV}</td>
+           <td class="px-6 py-4 text-sm text-gray-500 max-w-xs" title="${row.tenChiTiet}">${tenChiTietDisplay}</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.production.toLocaleString()}</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm ${workersClass}">${row.workers} người</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.actualTime.toFixed(1)} phút</td>
