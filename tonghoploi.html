@@ -1444,7 +1444,7 @@
             <td>${item.order_kd || ''}</td>
             <td title="${item.ten_chi_tiet || ''}">${item.ten_chi_tiet || ''}</td>
             <td>${item.sll || ''}</td>
-            <td>${formatDateFull(item.thoi_han) || 'Theo KH'}</td>
+            <td>${item.thoi_han || 'Theo KH'}</td>
             <td class="${item.tong_loi || ''}">${item.tong_loi !== '' ? item.tong_loi : ''}</td>
         `;
 
@@ -1873,10 +1873,10 @@
             selectedItems.forEach((item, index) => {
                 const rowData = [
                     index + 1,
-                    item.order_kd || '',
+                    item.order_kd ? parseFloat(item.order_kd) || item.order_kd : '',  // Định dạng số
                     item.ten_chi_tiet || '',
                     item.sll || '',
-                    formatDateFull(item.thoi_han) || 'Theo KH',
+                    item.thoi_han || 'Theo KH',
                     item.tong_loi === 0 ? 0 : (item.tong_loi || '')
                 ];
 
@@ -1940,6 +1940,11 @@
                         alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
                         border: cellBorder
                     };
+
+                    // Thêm định dạng số cho cột Order KD
+                    if (colNumber === 2) { // Cột B (Order KD)
+                        cell.numFmt = '0'; // Định dạng số nguyên
+                    }
 
                     // Màu nền cho các cột báo lỗi
                     if (colNumber >= 7 && colNumber <= 21) {
@@ -2040,7 +2045,7 @@
                     item.order_kd || '',
                     item.ten_chi_tiet || '',
                     item.sll || '',
-                    formatDateFull(item.thoi_han) || 'Theo KH',
+                    item.thoi_han || 'Theo KH',
                     item.tong_loi === 0 ? '0' : (item.tong_loi || '')
                 ];
 
@@ -2316,7 +2321,7 @@
                 content += `<td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; text-align: center; height: 20px; ">${item.order_kd || ''}</td>`;
                 content += `<td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; text-align: center; height: 20px; ">${item.ten_chi_tiet || ''}</td>`;
                 content += `<td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; text-align: center; height: 20px;">${item.sll || ''}</td>`;
-                content += `<td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; text-align: center; height: 20px; ">${formatDateFull(item.thoi_han) || 'Theo KH'}</td>`;
+                content += `<td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; text-align: center; height: 20px; ">${item.thoi_han || 'Theo KH'}</td>`;
                 content += `<td style="border-right: 1px solid black; border-bottom: 0.5px dashed #d3d3d3; padding: 1px; text-align: center; height: 20px; ">${item.tong_loi === 0 ? '0' : (item.tong_loi || '')}</td>`;
 
                 // Add error data for 5 occurrences (Báo lỗi)
