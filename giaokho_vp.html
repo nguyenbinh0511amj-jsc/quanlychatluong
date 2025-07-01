@@ -878,9 +878,8 @@
 
                 const workbook = new ExcelJS.Workbook();
 
-                // Tạo 4 sheets giống y hệt mẫu
+                // Tạo 3 sheets (đã xóa Giao vp autel)
                 await createGiaoVpRrcSheetExcelJS(workbook, dataToExport);
-                await createGiaoVpAutelSheetExcelJS(workbook);
                 await createGiaoVpKhacSheetExcelJS(workbook);
                 await createGiaoVpNoiBoSheetExcelJS(workbook);
 
@@ -1022,104 +1021,29 @@
                 dataRow.eachCell((cell, colNumber) => {
                     let alignment = { vertical: 'middle', horizontal: 'center' };
                     let fillColor = 'FFFFFF';
+                    let numFmt = undefined; // Thêm biến để định dạng số
 
                     // Căn trái cho tên sản phẩm và ghi chú
                     if (colNumber === 6 || colNumber === 11) {
                         alignment.horizontal = 'left';
                     }
 
+                    // Định dạng số cho cột Order Kinh Doanh (cột 3)
+                    if (colNumber === 3) {
+                        numFmt = '0'; // Định dạng số nguyên
+                        // Hoặc có thể dùng: numFmt = '#,##0' để có dấu phẩy ngăn cách hàng nghìn
+                    }
+
                     cell.style = {
                         font: { name: 'Times New Roman', size: 10 },
                         alignment: alignment,
                         fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
-                        border: createFullBorder()
+                        border: createFullBorder(),
+                        numFmt: numFmt // Thêm định dạng số
                     };
                 });
                 dataRow.height = 20;
             });
-        }
-
-        // Sheet 2: Giao vp autel - trống giống mẫu
-        async function createGiaoVpAutelSheetExcelJS(workbook) {
-            const worksheet = workbook.addWorksheet('Giao vp autel');
-
-            // Thiết lập độ rộng cột
-            worksheet.columns = [
-                { width: 6 },   // STT
-                { width: 12 },  // Số Po
-                { width: 15 },  // Order Kinh Doanh
-                { width: 15 },  // Order Lệnh phôi
-                { width: 15 },  // Order Vật liệu
-                { width: 25 },  // Tên sản phẩm
-                { width: 8 },   // ĐVT
-                { width: 12 },  // Số lượng
-                { width: 15 },  // Ngày đóng gói
-                { width: 18 },  // Xác nhận từ RRC
-                { width: 18 },  // Ghi chú
-                { width: 15 }   // Thùng (vị trí)
-            ];
-
-            // Tiêu đề chính
-            const titleRow = worksheet.addRow(['LIST GIAO HÀNG VĂN PHÒNG AUTEL HÀNG NGÀY']);
-            worksheet.mergeCells('A1:L1');
-            titleRow.getCell(1).style = {
-                font: { name: 'Times New Roman', size: 20, bold: true },
-                alignment: { horizontal: 'center', vertical: 'middle' },
-                border: createFullBorder()
-            };
-            titleRow.height = 25;
-
-            // Header
-            const headers = [
-                'STT', 'Số Po', 'Order\nKinh Doanh', 'Order\nLệnh phôi', 'Order\nVật liệu',
-                'Tên sản phẩm', 'ĐVT', 'Số lượng', 'Ngày đóng\ngói', 'Xác nhận từ RRC',
-                'Ghi chú', 'Thùng\n(vị trí)'
-            ];
-            const headerRow = worksheet.addRow(headers);
-
-            headerRow.eachCell((cell) => {
-                cell.style = {
-                    font: { name: 'Times New Roman', size: 11, bold: true },
-                    alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
-                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'D9D9D9' } },
-                    border: createFullBorder()
-                };
-            });
-            headerRow.height = 35;
-
-            // Dòng tổng
-            const totalRow = worksheet.addRow([
-                '*', '*', '*', '*', '*', '*', '*', 0, '*', '*', '*', '*'
-            ]);
-
-            totalRow.eachCell((cell, colNumber) => {
-                let fillColor = 'FFFFFF';
-                let fontColor = '000000';
-
-                if (colNumber === 8) { // Cột số lượng
-                    fillColor = '00B0F0';
-                    fontColor = 'FFFFFF';
-                }
-
-                cell.style = {
-                    font: { name: 'Times New Roman', size: 11, bold: true, color: { argb: fontColor } },
-                    alignment: { horizontal: 'center', vertical: 'middle' },
-                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
-                    border: createFullBorder()
-                };
-            });
-            totalRow.height = 20;
-
-            // Thêm 20 dòng trống có border
-            for (let i = 0; i < 20; i++) {
-                const emptyRow = worksheet.addRow(['', '', '', '', '', '', '', '', '', '', '', '']);
-                emptyRow.eachCell((cell) => {
-                    cell.style = {
-                        border: createFullBorder()
-                    };
-                });
-                emptyRow.height = 20;
-            }
         }
 
         // Sheet 3: Giao vp khác
