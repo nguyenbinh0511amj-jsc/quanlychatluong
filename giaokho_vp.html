@@ -1000,11 +1000,12 @@
             totalRow.height = 20;
 
             // Thêm dữ liệu
+            // Thêm dữ liệu
             dataToExport.forEach((item, index) => {
                 const rowData = [
                     index + 1,
                     item.order_kd || '',
-                    item.order_kd || '',
+                    item.order_kd || '', // Giữ nguyên giá trị gốc
                     item.order_phoi || '',
                     item.order_vat_lieu || '',
                     item.ten_chi_tiet || '',
@@ -1021,29 +1022,44 @@
                 dataRow.eachCell((cell, colNumber) => {
                     let alignment = { vertical: 'middle', horizontal: 'center' };
                     let fillColor = 'FFFFFF';
-                    let numFmt = undefined; // Thêm biến để định dạng số
+                    let numFmt = undefined;
 
                     // Căn trái cho tên sản phẩm và ghi chú
                     if (colNumber === 6 || colNumber === 11) {
                         alignment.horizontal = 'left';
                     }
 
-                    // Định dạng số cho cột Order Kinh Doanh (cột 3)
+                    // Định dạng cho cột Order Kinh Doanh (cột 3) - giữ số 0 đầu
                     if (colNumber === 3) {
-                        numFmt = '0'; // Định dạng số nguyên
-                        // Hoặc có thể dùng: numFmt = '#,##0' để có dấu phẩy ngăn cách hàng nghìn
+                        // Sử dụng định dạng text nhưng có thể tính toán được
+                        // Hoặc dùng định dạng số với độ dài cố định
+                        const orderValue = item.order_kd || '';
+                        if (orderValue && /^\d+$/.test(orderValue)) {
+                            // Thiết lập như số nhưng hiển thị với số 0 đầu
+                            cell.value = parseInt(orderValue, 10);
+                            // Định dạng để hiển thị với số 0 đầu (10 chữ số)
+                            numFmt = '0000000000';
+                        } else {
+                            cell.value = orderValue;
+                            numFmt = '@'; // Text format
+                        }
                     }
 
                     cell.style = {
                         font: { name: 'Times New Roman', size: 10 },
                         alignment: alignment,
                         fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: fillColor } },
-                        border: createFullBorder(),
-                        numFmt: numFmt // Thêm định dạng số
+                        border: createFullBorder()
                     };
+
+                    // Áp dụng định dạng số
+                    if (numFmt) {
+                        cell.numFmt = numFmt;
+                    }
                 });
                 dataRow.height = 20;
             });
+
         }
 
         // Sheet 3: Giao vp khác
