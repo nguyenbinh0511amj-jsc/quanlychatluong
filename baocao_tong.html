@@ -1432,31 +1432,31 @@
                         {
                             label: 'Chuẩn bị',
                             data: data.chuanBi,
-                            backgroundColor: '#FFA500', // Màu vàng cam cho Chuẩn bị
+                            backgroundColor: '#FFA500',
                             borderWidth: 1
                         },
                         {
                             label: 'Chạy thử',
                             data: data.chayThu,
-                            backgroundColor: '#3B82F6', // Màu xanh dương cho Chạy thử
+                            backgroundColor: '#3B82F6',
                             borderWidth: 1
                         },
                         {
                             label: 'Gia công',
                             data: data.giaCong,
-                            backgroundColor: '#22C55E', // Màu xanh lá cho Gia công
+                            backgroundColor: '#22C55E',
                             borderWidth: 1
                         },
                         {
                             label: 'Gá lắp',
                             data: data.gaLap,
-                            backgroundColor: '#9CA3AF', // Màu xám cho Gá lắp
+                            backgroundColor: '#9CA3AF',
                             borderWidth: 1
                         },
                         {
                             label: 'Tạm dừng',
                             data: data.tamDung,
-                            backgroundColor: '#FF4500', // Màu cam đỏ cho Tạm dừng (Dừng)
+                            backgroundColor: '#FF4500',
                             borderWidth: 1
                         }
                     ]
@@ -1464,6 +1464,14 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            top: 10,
+                            bottom: 10,
+                            left: 10,
+                            right: 10
+                        }
+                    },
                     scales: {
                         x: {
                             stacked: true,
@@ -1497,10 +1505,75 @@
                             }
                         }
                     }
-                }
+                },
+                plugins: [{
+                    afterDraw: function (chart) {
+                        const ctx = chart.ctx;
+                        const chartArea = chart.chartArea;
+                        const datasets = chart.data.datasets;
+                        const labels = chart.data.labels;
+
+                        // Màu sắc cho từng loại hoạt động
+                        const colors = ['#FFA500', '#3B82F6', '#22C55E', '#9CA3AF', '#FF4500'];
+
+                        labels.forEach((machineLabel, machineIndex) => {
+                            // Tính tổng thời gian của máy này
+                            const totalTime = datasets.reduce((sum, dataset) => {
+                                return sum + (dataset.data[machineIndex] || 0);
+                            }, 0);
+
+                            if (totalTime === 0) return;
+
+                            // Vị trí x của cột
+                            const barX = chart.scales.x.getPixelForValue(machineIndex);
+                            let currentY = chart.scales.y.getPixelForValue(0);
+
+                            datasets.forEach((dataset, datasetIndex) => {
+                                const value = dataset.data[machineIndex] || 0;
+
+                                if (value >= 1) { // HIỂN THỊ TẤT CẢ GIÁ TRỊ >= 1%
+                                    const segmentHeight = (value / 100) * (chart.scales.y.getPixelForValue(0) - chart.scales.y.getPixelForValue(100));
+                                    const segmentTop = currentY - segmentHeight;
+                                    const segmentCenter = (currentY + segmentTop) / 2;
+
+                                    // Kiểm tra kích thước màn hình
+                                    const isMobile = window.innerWidth <= 768;
+
+                                    // Vẽ text
+                                    const text = `${value}%`;
+                                    ctx.font = isMobile ? 'bold 8px Arial' : 'bold 10px Arial';
+                                    ctx.textAlign = 'center';
+                                    ctx.textBaseline = 'middle';
+
+                                    // Đo kích thước text
+                                    const textMetrics = ctx.measureText(text);
+                                    const textWidth = textMetrics.width + 4;
+                                    const textHeight = isMobile ? 12 : 14;
+
+                                    // Vẽ background cho text
+                                    const bgX = barX - textWidth / 2;
+                                    const bgY = segmentCenter - textHeight / 2;
+
+                                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                                    ctx.fillRect(bgX, bgY, textWidth, textHeight);
+
+                                    // Vẽ border
+                                    ctx.strokeStyle = colors[datasetIndex];
+                                    ctx.lineWidth = 0.5;
+                                    ctx.strokeRect(bgX, bgY, textWidth, textHeight);
+
+                                    // Vẽ text
+                                    ctx.fillStyle = colors[datasetIndex];
+                                    ctx.fillText(text, barX, segmentCenter);
+
+                                    currentY = segmentTop;
+                                }
+                            });
+                        });
+                    }
+                }]
             });
         }
-
         function update3DTable(data) {
             const tbody = document.getElementById('table3d');
             tbody.innerHTML = '';
@@ -2030,7 +2103,7 @@
                 const workers = parseInt(item.so_nguoi_lam || 0);
 
                 const efficiency = theoreticalTime > 0 && actualTime > 0 ?
-                    Math.round((theoreticalTime / actualTime) * 100) : 0;
+                    Number(((theoreticalTime / actualTime) * 100).toFixed(2)) : 0;
 
                 // Format ngày từ thoi_gian_bat_dau
                 let formattedDate = '-';
@@ -2414,9 +2487,9 @@
            <td class="px-6 py-4 text-sm text-gray-500 max-w-xs" title="${row.tenChiTiet}">${tenChiTietDisplay}</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.production.toLocaleString()}</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm ${workersClass}">${row.workers} người</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.actualTime.toFixed(1)} phút</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.theoreticalTime.toFixed(1)} phút</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${efficiencyClass}">${row.efficiency}%</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.actualTime.toFixed(2)} phút</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.theoreticalTime.toFixed(2)} phút</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${efficiencyClass}">${row.efficiency.toFixed(2)}%</td>
            <td class="px-6 py-4 text-sm text-gray-500 max-w-xs" title="${row.note}">${noteDisplay}</td>
        `;
                 tbody.appendChild(tr);
@@ -3001,7 +3074,7 @@
                 const actualTime = parseFloat(item.Thoi_Gian_Thuc_Te || 0);
                 const theoreticalTime = parseFloat(item.hoan_thanh_dk || 0);
                 const efficiency = theoreticalTime > 0 && actualTime > 0 ?
-                    Math.round((theoreticalTime / actualTime) * 100) : 0;
+                    Number(((theoreticalTime / actualTime) * 100).toFixed(2)) : 0;
 
                 processedData.tableData.push({
                     date: item.ngay_tao ? new Date(item.ngay_tao).toLocaleDateString('vi-VN') : '-',
@@ -3116,9 +3189,9 @@
            <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">${row.tenChiTiet}</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${shiftDisplay}</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.production.toLocaleString()}</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.actualTime.toFixed(1)} phút</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.theoreticalTime.toFixed(1)} phút</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${efficiencyClass}">${row.efficiency}%</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.actualTime.toFixed(2)} phút</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.theoreticalTime.toFixed(2)} phút</td>
+           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium ${efficiencyClass}">${row.efficiency.toFixed(2)}%</td>
            <td class="px-6 py-4 text-sm text-gray-500 max-w-xs" title="${row.note}">${noteDisplay}</td>
        `;
                 tbody.appendChild(tr);
@@ -4205,24 +4278,24 @@
             }
         });
 
-        // document.addEventListener('contextmenu', function (e) {
-        //     e.preventDefault();
-        // }, false);
+        document.addEventListener('contextmenu', function (e) {
+            e.preventDefault();
+        }, false);
 
-        // document.onkeydown = function (e) {
-        //     if (e.keyCode == 123) {
-        //         return false;
-        //     }
-        //     if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
-        //         return false;
-        //     }
-        //     if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
-        //         return false;
-        //     }
-        //     if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
-        //         return false;
-        //     }
-        // };
+        document.onkeydown = function (e) {
+            if (e.keyCode == 123) {
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) {
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) {
+                return false;
+            }
+            if (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) {
+                return false;
+            }
+        };
 
     </script>
 
