@@ -235,11 +235,21 @@
 
                 </div>
 
-                <!-- Summary Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <!-- Summary Cards - THÊM 2 CARDS MỚI -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                     <div class="bg-blue-100 p-4 rounded-lg">
                         <h4 class="text-blue-800 font-semibold">Tổng sản lượng</h4>
                         <p class="text-2xl font-bold text-blue-600" id="totalProductionSL">0</p>
+                    </div>
+                    <!-- THÊM MỚI: Tổng thời gian thực tế -->
+                    <div class="bg-indigo-100 p-4 rounded-lg">
+                        <h4 class="text-indigo-800 font-semibold">TG thực tế</h4>
+                        <p class="text-2xl font-bold text-indigo-600" id="totalActualTimeSL">0 phút</p>
+                    </div>
+                    <!-- THÊM MỚI: Tổng thời gian lý thuyết -->
+                    <div class="bg-cyan-100 p-4 rounded-lg">
+                        <h4 class="text-cyan-800 font-semibold">TG lý thuyết</h4>
+                        <p class="text-2xl font-bold text-cyan-600" id="totalTheoreticalTimeSL">0 phút</p>
                     </div>
                     <div class="bg-green-100 p-4 rounded-lg">
                         <h4 class="text-green-800 font-semibold">Hiệu suất TB</h4>
@@ -462,11 +472,21 @@
 
                 </div>
 
-                <!-- Summary Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <!-- Summary Cards - THÊM 2 CARDS MỚI -->
+                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
                     <div class="bg-purple-100 p-4 rounded-lg">
                         <h4 class="text-purple-800 font-semibold">Tổng sản lượng</h4>
                         <p class="text-2xl font-bold text-purple-600" id="totalProductionDB">0</p>
+                    </div>
+                    <!-- THÊM MỚI: Tổng thời gian thực tế -->
+                    <div class="bg-indigo-100 p-4 rounded-lg">
+                        <h4 class="text-indigo-800 font-semibold">TG thực tế</h4>
+                        <p class="text-2xl font-bold text-indigo-600" id="totalActualTimeDB">0 phút</p>
+                    </div>
+                    <!-- THÊM MỚI: Tổng thời gian lý thuyết -->
+                    <div class="bg-cyan-100 p-4 rounded-lg">
+                        <h4 class="text-cyan-800 font-semibold">TG lý thuyết</h4>
+                        <p class="text-2xl font-bold text-cyan-600" id="totalTheoreticalTimeDB">0 phút</p>
                     </div>
                     <div class="bg-blue-100 p-4 rounded-lg">
                         <h4 class="text-blue-800 font-semibold">Thời gian TB</h4>
@@ -2252,10 +2272,19 @@
             processTeamChart(finalData, processedData, selectedGroup);
 
             // Tính summary
-            processedData.summary.totalWorkers = uniqueWorkerCodes.size; // Số người duy nhất
+            // Calculate summary - THÊM TÍNH TỔNG THỜI GIAN
+            processedData.summary.totalWorkers = uniqueWorkerCodes.size;
+            processedData.summary.totalActualTime = 0;      // THÊM MỚI
+            processedData.summary.totalTheoreticalTime = 0; // THÊM MỚI
 
-            const totalActualTime = processedData.tableData.reduce((sum, item) => sum + item.actualTime, 0);
-            const totalWorkerTime = processedData.summary.totalWorkers * 660; // 660 phút/người
+            // TÍNH TỔNG THỜI GIAN TỪ TABLE DATA
+            processedData.tableData.forEach(item => {
+                processedData.summary.totalActualTime += item.actualTime;
+                processedData.summary.totalTheoreticalTime += item.theoreticalTime;
+            });
+
+            const totalActualTime = processedData.summary.totalActualTime;
+            const totalWorkerTime = processedData.summary.totalWorkers * 660;
 
             processedData.summary.avgEfficiency = totalWorkerTime > 0 ?
                 Math.round((totalActualTime / totalWorkerTime) * 100) : 0;
@@ -2332,6 +2361,11 @@
 
         function updateProductionSummary(data) {
             document.getElementById('totalProductionSL').textContent = data.summary.totalProduction.toLocaleString();
+
+            // THÊM MỚI: Hiển thị tổng thời gian
+            document.getElementById('totalActualTimeSL').textContent = Math.round(data.summary.totalActualTime).toLocaleString() + ' phút';
+            document.getElementById('totalTheoreticalTimeSL').textContent = Math.round(data.summary.totalTheoreticalTime).toLocaleString() + ' phút';
+
             document.getElementById('avgEfficiencySL').textContent = data.summary.avgEfficiency + '%';
             document.getElementById('totalWorkersSL').textContent = data.summary.totalWorkers;
         }
@@ -3108,7 +3142,11 @@
             processedData.summary.avgTime = filteredData.length > 0 ?
                 filteredData.reduce((sum, item) => sum + parseFloat(item.Thoi_Gian_Thuc_Te || 0), 0) / filteredData.length : 0;
 
-            const totalActualTime = processedData.tableData.reduce((sum, item) => sum + item.actualTime, 0);
+            // THÊM MỚI: Tính tổng thời gian thực tế và lý thuyết
+            processedData.summary.totalActualTime = processedData.tableData.reduce((sum, item) => sum + item.actualTime, 0);
+            processedData.summary.totalTheoreticalTime = processedData.tableData.reduce((sum, item) => sum + item.theoreticalTime, 0);
+
+            const totalActualTime = processedData.summary.totalActualTime;
             // Đếm số nhân sự từ dữ liệu đánh bóng (cần thêm logic đếm nhân sự)
             const totalWorkers = [...new Set(filteredData.map(item => item.Code).filter(Boolean))].length;
             const totalWorkerTime = totalWorkers * 660; // 660 phút/người
@@ -3121,6 +3159,11 @@
 
         function updatePolishingSummary(data) {
             document.getElementById('totalProductionDB').textContent = data.summary.totalProduction.toLocaleString();
+
+            // THÊM MỚI: Hiển thị tổng thời gian
+            document.getElementById('totalActualTimeDB').textContent = Math.round(data.summary.totalActualTime).toLocaleString() + ' phút';
+            document.getElementById('totalTheoreticalTimeDB').textContent = Math.round(data.summary.totalTheoreticalTime).toLocaleString() + ' phút';
+
             document.getElementById('avgTimeDB').textContent = data.summary.avgTime.toFixed(1) + ' phút';
             document.getElementById('efficiencyDB').textContent = data.summary.efficiency + '%';
         }
@@ -3266,13 +3309,14 @@
 
             const processedData = {
                 labels: [],
-                receiveData: [],
+                actualData: [],
                 tableData: [],
                 summary: {
-                    totalReceive: 0,
-                    avgDaily: 0,
-                    maxDay: '',
-                    growth: 0
+                    totalProduction: 0,
+                    avgTime: 0,
+                    efficiency: 0,
+                    totalActualTime: 0,      // THÊM MỚI
+                    totalTheoreticalTime: 0  // THÊM MỚI
                 }
             };
 
@@ -4460,6 +4504,25 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: all 0.2s ease;
+        }
+
+        /* Hover effect cho cards mới */
+        .bg-indigo-100:hover,
+        .bg-cyan-100:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+
+        /* Responsive cho 5 cards */
+        @media (max-width: 768px) {
+            .grid.md\:grid-cols-5 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid.md\:grid-cols-5>div:last-child {
+                grid-column: 1 / -1;
+            }
         }
     </style>
 </body>
