@@ -2251,19 +2251,14 @@
             // THÊM XỬ LÝ DỮ LIỆU CHO BIỂU ĐỒ TỔ
             processTeamChart(finalData, processedData, selectedGroup);
 
-            // Tính summary - SỬA ĐỔI PHẦN NÀY
+            // Tính summary
             processedData.summary.totalWorkers = uniqueWorkerCodes.size; // Số người duy nhất
 
-            const totalEfficiency = processedData.tableData.reduce((sum, item) => sum + item.efficiency, 0);
-            processedData.summary.avgEfficiency = processedData.tableData.length > 0 ?
-                Math.round(totalEfficiency / processedData.tableData.length) : 0;
+            const totalActualTime = processedData.tableData.reduce((sum, item) => sum + item.actualTime, 0);
+            const totalWorkerTime = processedData.summary.totalWorkers * 660; // 660 phút/người
 
-            console.log('Final Production Summary (excluding cnc_tap and xlbm_danh_ni):', {
-                totalProduction: processedData.summary.totalProduction,
-                totalWorkers: processedData.summary.totalWorkers,
-                avgEfficiency: processedData.summary.avgEfficiency,
-                recordsProcessed: finalData.length
-            });
+            processedData.summary.avgEfficiency = totalWorkerTime > 0 ?
+                Math.round((totalActualTime / totalWorkerTime) * 100) : 0;
 
             return processedData;
         }
@@ -3113,9 +3108,13 @@
             processedData.summary.avgTime = filteredData.length > 0 ?
                 filteredData.reduce((sum, item) => sum + parseFloat(item.Thoi_Gian_Thuc_Te || 0), 0) / filteredData.length : 0;
 
-            const totalEfficiency = processedData.tableData.reduce((sum, item) => sum + item.efficiency, 0);
-            processedData.summary.efficiency = processedData.tableData.length > 0 ?
-                Math.round(totalEfficiency / processedData.tableData.length) : 0;
+            const totalActualTime = processedData.tableData.reduce((sum, item) => sum + item.actualTime, 0);
+            // Đếm số nhân sự từ dữ liệu đánh bóng (cần thêm logic đếm nhân sự)
+            const totalWorkers = [...new Set(filteredData.map(item => item.Code).filter(Boolean))].length;
+            const totalWorkerTime = totalWorkers * 660; // 660 phút/người
+
+            processedData.summary.efficiency = totalWorkerTime > 0 ?
+                Math.round((totalActualTime / totalWorkerTime) * 100) : 0;
 
             return processedData;
         }
