@@ -6,7 +6,6 @@
     <title>Xuất Google Sheets ra Excel</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        // Kiểm tra xem XLSX đã được tải chưa
         if (typeof XLSX === 'undefined') {
             console.error('XLSX library not loaded');
             document.addEventListener('DOMContentLoaded', function() {
@@ -15,157 +14,197 @@
         }
     </script>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+        :root {
+            --primary-color: #4f46e5;
+            --secondary-color: #7c3aed;
+            --text-color: #1f2937;
+            --success-color: #10b981;
+            --error-color: #ef4444;
+            --warning-color: #f59e0b;
         }
-        
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(145deg, #f3f4f6, #e5e7eb);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
         .container {
             background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            padding: 32px;
+            max-width: 100%;
+            width: 100%;
+            margin: 20px;
+            animation: fadeIn 0.5s ease-out;
         }
-        
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
-        
+
         .form-group {
-            margin-bottom: 20px;
-            display: block;
+            margin-bottom: 24px;
         }
-        
+
         label {
             display: block;
+            font-weight: 600;
+            color: var(--text-color);
             margin-bottom: 8px;
-            font-weight: bold;
-            color: #555;
-            font-size: 14px;
+            font-size: 0.9rem;
         }
-        
+
         input[type="text"] {
             width: 100%;
             padding: 12px;
-            border: 2px solid #ddd;
+            border: 1px solid #d1d5db;
             border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-            box-sizing: border-box;
-            display: block;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            background: #f9fafb;
         }
-        
+
         input[type="text"]:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
-        
+
+        input[readonly] {
+            background: #e5e7eb;
+            cursor: not-allowed;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin: 24px 0;
+        }
+
         .btn {
-            background: linear-gradient(45deg, #667eea, #764ba2);
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
             color: white;
-            padding: 12px 30px;
+            padding: 12px 24px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-right: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        
+
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
-        
+
         .btn:disabled {
-            background: #ccc;
+            background: #d1d5db;
             cursor: not-allowed;
             transform: none;
         }
-        
+
         .status {
-            margin-top: 20px;
-            padding: 15px;
+            margin: 20px 0;
+            padding: 16px;
             border-radius: 8px;
+            font-size: 0.9rem;
             display: none;
+            transition: opacity 0.3s ease;
         }
-        
+
         .status.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: #ecfdf5;
+            color: var(--success-color);
+            border: 1px solid #6ee7b7;
         }
-        
+
         .status.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: #fef2f2;
+            color: var(--error-color);
+            border: 1px solid #f87171;
         }
-        
+
         .status.loading {
-            background: #e2e3e5;
-            color: #383d41;
-            border: 1px solid #d6d8db;
+            background: #f3f4f6;
+            color: var(--text-color);
+            border: 1px solid #d1d5db;
         }
-        
+
         .preview-table {
-            margin-top: 20px;
-            overflow-x: auto;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
+            margin-top: 24px;
             border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            max-height: 500px;
+            overflow-x: auto;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 12px;
+            font-size: 0.85rem;
+            min-width: 1000px;
         }
-        
+
         th, td {
-            padding: 8px;
+            padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e5e7eb;
             white-space: nowrap;
         }
-        
+
         th {
-            background: #f8f9fa;
-            font-weight: bold;
+            background: #f9fafb;
+            font-weight: 600;
             position: sticky;
             top: 0;
+            z-index: 10;
         }
-        
+
         .instructions {
-            background: #fff3cd;
-            color: #856404;
-            padding: 15px;
+            background: #fefce8;
+            border: 1px solid #fef08a;
             border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #ffeaa7;
+            padding: 16px;
+            margin-bottom: 24px;
+            color: var(--text-color);
         }
-        
+
         .instructions h3 {
-            margin-top: 0;
+            font-size: 1.1rem;
+            margin-bottom: 12px;
         }
-        
+
         .instructions ol {
-            margin-bottom: 0;
+            padding-left: 20px;
+            font-size: 0.9rem;
+        }
+
+        .instructions p {
+            font-size: 0.9rem;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📊 Xuất Google Sheets ra Excel</h1>
-        
         <div class="instructions">
             <h3>🚀 Sẵn sàng sử dụng!</h3>
             <p>Tất cả đã được cấu hình sẵn. Bạn chỉ cần:</p>
@@ -176,201 +215,164 @@
             </ol>
             <p><strong>Lưu ý:</strong> Đảm bảo Google Sheet được chia sẻ công khai hoặc có quyền truy cập.</p>
         </div>
-        
+
         <form id="exportForm">
-            <!-- Hidden fields -->
             <input type="hidden" id="apiKey" name="apiKey" value="AIzaSyCrC_DfD_DrpjzjO5ENvqTMHBA4FIDBiP0">
             <input type="hidden" id="spreadsheetId" name="spreadsheetId" value="1IlsQuuxQY4LasPQo2jdIxsEvyn6xzF5GfcGpQI2Tm24">
-            
+
             <div class="form-group">
                 <label for="sheetName">Tên Sheet:</label>
                 <input type="text" id="sheetName" name="sheetName" value="ke_hoach_pkt" readonly>
             </div>
-            
+
             <div class="form-group">
                 <label for="fileName">Tên file Excel:</label>
                 <input type="text" id="fileName" name="fileName" value="ke_hoach_pkt.xlsx" placeholder="Tên file xuất ra">
             </div>
         </form>
-        
-        <button class="btn" onclick="loadData()">📥 Tải dữ liệu</button>
-        <button class="btn" onclick="exportToExcel()" id="exportBtn" disabled>📤 Xuất Excel</button>
-        
+
+        <div class="button-group">
+            <button class="btn" onclick="loadData()">📥 Tải dữ liệu</button>
+            <button class="btn" onclick="exportToExcel()" id="exportBtn" disabled>📤 Xuất Excel</button>
+        </div>
+
         <div id="status" class="status"></div>
-        
+
         <div id="preview" class="preview-table" style="display: none;"></div>
     </div>
 
     <script>
         let spreadsheetData = null;
-        
+
         function showStatus(message, type) {
             const statusDiv = document.getElementById('status');
             statusDiv.textContent = message;
             statusDiv.className = `status ${type}`;
             statusDiv.style.display = 'block';
         }
-        
+
         function hideStatus() {
             document.getElementById('status').style.display = 'none';
         }
-        
+
         async function loadData() {
             const apiKey = document.getElementById('apiKey').value.trim();
             const spreadsheetId = document.getElementById('spreadsheetId').value.trim();
             const sheetName = document.getElementById('sheetName').value.trim();
-            
+
             showStatus('Đang tải dữ liệu...', 'loading');
-            
+
             try {
-                const range = `${sheetName}!A:Z`; // Lấy từ cột A đến Z
+                const range = `${sheetName}!A:Z`;
                 const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${apiKey}`;
-                
+
                 const response = await fetch(url);
-                
+
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(`${response.status}: ${errorData.error?.message || 'Lỗi không xác định'}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (!data.values || data.values.length === 0) {
                     showStatus('Không có dữ liệu trong sheet', 'error');
                     return;
                 }
-                
+
                 spreadsheetData = data.values;
                 showStatus(`✅ Đã tải thành công ${data.values.length} dòng dữ liệu`, 'success');
-                
-                // Hiển thị preview
                 displayPreview(data.values);
-                
-                // Enable nút export
                 document.getElementById('exportBtn').disabled = false;
-                
             } catch (error) {
                 console.error('Error:', error);
                 showStatus(`❌ Lỗi khi tải dữ liệu: ${error.message}`, 'error');
             }
         }
-        
+
         function displayPreview(data) {
             const previewDiv = document.getElementById('preview');
-            
             if (data.length === 0) {
                 previewDiv.style.display = 'none';
                 return;
             }
-            
-            // Danh sách các cột sẽ bị loại bỏ khi xuất Excel
-            const excludeColumns = ['id_kh_pkt', 'id_trien_khai_3d_laze', 'id_xu_ly_be_mat'];
-            const headerRow = data[0];
-            const excludeIndexes = [];
-            
-            if (headerRow) {
-                excludeColumns.forEach(colName => {
-                    const index = headerRow.findIndex(header => 
-                        header && header.toLowerCase().trim() === colName.toLowerCase()
-                    );
-                    if (index !== -1) {
-                        excludeIndexes.push(index);
-                    }
-                });
-            }
-            
+
+            const headerRow = data[0] || [];
+            const excludeColumns = ['id_kh_pkt', 'id_trien_khai_3d_laze', 'id_xu_ly_be_mat', 'sl_chuyen_xu_ly', 'sl_thuc_te', 'sl_ok', 'sl_ng', 'ngay_ket_thuc_trien_khai', 'tong_thoi_gian_trien_khai', 'ma_cv', 'code', 'nhom'];
+            const excludeIndexes = headerRow.reduce((indexes, header, index) => {
+                if (header && excludeColumns.includes(header.toLowerCase().trim())) {
+                    indexes.push(index);
+                }
+                return indexes;
+            }, []);
+
             let tableHtml = '<table>';
-            
-            // Header - hiển thị tất cả cột nhưng đánh dấu cột sẽ bị loại bỏ
-            if (data[0]) {
+            if (headerRow.length > 0) {
                 tableHtml += '<thead><tr>';
-                data[0].forEach((cell, index) => {
-                    const isExcluded = excludeIndexes.includes(index);
-                    const cellStyle = isExcluded ? ' style="background-color: #ffebee; color: #c62828; text-decoration: line-through;"' : '';
-                    const cellTitle = isExcluded ? ' title="Cột này sẽ không được xuất ra Excel"' : '';
-                    tableHtml += `<th${cellStyle}${cellTitle}>${cell || ''}${isExcluded ? ' ❌' : ''}</th>`;
+                headerRow.forEach((cell, index) => {
+                    if (!excludeIndexes.includes(index)) {
+                        tableHtml += `<th>${cell || ''}</th>`;
+                    }
                 });
                 tableHtml += '</tr></thead>';
             }
-            
-            // Body (chỉ hiển thị 10 dòng đầu)
+
             tableHtml += '<tbody>';
-            const maxRows = Math.min(data.length, 11); // 1 header + 10 data rows
+            const maxRows = Math.min(data.length, 11);
             for (let i = 1; i < maxRows; i++) {
                 if (data[i]) {
                     tableHtml += '<tr>';
-                    data[0].forEach((_, colIndex) => {
-                        const isExcluded = excludeIndexes.includes(colIndex);
-                        const cellStyle = isExcluded ? ' style="background-color: #ffebee; color: #c62828; opacity: 0.6;"' : '';
-                        tableHtml += `<td${cellStyle}>${data[i][colIndex] || ''}</td>`;
+                    headerRow.forEach((_, colIndex) => {
+                        if (!excludeIndexes.includes(colIndex)) {
+                            tableHtml += `<td>${data[i][colIndex] || ''}</td>`;
+                        }
                     });
                     tableHtml += '</tr>';
                 }
             }
             tableHtml += '</tbody></table>';
-            
+
             if (data.length > 11) {
-                tableHtml += `<p style="text-align: center; padding: 10px; font-style: italic;">... và ${data.length - 11} dòng khác</p>`;
+                tableHtml += `<p style="text-align: center; padding: 12px; font-style: italic; color: #6b7280;">... và ${data.length - 11} dòng khác</p>`;
             }
-            
-            if (excludeIndexes.length > 0) {
-                tableHtml += `<p style="text-align: center; padding: 10px; color: #c62828; font-weight: bold;">
-                    ❌ ${excludeIndexes.length} cột sẽ bị loại bỏ khi xuất Excel: ${excludeColumns.join(', ')}
-                </p>`;
-            }
-            
+
             previewDiv.innerHTML = tableHtml;
             previewDiv.style.display = 'block';
         }
-        
+
         function exportToExcel() {
             if (!spreadsheetData) {
                 showStatus('Chưa có dữ liệu để xuất', 'error');
                 return;
             }
-            
-            // Kiểm tra xem XLSX có tồn tại không
+
             if (typeof XLSX === 'undefined') {
                 showStatus('❌ Lỗi: Thư viện XLSX chưa được tải. Vui lòng tải lại trang.', 'error');
                 return;
             }
-            
+
             showStatus('Đang xuất file Excel...', 'loading');
-            
+
             try {
-                // Danh sách các cột không muốn xuất
-                const excludeColumns = ['id_kh_pkt', 'id_trien_khai_3d_laze', 'id_xu_ly_be_mat'];
-                
-                // Tìm index của các cột cần loại bỏ
-                const headerRow = spreadsheetData[0];
-                const excludeIndexes = [];
-                
-                if (headerRow) {
-                    excludeColumns.forEach(colName => {
-                        const index = headerRow.findIndex(header => 
-                            header && header.toLowerCase().trim() === colName.toLowerCase()
-                        );
-                        if (index !== -1) {
-                            excludeIndexes.push(index);
-                        }
-                    });
-                }
-                
-                // Lọc dữ liệu loại bỏ các cột không mong muốn
+                const headerRow = spreadsheetData[0] || [];
+                const excludeColumns = ['id_kh_pkt', 'id_trien_khai_3d_laze', 'id_xu_ly_be_mat', 'sl_chuyen_xu_ly', 'sl_thuc_te', 'sl_ok', 'sl_ng', 'ngay_ket_thuc_trien_khai', 'tong_thoi_gian_trien_khai', 'ma_cv', 'code', 'nhom'];
+                const excludeIndexes = headerRow.reduce((indexes, header, index) => {
+                    if (header && excludeColumns.includes(header.toLowerCase().trim())) {
+                        indexes.push(index);
+                    }
+                    return indexes;
+                }, []);
+
                 const filteredData = spreadsheetData.map(row => {
                     return row.filter((cell, index) => !excludeIndexes.includes(index));
                 });
-                
-                // Tạo workbook
+
                 const wb = XLSX.utils.book_new();
-                
-                // Tạo worksheet từ dữ liệu đã lọc
                 const ws = XLSX.utils.aoa_to_sheet(filteredData);
-                
-                // Tự động điều chỉnh độ rộng cột
+
                 const range = XLSX.utils.decode_range(ws['!ref']);
                 const colWidths = [];
-                
+
                 for (let C = range.s.c; C <= range.e.c; ++C) {
                     let maxWidth = 0;
                     for (let R = range.s.r; R <= range.e.r; ++R) {
@@ -384,27 +386,21 @@
                     colWidths.push({ width: Math.min(maxWidth + 2, 50) });
                 }
                 ws['!cols'] = colWidths;
-                
-                // Thêm worksheet vào workbook
+
                 const sheetName = document.getElementById('sheetName').value || 'Sheet1';
                 XLSX.utils.book_append_sheet(wb, ws, sheetName);
-                
-                // Xuất file
+
                 const fileName = document.getElementById('fileName').value || 'data.xlsx';
                 XLSX.writeFile(wb, fileName);
-                
-                const removedCount = excludeIndexes.length;
-                showStatus(`✅ Đã xuất thành công file: ${fileName} (Đã loại bỏ ${removedCount} cột ID)`, 'success');
-                
+
+                showStatus(`✅ Đã xuất thành công file: ${fileName}`, 'success');
             } catch (error) {
                 console.error('Export error:', error);
                 showStatus(`❌ Lỗi khi xuất file: ${error.message}`, 'error');
             }
         }
-        
-        // Đảm bảo các function được gọi sau khi DOM và XLSX đã sẵn sàng
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Kiểm tra XLSX library
             if (typeof XLSX === 'undefined') {
                 console.error('XLSX library not available');
                 setTimeout(function() {
@@ -414,8 +410,7 @@
                 }, 2000);
             }
         });
-        
-        // Xử lý Enter key
+
         document.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 if (document.getElementById('apiKey').value.trim()) {
