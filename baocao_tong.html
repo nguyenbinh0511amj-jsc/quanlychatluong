@@ -71,19 +71,26 @@
         <!-- Báo cáo Máy Đo 3D -->
         <div id="may3d" class="report-section">
             <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <!-- Sửa lại phần header của tab Máy Đo 3D -->
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-2xl font-bold text-gray-800">
                         <i class="fas fa-cogs text-blue-600 mr-3"></i>
                         Báo Cáo Tình Trạng Hoạt Động Máy Đo 3D
                     </h2>
-                    <button onclick="refreshAllData()"
-                        class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
-                        <i class="fas fa-sync mr-2"></i>Làm mới
-                    </button>
-                    <button onclick="resetFilter3D()"
-                        class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
-                        <i class="fas fa-undo mr-2"></i>Đặt lại
-                    </button>
+                    <div class="flex space-x-2">
+                        <button onclick="print3DReport()"
+                            class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-print mr-2"></i>In báo cáo
+                        </button>
+                        <button onclick="refreshAllData()"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-sync mr-2"></i>Làm mới
+                        </button>
+                        <button onclick="resetFilter3D()"
+                            class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                            <i class="fas fa-undo mr-2"></i>Đặt lại
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Filters -->
@@ -235,29 +242,35 @@
 
                 </div>
 
-                <!-- Summary Cards - THÊM 2 CARDS MỚI -->
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                <!-- Summary Cards - CHIA THEO LOẠI SẢN LƯỢNG -->
+                <div class="grid grid-cols-1 md:grid-cols-7 gap-4 mb-6">
                     <div class="bg-blue-100 p-4 rounded-lg">
-                        <h4 class="text-blue-800 font-semibold">Tổng sản lượng</h4>
-                        <p class="text-2xl font-bold text-blue-600" id="totalProductionSL">0</p>
+                        <h4 class="text-blue-800 font-semibold">Tap</h4>
+                        <p class="text-2xl font-bold text-blue-600" id="totalTapSL">0</p>
                     </div>
-                    <!-- THÊM MỚI: Tổng thời gian thực tế -->
+                    <div class="bg-green-100 p-4 rounded-lg">
+                        <h4 class="text-green-800 font-semibold">Via</h4>
+                        <p class="text-2xl font-bold text-green-600" id="totalViaSL">0</p>
+                    </div>
+                    <div class="bg-purple-100 p-4 rounded-lg">
+                        <h4 class="text-purple-800 font-semibold">Rửa</h4>
+                        <p class="text-2xl font-bold text-purple-600" id="totalRuaSL">0</p>
+                    </div>
+                    <div class="bg-orange-100 p-4 rounded-lg">
+                        <h4 class="text-orange-800 font-semibold">Xtra</h4>
+                        <p class="text-2xl font-bold text-orange-600" id="totalXtraSL">0</p>
+                    </div>
+                    <div class="bg-red-100 p-4 rounded-lg">
+                        <h4 class="text-red-800 font-semibold">Gói</h4>
+                        <p class="text-2xl font-bold text-red-600" id="totalGoiSL">0</p>
+                    </div>
                     <div class="bg-indigo-100 p-4 rounded-lg">
                         <h4 class="text-indigo-800 font-semibold">TG thực tế</h4>
                         <p class="text-2xl font-bold text-indigo-600" id="totalActualTimeSL">0 phút</p>
                     </div>
-                    <!-- THÊM MỚI: Tổng thời gian lý thuyết -->
                     <div class="bg-cyan-100 p-4 rounded-lg">
-                        <h4 class="text-cyan-800 font-semibold">TG lý thuyết</h4>
-                        <p class="text-2xl font-bold text-cyan-600" id="totalTheoreticalTimeSL">0 phút</p>
-                    </div>
-                    <div class="bg-green-100 p-4 rounded-lg">
-                        <h4 class="text-green-800 font-semibold">Hiệu suất TB</h4>
-                        <p class="text-2xl font-bold text-green-600" id="avgEfficiencySL">0%</p>
-                    </div>
-                    <div class="bg-purple-100 p-4 rounded-lg">
-                        <h4 class="text-purple-800 font-semibold">Tổng nhân sự</h4>
-                        <p class="text-2xl font-bold text-purple-600" id="totalWorkersSL">0</p>
+                        <h4 class="text-cyan-800 font-semibold">Hiệu suất</h4>
+                        <p class="text-2xl font-bold text-cyan-600" id="avgEfficiencySL">0%</p>
                     </div>
                 </div>
 
@@ -1594,6 +1607,7 @@
                 }]
             });
         }
+
         function update3DTable(data) {
             const tbody = document.getElementById('table3d');
             tbody.innerHTML = '';
@@ -2040,9 +2054,16 @@
                 teamData: [],
                 tableData: [],
                 summary: {
-                    totalProduction: 0,
+                    totalProduction: 0,  // Giữ nguyên từ sl_thuc_te
+                    totalTap: 0,         // Từ sl_ok_tap
+                    totalVia: 0,         // Từ sl_ok_via  
+                    totalRua: 0,         // Từ sl_ok_rua + sl_ng_rua
+                    totalXtra: 0,        // Từ sl_ok_kiem_tra + sl_ng_kiem_tra
+                    totalGoi: 0,         // Từ sl_da_goi
                     avgEfficiency: 0,
-                    totalWorkers: 0
+                    totalWorkers: 0,
+                    totalActualTime: 0,
+                    totalTheoreticalTime: 0
                 }
             };
 
@@ -2082,6 +2103,13 @@
                                 to: team,
                                 // Chia đều dữ liệu cho các tổ
                                 sl_thuc_te: Math.round((parseInt(item.sl_thuc_te || 0)) / teamCount),
+                                sl_ok_tap: Math.round((parseInt(item.sl_ok_tap || 0)) / teamCount),
+                                sl_ok_via: Math.round((parseInt(item.sl_ok_via || 0)) / teamCount),
+                                sl_ok_rua: Math.round((parseInt(item.sl_ok_rua || 0)) / teamCount),
+                                sl_ng_rua: Math.round((parseInt(item.sl_ng_rua || 0)) / teamCount),
+                                sl_ok_kiem_tra: Math.round((parseInt(item.sl_ok_kiem_tra || 0)) / teamCount),
+                                sl_ng_kiem_tra: Math.round((parseInt(item.sl_ng_kiem_tra || 0)) / teamCount),
+                                sl_da_goi: Math.round((parseInt(item.sl_da_goi || 0)) / teamCount),
                                 so_nguoi_lam: Math.round((parseInt(item.so_nguoi_lam || 0)) / teamCount),
                                 Thoi_Gian_Thuc_Te: (parseFloat(item.Thoi_Gian_Thuc_Te || 0)) / teamCount,
                                 hoan_thanh_dk: (parseFloat(item.hoan_thanh_dk || 0)) / teamCount
@@ -2115,12 +2143,31 @@
                 }
             });
 
-            // Hiển thị dữ liệu
+            // Hiển thị dữ liệu và tính toán summary
             finalData.forEach(item => {
                 const actualTime = parseFloat(item.Thoi_Gian_Thuc_Te || 0);
                 const theoreticalTime = parseFloat(item.hoan_thanh_dk || 0);
                 const production = parseInt(item.sl_thuc_te || 0);
                 const workers = parseInt(item.so_nguoi_lam || 0);
+
+                // TÍNH TOÁN THEO TỪNG LOẠI SẢN LƯỢNG - GIỐNG HỆT NHU sl_thuc_te
+                const tapOk = parseInt(item.sl_ok_tap || 0);
+                const viaOk = parseInt(item.sl_ok_via || 0);
+                const ruaOk = parseInt(item.sl_ok_rua || 0);
+                const ruaNg = parseInt(item.sl_ng_rua || 0);
+                const xtraOk = parseInt(item.sl_ok_kiem_tra || 0);
+                const xtraNg = parseInt(item.sl_ng_kiem_tra || 0);
+                const goi = parseInt(item.sl_da_goi || 0);
+
+                // CỘNG DỒN VÀO SUMMARY - GIỐNG HỆT CÁCH TÍNH totalProduction
+                processedData.summary.totalTap += tapOk;
+                processedData.summary.totalVia += viaOk;
+                processedData.summary.totalRua += (ruaOk + ruaNg);
+                processedData.summary.totalXtra += (xtraOk + xtraNg);
+                processedData.summary.totalGoi += goi;
+
+                // GIỮ NGUYÊN TỔNG SẢN LƯỢNG TỪ sl_thuc_te (để tham khảo)
+                processedData.summary.totalProduction += production;
 
                 const efficiency = theoreticalTime > 0 && actualTime > 0 ?
                     Number(((theoreticalTime / actualTime) * 100).toFixed(2)) : 0;
@@ -2171,8 +2218,6 @@
                     efficiency: efficiency,
                     note: noteContent || '-'
                 });
-
-                processedData.summary.totalProduction += production;
             });
 
             // SẮP XẾP THEO NGÀY MỚI NHẤT LEN ĐẦU
@@ -2271,11 +2316,8 @@
             // THÊM XỬ LÝ DỮ LIỆU CHO BIỂU ĐỒ TỔ
             processTeamChart(finalData, processedData, selectedGroup);
 
-            // Tính summary
-            // Calculate summary - THÊM TÍNH TỔNG THỜI GIAN
+            // Calculate summary - THÊM TÍNH TỔNG THỜI GIAN VÀ TỪNG LOẠI SẢN LƯỢNG
             processedData.summary.totalWorkers = uniqueWorkerCodes.size;
-            processedData.summary.totalActualTime = 0;      // THÊM MỚI
-            processedData.summary.totalTheoreticalTime = 0; // THÊM MỚI
 
             // TÍNH TỔNG THỜI GIAN TỪ TABLE DATA
             processedData.tableData.forEach(item => {
@@ -2288,6 +2330,15 @@
 
             processedData.summary.avgEfficiency = totalWorkerTime > 0 ?
                 Math.round((totalActualTime / totalWorkerTime) * 100) : 0;
+
+            // DEBUG LOG - KIỂM TRA KẾT QUẢ
+            console.log('=== FINAL SUMMARY ===');
+            console.log('totalProduction (sl_thuc_te):', processedData.summary.totalProduction);
+            console.log('totalTap (sl_ok_tap):', processedData.summary.totalTap);
+            console.log('totalVia (sl_ok_via):', processedData.summary.totalVia);
+            console.log('totalRua (sl_ok_rua + sl_ng_rua):', processedData.summary.totalRua);
+            console.log('totalXtra (sl_ok_kiem_tra + sl_ng_kiem_tra):', processedData.summary.totalXtra);
+            console.log('totalGoi (sl_da_goi):', processedData.summary.totalGoi);
 
             return processedData;
         }
@@ -2360,15 +2411,18 @@
         }
 
         function updateProductionSummary(data) {
-            document.getElementById('totalProductionSL').textContent = data.summary.totalProduction.toLocaleString();
+            // Cập nhật các loại sản lượng riêng biệt
+            document.getElementById('totalTapSL').textContent = data.summary.totalTap.toLocaleString();
+            document.getElementById('totalViaSL').textContent = data.summary.totalVia.toLocaleString();
+            document.getElementById('totalRuaSL').textContent = data.summary.totalRua.toLocaleString();
+            document.getElementById('totalXtraSL').textContent = data.summary.totalXtra.toLocaleString();
+            document.getElementById('totalGoiSL').textContent = data.summary.totalGoi.toLocaleString();
 
-            // THÊM MỚI: Hiển thị tổng thời gian
+            // Cập nhật thời gian và hiệu suất
             document.getElementById('totalActualTimeSL').textContent = Math.round(data.summary.totalActualTime).toLocaleString() + ' phút';
-            document.getElementById('totalTheoreticalTimeSL').textContent = Math.round(data.summary.totalTheoreticalTime).toLocaleString() + ' phút';
-
             document.getElementById('avgEfficiencySL').textContent = data.summary.avgEfficiency + '%';
-            document.getElementById('totalWorkersSL').textContent = data.summary.totalWorkers;
         }
+
 
         function updateProductionChart(data) {
             if (charts.chartSL) {
@@ -4086,6 +4140,614 @@
             load3DReport();
         }
 
+        // ========== MISSING FUNCTIONS FOR PRINT ==========
+
+        // Hàm lấy dữ liệu summary
+        function get3DSummaryData() {
+            return {
+                totalTime: document.getElementById('totalTime3d')?.textContent || '0 phút',
+                workingTime: document.getElementById('workingTime3d')?.textContent || '0 phút',
+                downTime: document.getElementById('downTime3d')?.textContent || '0 phút',
+                efficiency: document.getElementById('efficiency3d')?.textContent || '0%'
+            };
+        }
+
+        // Hàm lấy thông tin filter
+        function get3DFilterInfo() {
+            const dateFrom = document.getElementById('dateFrom3d')?.value || '';
+            const dateTo = document.getElementById('dateTo3d')?.value || '';
+            const machine = document.getElementById('machine3d')?.value || '';
+            const shift = document.getElementById('shift3d')?.value || '';
+
+            let filterInfo = 'Thời gian: ';
+            if (dateFrom && dateTo) {
+                if (dateFrom === dateTo) {
+                    filterInfo += `${new Date(dateFrom).toLocaleDateString('vi-VN')}`;
+                } else {
+                    filterInfo += `Từ ${new Date(dateFrom).toLocaleDateString('vi-VN')} đến ${new Date(dateTo).toLocaleDateString('vi-VN')}`;
+                }
+            } else {
+                filterInfo += 'Tất cả dữ liệu';
+            }
+
+            if (machine) {
+                filterInfo += ` | Máy: ${machine}`;
+            }
+
+            if (shift) {
+                filterInfo += ` | Ca: ${shift}`;
+            }
+
+            return filterInfo;
+        }
+
+        // Hàm lấy dữ liệu bảng cho in
+        function get3DTableDataForPrint() {
+            const tbody = document.getElementById('table3d');
+            if (!tbody) {
+                return [{
+                    machine: 'Không có dữ liệu',
+                    shift: '-',
+                    chuanBi: '0',
+                    chayThu: '0',
+                    giaCong: '0',
+                    gaLap: '0',
+                    tamDung: '0',
+                    note: '-'  // THÊM DÒNG NÀY
+                }];
+            }
+
+            const rows = tbody.querySelectorAll('tr');
+            const tableData = [];
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 8) {  // ĐỔI TỪ 7 THÀNH 8 (bao gồm cả cột ghi chú)
+                    tableData.push({
+                        machine: cells[0]?.textContent?.trim() || '',
+                        shift: cells[1]?.textContent?.trim() || '',
+                        chuanBi: cells[2]?.textContent?.trim().replace('%', '') || '0',
+                        chayThu: cells[3]?.textContent?.trim().replace('%', '') || '0',
+                        giaCong: cells[4]?.textContent?.trim().replace('%', '') || '0',
+                        gaLap: cells[5]?.textContent?.trim().replace('%', '') || '0',
+                        tamDung: cells[6]?.textContent?.trim().replace('%', '') || '0',
+                        note: cells[7]?.textContent?.trim() || '-'  // THÊM DÒNG NÀY
+                    });
+                }
+            });
+
+            // Nếu không có dữ liệu, trả về dữ liệu mẫu
+            if (tableData.length === 0) {
+                return [{
+                    machine: 'Không có dữ liệu',
+                    shift: '-',
+                    chuanBi: '0',
+                    chayThu: '0',
+                    giaCong: '0',
+                    gaLap: '0',
+                    tamDung: '0',
+                    note: '-'  // THÊM DÒNG NÀY
+                }];
+            }
+
+            return tableData;
+        }
+
+        // ========== IMPROVED PRINT FUNCTION WITH CHART AND PRINT BUTTON ==========
+        function print3DReport() {
+            try {
+                // Kiểm tra xem các element có tồn tại không
+                const summaryElement = document.getElementById('totalTime3d');
+                if (!summaryElement) {
+                    showToast('Chưa có dữ liệu để in. Vui lòng tải dữ liệu trước!', 'warning');
+                    return;
+                }
+
+                // Kiểm tra biểu đồ có tồn tại không
+                const chartCanvas = document.getElementById('chart3d');
+                let chartImageData = '';
+
+                if (chartCanvas && charts.chart3d) {
+                    try {
+                        // Lấy dữ liệu biểu đồ dưới dạng base64
+                        chartImageData = chartCanvas.toDataURL('image/png', 1.0);
+                    } catch (error) {
+                        console.warn('Không thể lấy dữ liệu biểu đồ:', error);
+                    }
+                }
+
+                // Hiển thị loading
+                showToast('Đang chuẩn bị trang in...', 'warning');
+
+                // Tạo một cửa sổ mới để in
+                const printWindow = window.open('', '_blank', 'width=1200,height=800,scrollbars=yes');
+
+                if (!printWindow) {
+                    showToast('Không thể mở cửa sổ in. Vui lòng kiểm tra popup blocker!', 'error');
+                    return;
+                }
+
+                // Lấy dữ liệu hiện tại
+                const summaryData = get3DSummaryData();
+                const filterInfo = get3DFilterInfo();
+                const tableData = get3DTableDataForPrint();
+
+                // Tạo nội dung HTML cho trang in
+                const printContent = `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Máy Đo 3D</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.4;
+            color: #333;
+            background: white;
+            padding: 20px;
+        }
+        
+        .report-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e40af;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .header .date-info {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 5px;
+        }
+        
+        .print-controls {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 2px dashed #cbd5e1;
+        }
+        
+        .print-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .print-btn:hover {
+            background: #16a34a;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+        
+        .close-btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.2s ease;
+        }
+        
+        .close-btn:hover {
+            background: #4b5563;
+            transform: translateY(-2px);
+        }
+        
+        .filter-info {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .filter-info h3 {
+            font-size: 16px;
+            color: #1e40af;
+            margin-bottom: 8px;
+        }
+        
+        .summary-section {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .summary-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* Thay đổi từ 2 thành 4 */
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .summary-card.blue { border-color: #3b82f6; background: #eff6ff; }
+        .summary-card.green { border-color: #22c55e; background: #f0fdf4; }
+        .summary-card.red { border-color: #ef4444; background: #fef2f2; }
+        .summary-card.yellow { border-color: #eab308; background: #fefce8; }
+        
+        .summary-card .label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #6b7280;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .summary-card .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1f2937;
+        }
+        
+        .summary-card.blue .value { color: #1d4ed8; }
+        .summary-card.green .value { color: #16a34a; }
+        .summary-card.red .value { color: #dc2626; }
+        .summary-card.yellow .value { color: #ca8a04; }
+        
+        .chart-section {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .chart-container {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        
+        .chart-placeholder {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 60px 20px;
+            color: #64748b;
+            font-style: italic;
+            font-size: 16px;
+        }
+        
+        .table-section {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .table-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .data-table th {
+            background: #3b82f6;
+            color: white;
+            padding: 15px 10px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 12px;
+            border: 1px solid #2563eb;
+        }
+        
+        .data-table td {
+            padding: 12px 10px;
+            text-align: center;
+            border: 1px solid #e5e7eb;
+            font-size: 12px;
+        }
+        
+        .data-table tbody tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .data-table tbody tr:hover {
+            background: #e0f2fe;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            color: #6b7280;
+            font-size: 12px;
+        }
+        
+        /* Print specific styles */
+        @media print {
+             body { 
+                padding: 10px; 
+                -webkit-print-color-adjust: exact;
+                color-adjust: exact;
+            }
+            
+            .report-container { 
+                max-width: none; 
+            }
+            
+            .print-controls { 
+                display: none !important; 
+            }
+            
+            .summary-grid { 
+                break-inside: avoid;
+                grid-template-columns: repeat(4, 1fr) !important; /* Đảm bảo 4 cột khi in */
+                gap: 10px; /* Giảm khoảng cách để vừa trang */
+            }
+            
+            .summary-card {
+                break-inside: avoid;
+                padding: 10px; /* Giảm padding để tiết kiệm không gian */
+            }
+            
+            .summary-card .value {
+                font-size: 20px; /* Giảm font size để vừa trang */
+            }
+            
+            .summary-card .label {
+                font-size: 12px; /* Giảm font size cho label */
+            }
+            
+            .table-section { 
+                break-inside: avoid; 
+            }
+            
+            .data-table { 
+                break-inside: auto; 
+            }
+            
+            .data-table thead { 
+                display: table-header-group; 
+            }
+
+            .data-table td:last-child {
+                max-width: 150px !important;
+                word-wrap: break-word !important;
+                font-size: 10px !important;
+                padding: 8px 6px !important;
+            }
+
+            .data-table {
+                table-layout: fixed !important;
+                width: 100% !important;
+            }
+
+            .data-table th:last-child,
+            .data-table td:last-child {
+                width: 20% !important; 
+            }
+            
+            .chart-section {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            
+            .summary-card {
+                break-inside: avoid;
+            }
+            
+            * {
+                -webkit-print-color-adjust: exact !important;
+                color-adjust: exact !important;
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .print-controls {
+                padding: 10px;
+            }
+            
+            .print-btn, .close-btn {
+                display: block;
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <!-- Print Controls -->
+        <div class="print-controls">
+            <h3 style="margin-bottom: 15px; color: #374151;">📄 Điều khiển in ấn</h3>
+            <button class="print-btn" onclick="window.print()">
+                🖨️ In báo cáo
+            </button>
+            <button class="close-btn" onclick="window.close()">
+                ❌ Đóng cửa sổ
+            </button>
+        </div>
+        
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 Báo Cáo Tình Trạng Hoạt Động Máy Đo 3D</h1>
+            <div class="date-info">📅 Ngày tạo: ${new Date().toLocaleDateString('vi-VN')} - ⏰ ${new Date().toLocaleTimeString('vi-VN')}</div>
+            <div class="date-info">${filterInfo}</div>
+        </div>
+        
+        <!-- Summary Section -->
+        <div class="summary-section">
+            <div class="summary-title">📈 Tổng Quan Hiệu Suất</div>
+            <div class="summary-grid">
+                <div class="summary-card blue">
+                    <div class="label">Tổng Thời Gian</div>
+                    <div class="value">${summaryData.totalTime}</div>
+                </div>
+                <div class="summary-card green">
+                    <div class="label">Thời Gian Gia Công</div>
+                    <div class="value">${summaryData.workingTime}</div>
+                </div>
+                <div class="summary-card red">
+                    <div class="label">Thời Gian Tạm Dừng</div>
+                    <div class="value">${summaryData.downTime}</div>
+                </div>
+                <div class="summary-card yellow">
+                    <div class="label">Hiệu Suất</div>
+                    <div class="value">${summaryData.efficiency}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chart Section -->
+        <div class="chart-section">
+            <div class="summary-title">📊 Biểu Đồ Phân Bổ Thời Gian Theo Máy</div>
+            <div class="chart-container">
+                ${chartImageData ?
+                        `<img src="${chartImageData}" alt="Biểu đồ phân bổ thời gian" class="chart-image" />` :
+                        `<div class="chart-placeholder">
+                        📊 Biểu đồ không thể hiển thị<br>
+                        Vui lòng xem dữ liệu chi tiết trong bảng bên dưới
+                    </div>`
+                    }
+            </div>
+        </div>
+        
+        <!-- Data Table -->
+        <div class="table-section">
+            <div class="table-title">📋 Chi Tiết Dữ Liệu Phân Tích</div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Máy</th>
+                        <th>Ca</th>
+                        <th>Chuẩn Bị (%)</th>
+                        <th>Chạy Thử (%)</th>
+                        <th>Gia Công (%)</th>
+                        <th>Gá Lắp (%)</th>
+                        <th>Tạm Dừng (%)</th>
+                        <th>Ghi Chú</th>  <!-- THÊM DÒNG NÀY -->
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableData.map(row => `
+                        <tr>
+                            <td><strong>${row.machine}</strong></td>
+                            <td>${row.shift}</td>
+                            <td style="background-color: ${row.chuanBi > 0 ? '#fff7ed' : 'inherit'};">${row.chuanBi}%</td>
+                            <td style="background-color: ${row.chayThu > 0 ? '#eff6ff' : 'inherit'};">${row.chayThu}%</td>
+                            <td style="background-color: ${row.giaCong > 0 ? '#f0fdf4' : 'inherit'}; ${row.giaCong > 50 ? 'font-weight: bold; color: #16a34a;' : ''}">${row.giaCong}%</td>
+                            <td style="background-color: ${row.gaLap > 0 ? '#f8fafc' : 'inherit'};">${row.gaLap}%</td>
+                            <td style="background-color: ${row.tamDung > 0 ? '#fef2f2' : 'inherit'}; ${row.tamDung > 10 ? 'font-weight: bold; color: #dc2626;' : ''}">${row.tamDung}%</td>
+                            <td style="max-width: 200px; word-wrap: break-word; font-size: 11px;">${row.note}</td>  <!-- THÊM DÒNG NÀY -->
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>`;
+
+                // Ghi nội dung vào cửa sổ mới
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+
+                // Focus vào cửa sổ mới
+                printWindow.focus();
+
+                showToast('✅ Trang in đã được tạo thành công! Biểu đồ đã được bao gồm.', 'success');
+
+            } catch (error) {
+                console.error('Lỗi khi in báo cáo:', error);
+                showToast('❌ Có lỗi xảy ra khi tạo trang in: ' + error.message, 'error');
+            }
+        }
+
+        // Cập nhật hàm window.exportToPDF để gọi hàm in
+        window.exportToPDF = function (reportType) {
+            if (reportType === 'may3d') {
+                print3DReport();
+            } else {
+                showToast('Chức năng in cho báo cáo này đang được phát triển', 'warning');
+            }
+        };
+
+        // Cập nhật hàm printReport global
+        window.printReport = function () {
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab) {
+                const reportId = activeTab.getAttribute('onclick').match(/'(.+)'/)[1];
+                if (reportId === 'may3d') {
+                    print3DReport();
+                } else {
+                    showToast('Chức năng in cho tab này đang được phát triển', 'warning');
+                }
+            }
+        };
+
         function resetFilter3D() {
             const today = new Date();
             const yesterday = new Date(today);
@@ -4399,6 +5061,44 @@
             }
         }
 
+        /* Responsive cho 7 cards */
+        @media (max-width: 640px) {
+            .grid.md\:grid-cols-7 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 640px) and (max-width: 768px) {
+            .grid.md\:grid-cols-7 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .grid.md\:grid-cols-7 {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) and (max-width: 1280px) {
+            .grid.md\:grid-cols-7 {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .grid.md\:grid-cols-7>div:nth-child(6),
+            .grid.md\:grid-cols-7>div:nth-child(7) {
+                grid-column: span 1;
+            }
+        }
+
+        /* Hover effect cho cards mới */
+        .bg-orange-100:hover,
+        .bg-red-100:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+        }
+
         /* Ensure tabs don't shrink */
         .tab-btn {
             min-width: fit-content;
@@ -4514,15 +5214,130 @@
             transition: all 0.2s ease;
         }
 
-        /* Responsive cho 5 cards */
-        @media (max-width: 768px) {
-            .grid.md\:grid-cols-5 {
-                grid-template-columns: repeat(2, 1fr);
+        /* Print button styling - Updated */
+        .bg-green-500 {
+            background-color: #22c55e;
+            transition: all 0.2s ease;
+        }
+
+        .bg-green-500:hover {
+            background-color: #16a34a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+        }
+
+        /* Icon styling */
+        .fas.fa-print {
+            margin-right: 8px;
+        }
+
+        /* Loading overlay for print */
+        .print-loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .print-loading .spinner {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        /* Print styles for 3D report */
+        @media print {
+
+            /* Ẩn các phần không cần thiết khi in */
+            .no-print,
+            header,
+            .bg-white.shadow-sm,
+            .flex.space-x-2 button {
+                display: none !important;
             }
 
-            .grid.md\:grid-cols-5>div:last-child {
-                grid-column: 1 / -1;
+            /* Đảm bảo nền trắng */
+            body {
+                background: white !important;
             }
+
+            /* Điều chỉnh container cho in */
+            .container {
+                max-width: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            /* Điều chỉnh các thẻ cho in */
+            .bg-white {
+                background: white !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+
+            /* Đảm bảo biểu đồ hiển thị tốt */
+            canvas {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+
+            /* Điều chỉnh bảng cho in */
+            table {
+                border-collapse: collapse !important;
+                width: 100% !important;
+            }
+
+            table th,
+            table td {
+                border: 1px solid #000 !important;
+                padding: 8px !important;
+                font-size: 12px !important;
+            }
+
+            /* Điều chỉnh summary cards cho in */
+            .grid {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 10px !important;
+            }
+
+            /* Ngăn ngắt trang trong các phần quan trọng */
+            .bg-white.rounded-xl {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            /* Tiêu đề in */
+            .print-header {
+                margin-bottom: 30px !important;
+                text-align: center !important;
+            }
+
+            .print-header h1 {
+                font-size: 24px !important;
+                font-weight: bold !important;
+                margin-bottom: 10px !important;
+            }
+
+            .print-header p {
+                font-size: 14px !important;
+                color: #666 !important;
+                margin: 5px 0 !important;
+            }
+        }
+
+        /* Nút in */
+        .bg-green-500:hover {
+            background-color: #16a34a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(34, 197, 94, 0.3);
         }
     </style>
 </body>
