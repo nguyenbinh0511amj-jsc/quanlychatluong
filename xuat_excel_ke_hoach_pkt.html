@@ -295,7 +295,7 @@
             if (data.length === 0) {
                 previewDiv.style.display = 'none';
                 return;
-            }
+3600            }
 
             const headerRow = data[0] || [];
             const excludeColumns = ['id_kh_pkt', 'id_trien_khai_3d_laze', 'id_xu_ly_be_mat', 'sl_chuyen_xu_ly', 'sl_thuc_te', 'sl_ok', 'sl_ng', 'ngay_ket_thuc_trien_khai', 'tong_thoi_gian_trien_khai', 'ma_cv', 'code', 'nhom'];
@@ -363,16 +363,65 @@
                     return indexes;
                 }, []);
 
-                const filteredData = spreadsheetData.map(row => {
-                    return row.filter((cell, index) => !excludeIndexes.includes(index));
+                // Tìm chỉ số cột order_kd và sll
+                const orderKdIndex = headerRow.findIndex(header => header.toLowerCase().trim() === 'order_kd');
+                const sllIndex = headerRow.findIndex(header => header.toLowerCase().trim() === 'sll');
+
+                // Lọc dữ liệu để loại bỏ các cột không mong muốn
+                const filteredData = spreadsheetData.map((row, rowIndex) => {
+                    return row.map((cell, colIndex) => {
+                        if (excludeIndexes.includes(colIndex)) return undefined; // Bỏ các cột không mong muốn
+
+                        // Xử lý cột order_kd
+                        if (colIndex === orderKdIndex && rowIndex > 0) { // Bỏ qua hàng tiêu đề
+                            const value = cell ? cell.toString().trim() : '';
+                            // Kiểm tra nếu giá trị là số hợp lệ
+                            if (/^\d+$/.test(value)) {
+                                return Number(value); // Chuyển thành số
+                            }
+                            return value; // Giữ nguyên nếu có ký tự chữ
+                        }
+
+                        // Xử lý cột sll
+                        if (colIndex === sllIndex && rowIndex > 0) { // Bỏ qua hàng tiêu đề
+                            const value = cell ? cell.toString().trim() : '';
+                            // Chuyển thành số nếu là số hợp lệ, nếu không thì giữ nguyên
+                            return isNaN(Number(value)) ? value : Number(value);
+                        }
+
+                        return cell; // Giữ nguyên các cột khác
+                    }).filter(cell => cell !== undefined); // Loại bỏ các cột undefined
                 });
 
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet(filteredData);
 
+                // Thiết lập định dạng số cho cột order_kd và sll
                 const range = XLSX.utils.decode_range(ws['!ref']);
-                const colWidths = [];
+                for (let R = range.s.r + 1; R <= range.e.r; ++R) { // Bắt đầu từ hàng thứ 2 (bỏ tiêu đề)
+                    // Định dạng cột order_kd
+                    if (orderKdIndex !== -1) {
+                        const filteredOrderKdIndex = headerRow.slice(0, orderKdIndex).filter((_, i) => !excludeIndexes.includes(i)).length;
+                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: filteredOrderKdIndex });
+                        if (ws[cellAddress] && typeof ws[cellAddress].v === 'number') {
+                            ws[cellAddress].t = 'n'; // Định dạng số
+                            ws[cellAddress].z = '0'; // Định dạng số nguyên
+                        }
+                    }
 
+                    // Định dạng cột sll
+                    if (sllIndex !== -1) {
+                        const filteredSllIndex = headerRow.slice(0, sllIndex).filter((_, i) => !excludeIndexes.includes(i)).length;
+                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: filteredSllIndex });
+                        if (ws[cellAddress] && typeof ws[cellAddress].v === 'number') {
+                            ws[cellAddress].t = 'n'; // Định dạng số
+                            ws[cellAddress].z = '0'; // Định dạng số nguyên
+                        }
+                    }
+                }
+
+                // Thiết lập chiều rộng cột
+                const colWidths = [];
                 for (let C = range.s.c; C <= range.e.c; ++C) {
                     let maxWidth = 0;
                     for (let R = range.s.r; R <= range.e.r; ++R) {
