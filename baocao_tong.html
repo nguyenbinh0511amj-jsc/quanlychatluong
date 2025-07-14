@@ -866,21 +866,26 @@
                 // Load all tables in parallel - SỬA LẠI DANH SÁCH BẢNG
                 const [
                     data3D,
-                    dataPause, // Thay đổi từ data3DParent thành dataPause
+                    dataPause,
                     dataProduction,
                     dataError,
                     dataPolishing,
                     dataReceive,
-                    dataDelivery
+                    dataDelivery,
+                    dataPlanPKT  // THÊM MỚI
                 ] = await Promise.all([
-                    fetchAppSheetData('trien_khai_3d_laze_dt'), // Bảng chính
-                    fetchAppSheetData('tam_dung'),              // Bảng tạm dừng
+                    fetchAppSheetData('trien_khai_3d_laze_dt'),
+                    fetchAppSheetData('tam_dung'),
                     fetchAppSheetData('ke_hoach_pkt_dt'),
                     fetchAppSheetData('tong_hop_loi'),
                     fetchAppSheetData('hoan_thien_danh_bong_dt'),
                     fetchAppSheetData('so_giao_nhan'),
-                    fetchAppSheetData('giao_kho_vp')
+                    fetchAppSheetData('giao_kho_vp'),
+                    fetchAppSheetData('ke_hoach_pkt')  // THÊM MỚI
                 ]);
+
+                // Lưu vào global data
+                globalData.dataPlanPKT = dataPlanPKT;  // THÊM MỚI
 
                 // Store in global data
                 globalData.data3D = data3D;
@@ -1718,11 +1723,9 @@
 
         // SỬA HÀM XỬ LÝ DỮ LIỆU CHO BIỂU ĐỒ TỔ - GOM THEO NHÓM VỚI 4 TỔ CỐ ĐỊNH
         function processTeamChart(data, processedData, selectedGroup) {
-            // 4 tổ cố định cho mỗi nhóm
             const fixedTeams = ['Hành chính', 'Tổ 1', 'Tổ 2', 'Tổ 3'];
 
             if (selectedGroup) {
-                // Khi có chọn nhóm cụ thể - hiển thị 4 tổ của nhóm đó
                 const teamGroups = {
                     'Hành chính': 0,
                     'Tổ 1': 0,
@@ -1734,34 +1737,37 @@
                     if (item.nhom === selectedGroup) {
                         const teamValue = item.to ? item.to.toString() : '';
 
+                        // THAY ĐỔI: Tính sản lượng chi tiết thay vì sl_thuc_te
+                        const tapOk = parseInt(item.sl_ok_tap || 0);
+                        const viaOk = parseInt(item.sl_ok_via || 0);
+                        const ruaTotal = parseInt(item.sl_ok_rua || 0) + parseInt(item.sl_ng_rua || 0);
+                        const xtraTotal = parseInt(item.sl_ok_kiem_tra || 0) + parseInt(item.sl_ng_kiem_tra || 0);
+                        const goi = parseInt(item.sl_da_goi || 0);
+                        const detailedProduction = tapOk + viaOk + ruaTotal + xtraTotal + goi;
+
                         if (teamValue.includes(',')) {
-                            // Trường hợp có nhiều tổ
                             const teams = teamValue.split(',').map(t => t.trim());
                             const teamCount = teams.length;
 
                             teams.forEach(team => {
                                 const teamName = formatTeamNameForChart(team);
                                 if (teamGroups.hasOwnProperty(teamName)) {
-                                    // Chia đều sản lượng cho các tổ
-                                    teamGroups[teamName] += Math.round(parseInt(item.sl_thuc_te || 0) / teamCount);
+                                    teamGroups[teamName] += Math.round(detailedProduction / teamCount);
                                 }
                             });
                         } else {
-                            // Trường hợp tổ đơn lẻ
                             const teamName = formatTeamNameForChart(teamValue);
                             if (teamGroups.hasOwnProperty(teamName)) {
-                                teamGroups[teamName] += parseInt(item.sl_thuc_te || 0);
+                                teamGroups[teamName] += detailedProduction;
                             }
                         }
                     }
                 });
 
-                // Sắp xếp theo thứ tự cố định
                 processedData.teamLabels = fixedTeams;
                 processedData.teamData = fixedTeams.map(team => teamGroups[team]);
 
             } else {
-                // Khi không chọn nhóm - hiển thị tất cả các nhóm
                 const allGroups = [...new Set(data.map(item => item.nhom).filter(Boolean))].sort();
 
                 const groupData = {};
@@ -1788,6 +1794,14 @@
 
                     const teamValue = item.to ? item.to.toString() : '';
 
+                    // THAY ĐỔI: Tính sản lượng chi tiết
+                    const tapOk = parseInt(item.sl_ok_tap || 0);
+                    const viaOk = parseInt(item.sl_ok_via || 0);
+                    const ruaTotal = parseInt(item.sl_ok_rua || 0) + parseInt(item.sl_ng_rua || 0);
+                    const xtraTotal = parseInt(item.sl_ok_kiem_tra || 0) + parseInt(item.sl_ng_kiem_tra || 0);
+                    const goi = parseInt(item.sl_da_goi || 0);
+                    const detailedProduction = tapOk + viaOk + ruaTotal + xtraTotal + goi;
+
                     if (teamValue.includes(',')) {
                         const teams = teamValue.split(',').map(t => t.trim());
                         const teamCount = teams.length;
@@ -1795,18 +1809,17 @@
                         teams.forEach(team => {
                             const teamName = formatTeamNameForChart(team);
                             if (groupData[groupName].hasOwnProperty(teamName)) {
-                                groupData[groupName][teamName] += Math.round(parseInt(item.sl_thuc_te || 0) / teamCount);
+                                groupData[groupName][teamName] += Math.round(detailedProduction / teamCount);
                             }
                         });
                     } else {
                         const teamName = formatTeamNameForChart(teamValue);
                         if (groupData[groupName].hasOwnProperty(teamName)) {
-                            groupData[groupName][teamName] += parseInt(item.sl_thuc_te || 0);
+                            groupData[groupName][teamName] += detailedProduction;
                         }
                     }
                 });
 
-                // Chuẩn bị dữ liệu cho biểu đồ grouped bar
                 processedData.teamLabels = allGroups;
                 processedData.teamData = {
                     'Hành chính': allGroups.map(group => groupData[group]['Hành chính']),
@@ -2004,14 +2017,13 @@
             const selectedTeam = document.getElementById('teamSL').value;
             const selectedShift = document.getElementById('shiftSL').value;
 
-            // DỮ LIỆU ĐÃ ĐƯỢC LỌC BỎ CNC_TAP VÀ XLBM_DANH_NI TỪ HÀM TRƯỚC
+            // Lọc dữ liệu theo bộ lọc
             let filteredData = data;
 
             if (selectedGroup) {
                 filteredData = filteredData.filter(item => item.nhom === selectedGroup);
             }
 
-            // THÊM LOGIC LỌC CA LÀM VIỆC MỚI
             if (selectedShift) {
                 filteredData = filteredData.filter(item => {
                     const itemShift = item.ca_lam_viec ? item.ca_lam_viec.toString().trim() : '';
@@ -2019,28 +2031,20 @@
                 });
             }
 
-            // Lọc theo tổ gom nhóm - SỬA LẠI ĐỂ XỬ LÝ TỔ HÀNH CHÍNH KẾT HỢP
             if (selectedTeam) {
                 filteredData = filteredData.filter(item => {
                     const teamValue = item.to ? item.to.toString() : '';
                     if (selectedTeam === '0') {
-                        // Tổ hành chính - KIỂM TRA CẢ TRƯỜNG HỢP ĐƠN LẺ VÀ KẾT HỢP
                         let hasAdminTeam = false;
-
                         if (teamValue.includes(',')) {
-                            // Trường hợp có nhiều tổ như "0, 1/3" hoặc "2/3, 0"
                             const teams = teamValue.split(',').map(t => t.trim());
                             hasAdminTeam = teams.includes('0');
                         } else {
-                            // Trường hợp tổ đơn lẻ
                             hasAdminTeam = teamValue === '0';
                         }
-
-                        return hasAdminTeam; // TRẢ VỀ TRUE NẾU CÓ TỔ HÀNH CHÍNH
+                        return hasAdminTeam;
                     } else {
-                        // Kiểm tra chính xác cho tổ 1, 2, 3 - GIỮ NGUYÊN LOGIC CŨ
                         if (teamValue.includes(',')) {
-                            // Trường hợp có nhiều tổ
                             const teams = teamValue.split(',').map(t => t.trim());
                             return teams.some(team => {
                                 if (selectedTeam === '1') {
@@ -2053,7 +2057,6 @@
                                 return false;
                             });
                         } else {
-                            // Trường hợp chỉ có 1 tổ
                             if (selectedTeam === '1') {
                                 return teamValue.startsWith('1/') || teamValue === '1';
                             } else if (selectedTeam === '2') {
@@ -2066,15 +2069,6 @@
                     }
                 });
             }
-
-            // Log thông tin để kiểm tra
-            console.log('Production Data Processing:', {
-                originalData: data.length,
-                afterGroupFilter: filteredData.length,
-                selectedGroup: selectedGroup,
-                selectedTeam: selectedTeam,
-                selectedShift: selectedShift
-            });
 
             const processedData = {
                 labels: [],
@@ -2091,7 +2085,6 @@
                     totalRua: 0,
                     totalXtra: 0,
                     totalGoi: 0,
-                    // THÊM MỚI: Tồn kho
                     totalTapTon: 0,
                     totalViaTon: 0,
                     totalRuaTon: 0,
@@ -2104,24 +2097,27 @@
                 }
             };
 
+            const allInventoryData = globalData.dataPlanPKT || [];  // SỬ DỤNG BẢNG MỚI
+
+            allInventoryData.forEach(item => {
+                processedData.summary.totalTapTon += parseInt(item.ton_tap || 0);
+                processedData.summary.totalViaTon += parseInt(item.ton_via || 0);
+                processedData.summary.totalRuaTon += parseInt(item.ton_rua || 0);
+                processedData.summary.totalXtraTon += parseInt(item.ton_kiem_tra || 0);
+                processedData.summary.totalGoiTon += parseInt(item.ton_goi || 0);
+            });
+
+            // Xử lý dữ liệu đã lọc cho tổ
             let finalData;
-
-            // Chỉ tách riêng khi có lọc tổ cụ thể
             if (selectedTeam) {
-                // Tách từng record thành các dòng riêng biệt theo tổ
                 const expandedData = [];
-
                 filteredData.forEach(item => {
                     const teamValue = item.to ? item.to.toString() : '';
-
                     if (teamValue.includes(',')) {
-                        // Nếu có nhiều tổ, tách thành các dòng riêng
                         const teams = teamValue.split(',').map(t => t.trim());
-
-                        // CHỌN CÁC TỔ THUỘC NHÓM ĐƯỢC CHỌN (BAO GỒM TỔ HÀNH CHÍNH)
                         const validTeams = teams.filter(team => {
                             if (selectedTeam === '0') {
-                                return team === '0'; // TỔ HÀNH CHÍNH
+                                return team === '0';
                             } else if (selectedTeam === '1') {
                                 return team.startsWith('1/') || team === '1';
                             } else if (selectedTeam === '2') {
@@ -2132,13 +2128,11 @@
                             return false;
                         });
 
-                        const teamCount = teams.length; // Chia theo tổng số tổ gốc
-
+                        const teamCount = teams.length;
                         validTeams.forEach(team => {
                             expandedData.push({
                                 ...item,
                                 to: team,
-                                // Chia đều dữ liệu cho các tổ
                                 sl_thuc_te: Math.round((parseInt(item.sl_thuc_te || 0)) / teamCount),
                                 sl_ok_tap: Math.round((parseInt(item.sl_ok_tap || 0)) / teamCount),
                                 sl_ok_via: Math.round((parseInt(item.sl_ok_via || 0)) / teamCount),
@@ -2153,23 +2147,18 @@
                             });
                         });
                     } else {
-                        // Nếu chỉ có 1 tổ, giữ nguyên
                         expandedData.push(item);
                     }
                 });
-
                 finalData = expandedData;
             } else {
-                // Không lọc tổ - giữ nguyên dữ liệu gốc
                 finalData = filteredData;
             }
 
-            // Thu thập tất cả mã nhân viên unique
+            // Thu thập mã nhân viên
             const uniqueWorkerCodes = new Set();
-
             finalData.forEach(item => {
                 if (item.Code) {
-                    // Xử lý trường hợp có nhiều mã code cách nhau bởi dấu phẩy
                     const codes = item.Code.toString().split(',');
                     codes.forEach(code => {
                         const cleanCode = code.trim();
@@ -2180,14 +2169,13 @@
                 }
             });
 
-            // Hiển thị dữ liệu và tính toán summary
+            // Tính toán summary và tạo table data
             finalData.forEach(item => {
                 const actualTime = parseFloat(item.Thoi_Gian_Thuc_Te || 0);
                 const theoreticalTime = parseFloat(item.hoan_thanh_dk || 0);
                 const production = parseInt(item.sl_thuc_te || 0);
                 const workers = parseInt(item.so_nguoi_lam || 0);
 
-                // TÍNH TOÁN THEO TỪNG LOẠI SẢN LƯỢNG
                 const tapOk = parseInt(item.sl_ok_tap || 0);
                 const viaOk = parseInt(item.sl_ok_via || 0);
                 const ruaOk = parseInt(item.sl_ok_rua || 0);
@@ -2196,64 +2184,36 @@
                 const xtraNg = parseInt(item.sl_ng_kiem_tra || 0);
                 const goi = parseInt(item.sl_da_goi || 0);
 
-                // TÍNH TOÁN TỒN KHO - THÊM MỚI
-                const tapTon = parseInt(item.ton_tap || 0);
-                const viaTon = parseInt(item.ton_via || 0);
-                const ruaTon = parseInt(item.ton_rua || 0);
-                const xtraTon = parseInt(item.ton_kiem_tra || 0);
-                const goiTon = parseInt(item.ton_goi || 0);
-
-                // CỘNG DỒN VÀO SUMMARY - SẢN LƯỢNG
                 processedData.summary.totalTap += tapOk;
                 processedData.summary.totalVia += viaOk;
                 processedData.summary.totalRua += (ruaOk + ruaNg);
                 processedData.summary.totalXtra += (xtraOk + xtraNg);
                 processedData.summary.totalGoi += goi;
-
-                // CỘNG DỒN VÀO SUMMARY - TỒN KHO (THÊM MỚI)
-                processedData.summary.totalTapTon += tapTon;
-                processedData.summary.totalViaTon += viaTon;
-                processedData.summary.totalRuaTon += ruaTon;
-                processedData.summary.totalXtraTon += xtraTon;
-                processedData.summary.totalGoiTon += goiTon;
-
-                // GIỮ NGUYÊN TỔNG SẢN LƯỢNG TỪ sl_thuc_te (để tham khảo)
                 processedData.summary.totalProduction += production;
 
                 const efficiency = theoreticalTime > 0 && actualTime > 0 ?
                     Number(((theoreticalTime / actualTime) * 100).toFixed(2)) : 0;
 
-                // Format ngày từ thoi_gian_bat_dau
                 let formattedDate = '-';
-                let sortDate = ''; // Thêm biến để sort
+                let sortDate = '';
                 if (item.thoi_gian_bat_dau) {
                     try {
                         const date = new Date(item.thoi_gian_bat_dau);
                         formattedDate = date.toLocaleDateString('vi-VN');
-                        sortDate = item.thoi_gian_bat_dau; // Lưu ngày gốc để sort
+                        sortDate = item.thoi_gian_bat_dau;
                     } catch (e) {
                         formattedDate = '-';
                         sortDate = '';
                     }
                 }
 
-                // Format tên tổ dựa trên việc có lọc hay không
                 let teamDisplay;
                 if (selectedTeam) {
-                    // Khi có lọc tổ - hiển thị số tổ đơn giản
                     teamDisplay = formatTeamNameSimple(item.to);
                 } else {
-                    // Khi không lọc - hiển thị tên tổ gốc
                     teamDisplay = formatTeamNameOriginal(item.to);
                 }
 
-                // THÊM THÔNG TIN DEBUG VÀO GHI CHÚ
-                let noteContent = item.giai_trinh || '';
-                if (item.cnc_tap || item.xlbm_danh_ni) {
-                    noteContent += ` [EXCLUDED: cnc_tap=${item.cnc_tap || 'N/A'}, xlbm=${item.xlbm_danh_ni || 'N/A'}]`;
-                }
-
-                // Trong hàm processProductionData, phần tạo tableData
                 processedData.tableData.push({
                     date: formattedDate,
                     sortDate: sortDate,
@@ -2267,25 +2227,21 @@
                     actualTime: actualTime,
                     theoreticalTime: theoreticalTime,
                     efficiency: efficiency,
-                    note: noteContent || '-'
+                    note: item.giai_trinh || '-'
                 });
             });
 
-            // SẮP XẾP THEO NGÀY MỚI NHẤT LEN ĐẦU
+            // Sắp xếp table data
             processedData.tableData.sort((a, b) => {
                 if (!a.sortDate && !b.sortDate) return 0;
                 if (!a.sortDate) return 1;
                 if (!b.sortDate) return -1;
-
-                // Sắp xếp giảm dần (mới nhất lên đầu)
                 return new Date(b.sortDate) - new Date(a.sortDate);
             });
 
             // Chuẩn bị dữ liệu cho chart
             if (selectedTeam) {
-                // Khi có lọc tổ - nhóm theo tổ con
                 const chartGroups = {};
-
                 finalData.forEach(item => {
                     const teamValue = item.to ? item.to.toString() : '';
                     const displayLabel = formatTeamNameSimple(teamValue);
@@ -2295,13 +2251,22 @@
                             label: displayLabel,
                             actualTime: 0,
                             theoreticalTime: 0,
-                            production: 0
+                            production: 0 // Sẽ tính bằng tổng chi tiết
                         };
                     }
 
                     chartGroups[teamValue].actualTime += parseFloat(item.Thoi_Gian_Thuc_Te || 0);
                     chartGroups[teamValue].theoreticalTime += parseFloat(item.hoan_thanh_dk || 0);
-                    chartGroups[teamValue].production += parseInt(item.sl_thuc_te || 0);
+
+                    // THAY ĐỔI: Tính theo tổng chi tiết thay vì sl_thuc_te
+                    const tapOk = parseInt(item.sl_ok_tap || 0);
+                    const viaOk = parseInt(item.sl_ok_via || 0);
+                    const ruaTotal = parseInt(item.sl_ok_rua || 0) + parseInt(item.sl_ng_rua || 0);
+                    const xtraTotal = parseInt(item.sl_ok_kiem_tra || 0) + parseInt(item.sl_ng_kiem_tra || 0);
+                    const goi = parseInt(item.sl_da_goi || 0);
+                    const detailedProduction = tapOk + viaOk + ruaTotal + xtraTotal + goi;
+
+                    chartGroups[teamValue].production += detailedProduction;
                 });
 
                 Object.values(chartGroups).forEach(group => {
@@ -2311,9 +2276,7 @@
                     processedData.pieData.push(Math.round(group.production));
                 });
             } else if (selectedShift) {
-                // THÊM MỚI: Khi có lọc ca - nhóm theo ca
                 const chartGroups = {};
-
                 finalData.forEach(item => {
                     const shiftValue = item.ca_lam_viec || 'Không xác định';
 
@@ -2328,7 +2291,16 @@
 
                     chartGroups[shiftValue].actualTime += parseFloat(item.Thoi_Gian_Thuc_Te || 0);
                     chartGroups[shiftValue].theoreticalTime += parseFloat(item.hoan_thanh_dk || 0);
-                    chartGroups[shiftValue].production += parseInt(item.sl_thuc_te || 0);
+
+                    // THAY ĐỔI: Tính theo tổng chi tiết
+                    const tapOk = parseInt(item.sl_ok_tap || 0);
+                    const viaOk = parseInt(item.sl_ok_via || 0);
+                    const ruaTotal = parseInt(item.sl_ok_rua || 0) + parseInt(item.sl_ng_rua || 0);
+                    const xtraTotal = parseInt(item.sl_ok_kiem_tra || 0) + parseInt(item.sl_ng_kiem_tra || 0);
+                    const goi = parseInt(item.sl_da_goi || 0);
+                    const detailedProduction = tapOk + viaOk + ruaTotal + xtraTotal + goi;
+
+                    chartGroups[shiftValue].production += detailedProduction;
                 });
 
                 Object.values(chartGroups).forEach(group => {
@@ -2338,10 +2310,7 @@
                     processedData.pieData.push(Math.round(group.production));
                 });
             } else {
-                // Khi không lọc tổ và ca - nhóm theo nhóm
                 const groups = [...new Set(finalData.map(item => item.nhom).filter(Boolean))];
-
-                // SẮP XẾP CÁC NHÓM THEO TÊN TỪ NHỎ ĐẾN LỚN
                 const sortedGroups = groups.sort((a, b) => a.localeCompare(b));
 
                 sortedGroups.forEach(group => {
@@ -2354,7 +2323,16 @@
                     groupData.forEach(item => {
                         actualTime += parseFloat(item.Thoi_Gian_Thuc_Te || 0);
                         theoreticalTime += parseFloat(item.hoan_thanh_dk || 0);
-                        production += parseInt(item.sl_thuc_te || 0);
+
+                        // THAY ĐỔI: Tính theo tổng chi tiết
+                        const tapOk = parseInt(item.sl_ok_tap || 0);
+                        const viaOk = parseInt(item.sl_ok_via || 0);
+                        const ruaTotal = parseInt(item.sl_ok_rua || 0) + parseInt(item.sl_ng_rua || 0);
+                        const xtraTotal = parseInt(item.sl_ok_kiem_tra || 0) + parseInt(item.sl_ng_kiem_tra || 0);
+                        const goi = parseInt(item.sl_da_goi || 0);
+                        const detailedProduction = tapOk + viaOk + ruaTotal + xtraTotal + goi;
+
+                        production += detailedProduction;
                     });
 
                     processedData.labels.push(group);
@@ -2364,13 +2342,12 @@
                 });
             }
 
-            // THÊM XỬ LÝ DỮ LIỆU CHO BIỂU ĐỒ TỔ
+            // Xử lý dữ liệu cho biểu đồ tổ
             processTeamChart(finalData, processedData, selectedGroup);
 
-            // Calculate summary - THÊM TÍNH TỔNG THỜI GIAN VÀ TỪNG LOẠI SẢN LƯỢNG
+            // Tính toán summary cuối cùng
             processedData.summary.totalWorkers = uniqueWorkerCodes.size;
 
-            // TÍNH TỔNG THỜI GIAN TỪ TABLE DATA
             processedData.tableData.forEach(item => {
                 processedData.summary.totalActualTime += item.actualTime;
                 processedData.summary.totalTheoreticalTime += item.theoreticalTime;
@@ -2381,15 +2358,6 @@
 
             processedData.summary.avgEfficiency = totalWorkerTime > 0 ?
                 Math.round((totalActualTime / totalWorkerTime) * 100) : 0;
-
-            // DEBUG LOG - KIỂM TRA KẾT QUẢ
-            console.log('=== FINAL SUMMARY ===');
-            console.log('totalProduction (sl_thuc_te):', processedData.summary.totalProduction);
-            console.log('totalTap (sl_ok_tap):', processedData.summary.totalTap);
-            console.log('totalVia (sl_ok_via):', processedData.summary.totalVia);
-            console.log('totalRua (sl_ok_rua + sl_ng_rua):', processedData.summary.totalRua);
-            console.log('totalXtra (sl_ok_kiem_tra + sl_ng_kiem_tra):', processedData.summary.totalXtra);
-            console.log('totalGoi (sl_da_goi):', processedData.summary.totalGoi);
 
             return processedData;
         }
@@ -2462,25 +2430,24 @@
         }
 
         function updateProductionSummary(data) {
-            // Cập nhật các loại sản lượng riêng biệt
+            // Sản lượng (theo bộ lọc)
             document.getElementById('totalTapSL').textContent = data.summary.totalTap.toLocaleString();
             document.getElementById('totalViaSL').textContent = data.summary.totalVia.toLocaleString();
             document.getElementById('totalRuaSL').textContent = data.summary.totalRua.toLocaleString();
             document.getElementById('totalXtraSL').textContent = data.summary.totalXtra.toLocaleString();
             document.getElementById('totalGoiSL').textContent = data.summary.totalGoi.toLocaleString();
 
-            // CẬP NHẬT TỒN KHO - THÊM MỚI
+            // Tồn kho (từ toàn bộ bảng)
             document.getElementById('totalTapTon').textContent = data.summary.totalTapTon.toLocaleString();
             document.getElementById('totalViaTon').textContent = data.summary.totalViaTon.toLocaleString();
             document.getElementById('totalRuaTon').textContent = data.summary.totalRuaTon.toLocaleString();
             document.getElementById('totalXtraTon').textContent = data.summary.totalXtraTon.toLocaleString();
             document.getElementById('totalGoiTon').textContent = data.summary.totalGoiTon.toLocaleString();
 
-            // Cập nhật thời gian và hiệu suất
+            // Thời gian và hiệu suất (theo bộ lọc)
             document.getElementById('totalActualTimeSL').textContent = Math.round(data.summary.totalActualTime).toLocaleString() + ' phút';
             document.getElementById('avgEfficiencySL').textContent = data.summary.avgEfficiency + '%';
         }
-
 
         function updateProductionChart(data) {
             if (charts.chartSL) {
