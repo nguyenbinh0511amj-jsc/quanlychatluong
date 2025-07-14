@@ -247,22 +247,32 @@
                     <div class="bg-blue-100 p-4 rounded-lg">
                         <h4 class="text-blue-800 font-semibold">Tap</h4>
                         <p class="text-2xl font-bold text-blue-600" id="totalTapSL">0</p>
+                        <p class="text-sm text-blue-700 mt-1">Tồn: <span id="totalTapTon" class="font-medium">0</span>
+                        </p>
                     </div>
                     <div class="bg-green-100 p-4 rounded-lg">
                         <h4 class="text-green-800 font-semibold">Via</h4>
                         <p class="text-2xl font-bold text-green-600" id="totalViaSL">0</p>
+                        <p class="text-sm text-green-700 mt-1">Tồn: <span id="totalViaTon" class="font-medium">0</span>
+                        </p>
                     </div>
                     <div class="bg-purple-100 p-4 rounded-lg">
                         <h4 class="text-purple-800 font-semibold">Rửa</h4>
                         <p class="text-2xl font-bold text-purple-600" id="totalRuaSL">0</p>
+                        <p class="text-sm text-purple-700 mt-1">Tồn: <span id="totalRuaTon" class="font-medium">0</span>
+                        </p>
                     </div>
                     <div class="bg-orange-100 p-4 rounded-lg">
-                        <h4 class="text-orange-800 font-semibold">Xtra</h4>
+                        <h4 class="text-orange-800 font-semibold">Ktra</h4>
                         <p class="text-2xl font-bold text-orange-600" id="totalXtraSL">0</p>
+                        <p class="text-sm text-orange-700 mt-1">Tồn: <span id="totalXtraTon"
+                                class="font-medium">0</span></p>
                     </div>
                     <div class="bg-red-100 p-4 rounded-lg">
                         <h4 class="text-red-800 font-semibold">Gói</h4>
                         <p class="text-2xl font-bold text-red-600" id="totalGoiSL">0</p>
+                        <p class="text-sm text-red-700 mt-1">Tồn: <span id="totalGoiTon" class="font-medium">0</span>
+                        </p>
                     </div>
                     <div class="bg-indigo-100 p-4 rounded-lg">
                         <h4 class="text-indigo-800 font-semibold">TG thực tế</h4>
@@ -1309,7 +1319,6 @@
                 });
 
                 // LẤY THỜI GIAN TẠM DỪNG TỪ BẢNG tam_dung
-                // Lọc theo máy và các bộ lọc hiện tại
                 const filters = {
                     dateFrom: document.getElementById('dateFrom3d').value,
                     dateTo: document.getElementById('dateTo3d').value,
@@ -1330,6 +1339,40 @@
                         tamDung: td
                     });
                 });
+
+                // ===== SỬA PHẦN XỬ LÝ GHI CHÚ - LẤY TẤT CẢ =====
+
+                // 1. Thu thập TẤT CẢ giai_trinh từ bảng 3D của máy này
+                const all3DNotes = [];
+                machineData.forEach(item => {
+                    if (item.giai_trinh && item.giai_trinh.trim() !== '') {
+                        all3DNotes.push(item.giai_trinh.trim());
+                    }
+                });
+
+                // 2. Thu thập TẤT CẢ giai_trinh từ bảng tạm dừng của máy này
+                const allPauseNotes = [];
+                pauseData.forEach(pauseItem => {
+                    if (pauseItem.giai_trinh && pauseItem.giai_trinh.trim() !== '') {
+                        allPauseNotes.push(pauseItem.giai_trinh.trim());
+                    }
+                });
+
+                // 3. Gộp tất cả ghi chú (loại bỏ trùng lặp)
+                const finalNotes = [];
+
+                if (all3DNotes.length > 0) {
+                    const unique3DNotes = [...new Set(all3DNotes)]; // Loại bỏ trùng lặp
+                    finalNotes.push('3D: ' + unique3DNotes.join(', '));
+                }
+
+                if (allPauseNotes.length > 0) {
+                    const uniquePauseNotes = [...new Set(allPauseNotes)]; // Loại bỏ trùng lặp
+                    finalNotes.push('Dừng: ' + uniquePauseNotes.join(', '));
+                }
+
+                // 4. Ghi chú cuối cùng cho máy này
+                const combinedNote = finalNotes.length > 0 ? finalNotes.join(' | ') : '-';
 
                 // TÍNH TỔNG THỜI GIAN THỰC TẾ
                 const actualTotalTime = chuanBiTime + chayThuTime + giaCongTime + gaLapTime + tamDungTime;
@@ -1356,15 +1399,6 @@
                     processedData.gaLap.push(gaLapPercent);
                     processedData.tamDung.push(tamDungPercent);
 
-                    // Tạo ghi chú tổng hợp
-                    const notes = [];
-                    if (machineData.length > 0 && machineData[0].giai_trinh) {
-                        notes.push('3D: ' + machineData[0].giai_trinh);
-                    }
-                    if (pauseData.length > 0 && pauseData[0].giai_trinh) {
-                        notes.push('Dừng: ' + pauseData[0].giai_trinh);
-                    }
-
                     processedData.tableData.push({
                         machine: machine,
                         shift: 'Tất cả',
@@ -1373,7 +1407,7 @@
                         giaCong: giaCongPercent,
                         gaLap: gaLapPercent,
                         tamDung: tamDungPercent,
-                        note: notes.length > 0 ? notes.join(' | ') : '-',
+                        note: combinedNote, // ✅ CHỨA TẤT CẢ GHI CHÚ CỦA NHÓM MÁY
                         actualTimes: {
                             chuanBi: chuanBiTime,
                             chayThu: chayThuTime,
@@ -1398,7 +1432,7 @@
                         giaCong: 0,
                         gaLap: 0,
                         tamDung: 0,
-                        note: '-',
+                        note: combinedNote, // ✅ VẪN CHỨA GHI CHÚ NGAY CẢ KHI KHÔNG CÓ THỜI GIAN
                         actualTimes: {
                             chuanBi: 0,
                             chayThu: 0,
@@ -1612,25 +1646,22 @@
             const tbody = document.getElementById('table3d');
             tbody.innerHTML = '';
 
-            // Lấy giá trị ca được chọn
             const selectedShift = document.getElementById('shift3d').value;
 
             data.tableData.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-gray-50';
 
-                // Hiển thị ca từ dữ liệu thực tế hoặc theo selection
                 let shiftDisplay = 'Tất cả';
                 if (selectedShift) {
                     shiftDisplay = selectedShift;
                 } else {
-                    // Nếu không có filter, có thể hiển thị tất cả ca từ dữ liệu
                     shiftDisplay = 'Tất cả ca';
                 }
 
-                // Xử lý ghi chú - giới hạn độ dài hiển thị
-                const noteDisplay = row.note && row.note !== '-' ?
-                    (row.note.length > 50 ? row.note.substring(0, 50) + '...' : row.note) : '-';
+                // ===== BỎ PHẦN CẮT NGẮN - HIỂN THỊ TOÀN BỘ =====
+                const noteDisplay = row.note && row.note !== '-' ? row.note : '-';
+                // Bỏ dòng này: (row.note.length > 50 ? row.note.substring(0, 50) + '...' : row.note)
 
                 tr.innerHTML = `
            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.machine}</td>
@@ -1640,7 +1671,7 @@
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.giaCong}%</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.gaLap}%</td>
            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.tamDung}%</td>
-           <td class="px-6 py-4 text-sm text-gray-500 max-w-xs" title="${row.note}">${noteDisplay}</td>
+           <td class="px-6 py-4 text-sm text-gray-500 note-column">${noteDisplay}</td>
        `;
                 tbody.appendChild(tr);
             });
@@ -2054,12 +2085,18 @@
                 teamData: [],
                 tableData: [],
                 summary: {
-                    totalProduction: 0,  // Giữ nguyên từ sl_thuc_te
-                    totalTap: 0,         // Từ sl_ok_tap
-                    totalVia: 0,         // Từ sl_ok_via  
-                    totalRua: 0,         // Từ sl_ok_rua + sl_ng_rua
-                    totalXtra: 0,        // Từ sl_ok_kiem_tra + sl_ng_kiem_tra
-                    totalGoi: 0,         // Từ sl_da_goi
+                    totalProduction: 0,
+                    totalTap: 0,
+                    totalVia: 0,
+                    totalRua: 0,
+                    totalXtra: 0,
+                    totalGoi: 0,
+                    // THÊM MỚI: Tồn kho
+                    totalTapTon: 0,
+                    totalViaTon: 0,
+                    totalRuaTon: 0,
+                    totalXtraTon: 0,
+                    totalGoiTon: 0,
                     avgEfficiency: 0,
                     totalWorkers: 0,
                     totalActualTime: 0,
@@ -2150,7 +2187,7 @@
                 const production = parseInt(item.sl_thuc_te || 0);
                 const workers = parseInt(item.so_nguoi_lam || 0);
 
-                // TÍNH TOÁN THEO TỪNG LOẠI SẢN LƯỢNG - GIỐNG HỆT NHU sl_thuc_te
+                // TÍNH TOÁN THEO TỪNG LOẠI SẢN LƯỢNG
                 const tapOk = parseInt(item.sl_ok_tap || 0);
                 const viaOk = parseInt(item.sl_ok_via || 0);
                 const ruaOk = parseInt(item.sl_ok_rua || 0);
@@ -2159,12 +2196,26 @@
                 const xtraNg = parseInt(item.sl_ng_kiem_tra || 0);
                 const goi = parseInt(item.sl_da_goi || 0);
 
-                // CỘNG DỒN VÀO SUMMARY - GIỐNG HỆT CÁCH TÍNH totalProduction
+                // TÍNH TOÁN TỒN KHO - THÊM MỚI
+                const tapTon = parseInt(item.ton_tap || 0);
+                const viaTon = parseInt(item.ton_via || 0);
+                const ruaTon = parseInt(item.ton_rua || 0);
+                const xtraTon = parseInt(item.ton_kiem_tra || 0);
+                const goiTon = parseInt(item.ton_goi || 0);
+
+                // CỘNG DỒN VÀO SUMMARY - SẢN LƯỢNG
                 processedData.summary.totalTap += tapOk;
                 processedData.summary.totalVia += viaOk;
                 processedData.summary.totalRua += (ruaOk + ruaNg);
                 processedData.summary.totalXtra += (xtraOk + xtraNg);
                 processedData.summary.totalGoi += goi;
+
+                // CỘNG DỒN VÀO SUMMARY - TỒN KHO (THÊM MỚI)
+                processedData.summary.totalTapTon += tapTon;
+                processedData.summary.totalViaTon += viaTon;
+                processedData.summary.totalRuaTon += ruaTon;
+                processedData.summary.totalXtraTon += xtraTon;
+                processedData.summary.totalGoiTon += goiTon;
 
                 // GIỮ NGUYÊN TỔNG SẢN LƯỢNG TỪ sl_thuc_te (để tham khảo)
                 processedData.summary.totalProduction += production;
@@ -2326,7 +2377,7 @@
             });
 
             const totalActualTime = processedData.summary.totalActualTime;
-            const totalWorkerTime = processedData.summary.totalWorkers * 660;
+            const totalWorkerTime = processedData.summary.totalWorkers * 630;
 
             processedData.summary.avgEfficiency = totalWorkerTime > 0 ?
                 Math.round((totalActualTime / totalWorkerTime) * 100) : 0;
@@ -2417,6 +2468,13 @@
             document.getElementById('totalRuaSL').textContent = data.summary.totalRua.toLocaleString();
             document.getElementById('totalXtraSL').textContent = data.summary.totalXtra.toLocaleString();
             document.getElementById('totalGoiSL').textContent = data.summary.totalGoi.toLocaleString();
+
+            // CẬP NHẬT TỒN KHO - THÊM MỚI
+            document.getElementById('totalTapTon').textContent = data.summary.totalTapTon.toLocaleString();
+            document.getElementById('totalViaTon').textContent = data.summary.totalViaTon.toLocaleString();
+            document.getElementById('totalRuaTon').textContent = data.summary.totalRuaTon.toLocaleString();
+            document.getElementById('totalXtraTon').textContent = data.summary.totalXtraTon.toLocaleString();
+            document.getElementById('totalGoiTon').textContent = data.summary.totalGoiTon.toLocaleString();
 
             // Cập nhật thời gian và hiệu suất
             document.getElementById('totalActualTimeSL').textContent = Math.round(data.summary.totalActualTime).toLocaleString() + ' phút';
@@ -3203,7 +3261,7 @@
             const totalActualTime = processedData.summary.totalActualTime;
             // Đếm số nhân sự từ dữ liệu đánh bóng (cần thêm logic đếm nhân sự)
             const totalWorkers = [...new Set(filteredData.map(item => item.Code).filter(Boolean))].length;
-            const totalWorkerTime = totalWorkers * 660; // 660 phút/người
+            const totalWorkerTime = totalWorkers * 630; // 630 phút/người
 
             processedData.summary.efficiency = totalWorkerTime > 0 ?
                 Math.round((totalActualTime / totalWorkerTime) * 100) : 0;
@@ -4142,13 +4200,41 @@
 
         // ========== MISSING FUNCTIONS FOR PRINT ==========
 
-        // Hàm lấy dữ liệu summary
+        // Hàm lấy dữ liệu summary - SỬA ĐỂ TÍNH THỜI GIAN GÁ LẮP CHO IN
         function get3DSummaryData() {
+            // Lấy dữ liệu hiện tại từ DOM (cho hiển thị web)
+            const totalTimeText = document.getElementById('totalTime3d')?.textContent || '0 phút';
+            const workingTimeText = document.getElementById('workingTime3d')?.textContent || '0 phút';
+            const downTimeText = document.getElementById('downTime3d')?.textContent || '0 phút';
+
+            // TÍNH THỜI GIAN GÁ LẮP TỪ DỮ LIỆU THỰC TẾ CHO IN
+            let totalGaLapTime = 0;
+
+            // Lấy dữ liệu đã được xử lý từ bảng theo filter hiện tại
+            const filters = {
+                dateFrom: document.getElementById('dateFrom3d').value,
+                dateTo: document.getElementById('dateTo3d').value,
+                dateField: 'ngay_tao',
+                so_may: document.getElementById('machine3d').value,
+                ca_lam_viec: document.getElementById('shift3d').value
+            };
+
+            // Lọc dữ liệu theo bộ lọc hiện tại
+            const filteredData = filterData(globalData.data3D, filters);
+
+            // Tính tổng thời gian gá lắp từ field tong_thoi_gian_ga_lap
+            filteredData.forEach(item => {
+                totalGaLapTime += parseFloat(item.tong_thoi_gian_ga_lap || 0);
+            });
+
+            console.log('DEBUG - Total Ga Lap Time for print:', totalGaLapTime); // Debug log
+
             return {
-                totalTime: document.getElementById('totalTime3d')?.textContent || '0 phút',
-                workingTime: document.getElementById('workingTime3d')?.textContent || '0 phút',
-                downTime: document.getElementById('downTime3d')?.textContent || '0 phút',
-                efficiency: document.getElementById('efficiency3d')?.textContent || '0%'
+                totalTime: totalTimeText,
+                workingTime: workingTimeText,
+                downTime: downTimeText,
+                efficiency: document.getElementById('efficiency3d')?.textContent || '0%', // Giữ nguyên cho web
+                gaLapTime: Math.round(totalGaLapTime) + ' phút' // THÊM MỚI cho in
             };
         }
 
@@ -4302,9 +4388,8 @@
         
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 15px;
             border-bottom: 3px solid #3b82f6;
-            padding-bottom: 20px;
         }
         
         .header h1 {
@@ -4397,7 +4482,7 @@
         
         .summary-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* Thay đổi từ 2 thành 4 */
+            grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             margin-bottom: 20px;
         }
@@ -4539,21 +4624,21 @@
             
             .summary-grid { 
                 break-inside: avoid;
-                grid-template-columns: repeat(4, 1fr) !important; /* Đảm bảo 4 cột khi in */
-                gap: 10px; /* Giảm khoảng cách để vừa trang */
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 10px;
             }
             
             .summary-card {
                 break-inside: avoid;
-                padding: 10px; /* Giảm padding để tiết kiệm không gian */
+                padding: 10px;
             }
             
             .summary-card .value {
-                font-size: 20px; /* Giảm font size để vừa trang */
+                font-size: 20px;
             }
             
             .summary-card .label {
-                font-size: 12px; /* Giảm font size cho label */
+                font-size: 12px;
             }
             
             .table-section { 
@@ -4655,8 +4740,8 @@
                     <div class="value">${summaryData.downTime}</div>
                 </div>
                 <div class="summary-card yellow">
-                    <div class="label">Hiệu Suất</div>
-                    <div class="value">${summaryData.efficiency}</div>
+                    <div class="label">Thời Gian Gá Lắp</div>
+                    <div class="value">${summaryData.gaLapTime}</div>
                 </div>
             </div>
         </div>
@@ -4688,7 +4773,7 @@
                         <th>Gia Công (%)</th>
                         <th>Gá Lắp (%)</th>
                         <th>Tạm Dừng (%)</th>
-                        <th>Ghi Chú</th>  <!-- THÊM DÒNG NÀY -->
+                        <th>Ghi Chú</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -4696,12 +4781,12 @@
                         <tr>
                             <td><strong>${row.machine}</strong></td>
                             <td>${row.shift}</td>
-                            <td style="background-color: ${row.chuanBi > 0 ? '#fff7ed' : 'inherit'};">${row.chuanBi}%</td>
-                            <td style="background-color: ${row.chayThu > 0 ? '#eff6ff' : 'inherit'};">${row.chayThu}%</td>
-                            <td style="background-color: ${row.giaCong > 0 ? '#f0fdf4' : 'inherit'}; ${row.giaCong > 50 ? 'font-weight: bold; color: #16a34a;' : ''}">${row.giaCong}%</td>
-                            <td style="background-color: ${row.gaLap > 0 ? '#f8fafc' : 'inherit'};">${row.gaLap}%</td>
-                            <td style="background-color: ${row.tamDung > 0 ? '#fef2f2' : 'inherit'}; ${row.tamDung > 10 ? 'font-weight: bold; color: #dc2626;' : ''}">${row.tamDung}%</td>
-                            <td style="max-width: 200px; word-wrap: break-word; font-size: 11px;">${row.note}</td>  <!-- THÊM DÒNG NÀY -->
+                            <td>${row.chuanBi}%</td>
+                            <td>${row.chayThu}%</td>
+                            <td>${row.giaCong}%</td>
+                            <td>${row.gaLap}%</td>
+                            <td>${row.tamDung}%</td>
+                            <td>${row.note}</td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -4718,7 +4803,7 @@
                 // Focus vào cửa sổ mới
                 printWindow.focus();
 
-                showToast('✅ Trang in đã được tạo thành công! Biểu đồ đã được bao gồm.', 'success');
+                showToast('✅ Trang in đã được tạo thành công! Hiển thị Thời gian Gá lắp thay vì Hiệu suất.', 'success');
 
             } catch (error) {
                 console.error('Lỗi khi in báo cáo:', error);
@@ -5088,6 +5173,33 @@
             .grid.md\:grid-cols-7>div:nth-child(6),
             .grid.md\:grid-cols-7>div:nth-child(7) {
                 grid-column: span 1;
+            }
+        }
+
+        /* Styling cho phần tồn kho */
+        .inventory-display {
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            margin-top: 8px;
+            padding-top: 8px;
+        }
+
+        /* Responsive cho mobile */
+        @media (max-width: 640px) {
+
+            .grid.md\:grid-cols-7 .bg-blue-100,
+            .grid.md\:grid-cols-7 .bg-green-100,
+            .grid.md\:grid-cols-7 .bg-purple-100,
+            .grid.md\:grid-cols-7 .bg-orange-100,
+            .grid.md\:grid-cols-7 .bg-red-100 {
+                padding: 12px;
+            }
+
+            .grid.md\:grid-cols-7 .text-2xl {
+                font-size: 1.5rem;
+            }
+
+            .grid.md\:grid-cols-7 .text-sm {
+                font-size: 0.75rem;
             }
         }
 
