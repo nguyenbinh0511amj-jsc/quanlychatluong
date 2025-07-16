@@ -759,6 +759,32 @@
                         </div>
                     </div>
 
+                    <!-- Ma lỗi filter -->
+                    <div class="filter-group">
+                        <label class="filter-label">Mã lỗi</label>
+                        <div class="multi-select-container">
+                            <button type="button" id="maLoiFilterBtn" class="multi-select-button">
+                                <span id="maLoiFilterText" class="multi-select-text">Tất cả mã lỗi</span>
+                                <i class="fas fa-chevron-down multi-select-icon"></i>
+                            </button>
+                            <div id="maLoiFilterDropdown" class="multi-select-dropdown hidden">
+                                <div class="multi-select-search">
+                                    <input type="text" id="maLoiSearch" class="w-full p-2 border rounded"
+                                        placeholder="Tìm kiếm mã lỗi...">
+                                </div>
+                                <div class="multi-select-search">
+                                    <label class="multi-select-option">
+                                        <input type="checkbox" id="selectAllMaLoi">
+                                        <span class="font-semibold">Chọn tất cả</span>
+                                    </label>
+                                </div>
+                                <div id="maLoiOptions">
+                                    <!-- Options will be populated here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Nội dung lỗi filter -->
                     <div class="filter-group">
                         <label class="filter-label">Nội dung lỗi</label>
@@ -932,6 +958,9 @@
         let selectedNoiDungLoiValues = new Set();
         let allNoiDungLoiValues = [];
         let filteredNoiDungLoiValues = [];
+        let selectedMaLoiValues = new Set();
+        let allMaLoiValues = [];
+        let filteredMaLoiValues = [];
 
         const appId = 'e1339939-5987-4d7a-8c73-436348abf6b7';
         const accessKey = 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL';
@@ -1200,6 +1229,84 @@
 
             // Close other dropdowns
             document.getElementById('noiDungLoiFilterDropdown').classList.add('hidden');
+            document.getElementById('maLoiFilterDropdown').classList.add('hidden'); // Thêm dòng này
+            document.querySelector('#noiDungLoiFilterBtn .multi-select-icon').style.transform = 'rotate(0deg)';
+            document.querySelector('#maLoiFilterBtn .multi-select-icon').style.transform = 'rotate(0deg)'; // Thêm dòng này
+        }
+
+        // Thêm các hàm xử lý ma_loi filter
+        function populateMaLoiFilter() {
+            const maLoiSet = new Set();
+
+            processedData.forEach(item => {
+                item.errors.forEach(error => {
+                    if (error.ma_loi && error.ma_loi.trim()) {
+                        maLoiSet.add(error.ma_loi.trim());
+                    }
+                });
+            });
+
+            allMaLoiValues = Array.from(maLoiSet).sort();
+            filteredMaLoiValues = [...allMaLoiValues];
+            renderMaLoiOptions();
+        }
+
+        function renderMaLoiOptions() {
+            const maLoiOptions = document.getElementById('maLoiOptions');
+            maLoiOptions.innerHTML = '';
+
+            filteredMaLoiValues.forEach(value => {
+                const option = document.createElement('div');
+                option.className = 'multi-select-option';
+                option.innerHTML = `
+            <label>
+                <input type="checkbox" value="${value}" class="ma-loi-checkbox" ${selectedMaLoiValues.has(value) ? 'checked' : ''}>
+                <span title="${value}">${value}</span>
+            </label>
+        `;
+                maLoiOptions.appendChild(option);
+            });
+        }
+
+        function filterMaLoiOptions() {
+            const searchTerm = document.getElementById('maLoiSearch').value.toLowerCase().trim();
+
+            if (searchTerm === '') {
+                filteredMaLoiValues = [...allMaLoiValues];
+            } else {
+                filteredMaLoiValues = allMaLoiValues.filter(value =>
+                    value.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            renderMaLoiOptions();
+        }
+
+        function updateMaLoiFilterText() {
+            const button = document.getElementById('maLoiFilterText');
+            const count = selectedMaLoiValues.size;
+
+            if (count === 0) {
+                button.textContent = 'Tất cả mã lỗi';
+            } else if (count === 1) {
+                const selectedValue = Array.from(selectedMaLoiValues)[0];
+                button.innerHTML = `${selectedValue.length > 15 ? selectedValue.substring(0, 15) + '...' : selectedValue}`;
+            } else {
+                button.innerHTML = `Đã chọn ${count} mã lỗi<span class="badge">${count}</span>`;
+            }
+        }
+
+        function toggleMaLoiDropdown() {
+            const dropdown = document.getElementById('maLoiFilterDropdown');
+            const icon = document.querySelector('#maLoiFilterBtn .multi-select-icon');
+
+            dropdown.classList.toggle('hidden');
+            icon.style.transform = dropdown.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+
+            // Close other dropdowns
+            document.getElementById('loiTonFilterDropdown').classList.add('hidden');
+            document.getElementById('noiDungLoiFilterDropdown').classList.add('hidden');
+            document.querySelector('#loiTonFilterBtn .multi-select-icon').style.transform = 'rotate(0deg)';
             document.querySelector('#noiDungLoiFilterBtn .multi-select-icon').style.transform = 'rotate(0deg)';
         }
 
@@ -1274,7 +1381,9 @@
 
             // Close other dropdowns
             document.getElementById('loiTonFilterDropdown').classList.add('hidden');
+            document.getElementById('maLoiFilterDropdown').classList.add('hidden'); // Thêm dòng này
             document.querySelector('#loiTonFilterBtn .multi-select-icon').style.transform = 'rotate(0deg)';
+            document.querySelector('#maLoiFilterBtn .multi-select-icon').style.transform = 'rotate(0deg)'; // Thêm dòng này
         }
 
         // Filtering
@@ -1348,6 +1457,14 @@
                     if (!hasMatchingNoiDung) return false;
                 }
 
+                // THÊM ĐOẠN CODE NÀY - Mã lỗi filter
+                if (selectedMaLoiValues.size > 0) {
+                    const hasMatchingMaLoi = item.errors.some(error =>
+                        error.ma_loi && selectedMaLoiValues.has(error.ma_loi.trim())
+                    );
+                    if (!hasMatchingMaLoi) return false;
+                }
+
                 return true;
             });
 
@@ -1400,6 +1517,7 @@
 
             populateLoiTonFilter();
             populateNoiDungLoiFilter();
+            populateMaLoiFilter(); // Thêm dòng này
         }
 
         // Table rendering
@@ -2474,6 +2592,67 @@
                 applyFilters();
             });
 
+            // Ma lỗi filter events
+            document.getElementById('maLoiFilterBtn').addEventListener('click', function (e) {
+                e.stopPropagation();
+                toggleMaLoiDropdown();
+            });
+
+            // Search mã lỗi
+            document.getElementById('maLoiSearch').addEventListener('input', debounce(filterMaLoiOptions, 300));
+
+            // Select all mã lỗi
+            document.getElementById('selectAllMaLoi').addEventListener('change', function () {
+                const checkboxes = document.querySelectorAll('.ma-loi-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+
+                if (this.checked) {
+                    filteredMaLoiValues.forEach(value => {
+                        selectedMaLoiValues.add(value);
+                    });
+                } else {
+                    filteredMaLoiValues.forEach(value => {
+                        selectedMaLoiValues.delete(value);
+                    });
+                }
+
+                updateMaLoiFilterText();
+                applyFilters();
+            });
+
+            // Individual mã lỗi checkboxes
+            document.getElementById('maLoiOptions').addEventListener('change', function (e) {
+                if (e.target.classList.contains('ma-loi-checkbox')) {
+                    const value = e.target.value;
+
+                    if (e.target.checked) {
+                        selectedMaLoiValues.add(value);
+                    } else {
+                        selectedMaLoiValues.delete(value);
+                    }
+
+                    // Update select all checkbox
+                    const allCheckboxes = document.querySelectorAll('.ma-loi-checkbox');
+                    const checkedCheckboxes = document.querySelectorAll('.ma-loi-checkbox:checked');
+                    const selectAllCheckbox = document.getElementById('selectAllMaLoi');
+
+                    if (checkedCheckboxes.length === 0) {
+                        selectAllCheckbox.indeterminate = false;
+                        selectAllCheckbox.checked = false;
+                    } else if (checkedCheckboxes.length === allCheckboxes.length) {
+                        selectAllCheckbox.indeterminate = false;
+                        selectAllCheckbox.checked = true;
+                    } else {
+                        selectAllCheckbox.indeterminate = true;
+                    }
+
+                    updateMaLoiFilterText();
+                    applyFilters();
+                }
+            });
+
             // Nội dung lỗi filter events
             document.getElementById('noiDungLoiFilterBtn').addEventListener('click', function (e) {
                 e.stopPropagation();
@@ -2535,14 +2714,21 @@
                 }
             });
 
-            // Close dropdowns when clicking outside
+            // Cập nhật event listener đóng dropdowns khi clicking outside
             document.addEventListener('click', function (e) {
                 if (!e.target.closest('.multi-select-container')) {
                     document.getElementById('loiTonFilterDropdown').classList.add('hidden');
                     document.getElementById('noiDungLoiFilterDropdown').classList.add('hidden');
+                    document.getElementById('maLoiFilterDropdown').classList.add('hidden'); // Thêm dòng này
                     document.querySelector('#loiTonFilterBtn .multi-select-icon').style.transform = 'rotate(0deg)';
                     document.querySelector('#noiDungLoiFilterBtn .multi-select-icon').style.transform = 'rotate(0deg)';
+                    document.querySelector('#maLoiFilterBtn .multi-select-icon').style.transform = 'rotate(0deg)'; // Thêm dòng này
                 }
+            });
+
+            // Prevent dropdown from closing when clicking inside
+            document.getElementById('maLoiFilterDropdown').addEventListener('click', function (e) {
+                e.stopPropagation();
             });
 
             // Prevent dropdowns from closing when clicking inside
