@@ -1412,23 +1412,35 @@
                 if (dateFrom || dateTo) {
                     const hasMatchingDate = item.errors.some(error => {
                         if (!error.ngay_bao_loi) return false;
-                        const errorDate = new Date(error.ngay_bao_loi);
+
+                        let errorDate;
+                        try {
+                            errorDate = new Date(error.ngay_bao_loi);
+                            if (isNaN(errorDate.getTime())) return false;
+                        } catch (e) {
+                            return false;
+                        }
+
+                        // QUAN TRỌNG: Reset về đầu ngày để so sánh chính xác
+                        const errorDateOnly = new Date(errorDate.getFullYear(), errorDate.getMonth(), errorDate.getDate());
 
                         let withinRange = true;
 
                         if (dateFrom) {
                             const fromDate = new Date(dateFrom);
-                            withinRange = withinRange && errorDate >= fromDate;
+                            const fromDateOnly = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+                            withinRange = withinRange && errorDateOnly >= fromDateOnly;
                         }
 
                         if (dateTo) {
                             const toDate = new Date(dateTo);
-                            toDate.setHours(23, 59, 59, 999);
-                            withinRange = withinRange && errorDate <= toDate;
+                            const toDateOnly = new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+                            withinRange = withinRange && errorDateOnly <= toDateOnly;
                         }
 
                         return withinRange;
                     });
+
                     if (!hasMatchingDate) return false;
                 }
 
