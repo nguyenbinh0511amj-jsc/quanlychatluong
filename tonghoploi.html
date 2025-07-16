@@ -1918,13 +1918,21 @@
                 '', '', '', 'Máy sửa', 'Hẹn sửa', '', ''
             ]);
 
-            // Merge cells cho header
+            // THÊM MỚI: Hàng với dấu * ở TẤT CẢ các cột, màu nền trắng (dòng 5)
+            const emptyRowWithStar = worksheet.addRow([
+                '*', '*', '*', '*', '*', '*',
+                '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*', '*',
+                '*', '*', '*', '*', '*', '*', '*', '*', '*', '*',
+                '*', '*', '*', '*', '*', '*', '*'
+            ]);
+
+            // Merge cells cho header - KHÔNG merge hàng với dấu * (chỉ merge dòng 3 và 4)
             const merges = [
-                'A3:A4', 'B3:B4', 'C3:C4', 'D3:D4', 'E3:E4', 'F3:F4',
-                'G3:I3', 'J3:L3', 'M3:O3', 'P3:R3', 'S3:U3',
-                'V3:W3', 'X3:Y3', 'Z3:AA3', 'AB3:AC3', 'AD3:AE3',
-                'AF3:AF4', 'AG3:AG4', 'AH3:AH4',
-                'AI3:AJ3', 'AK3:AK4', 'AL3:AL4'
+                'A3:A4', 'B3:B4', 'C3:C4', 'D3:D4', 'E3:E4', 'F3:F4', // Merge 2 dòng cho các cột đơn
+                'G3:I3', 'J3:L3', 'M3:O3', 'P3:R3', 'S3:U3', // Merge ngang cho báo lỗi
+                'V3:W3', 'X3:Y3', 'Z3:AA3', 'AB3:AC3', 'AD3:AE3', // Merge ngang cho trả lần
+                'AF3:AF4', 'AG3:AG4', 'AH3:AH4', // Merge 2 dòng cho các cột đơn
+                'AI3:AJ3', 'AK3:AK4', 'AL3:AL4' // Merge 2 dòng cho các cột đơn
             ];
 
             merges.forEach(range => {
@@ -1945,19 +1953,28 @@
                 border: headerBorderStyle
             };
 
-            // Áp dụng style cho header rows
+            // Áp dụng style cho header rows (chỉ dòng 3 và 4)
             [mainHeaderRow, subHeaderRow].forEach(row => {
                 row.eachCell(cell => {
                     cell.style = { ...headerStyle };
                 });
-                row.height = 15;
             });
 
-            // Màu nền cho các nhóm cột header
+            // Định dạng riêng cho hàng với dấu * (dòng 5) - màu nền TRẮNG, không merge
+            emptyRowWithStar.eachCell(cell => {
+                cell.style = {
+                    font: { name: 'Times New Roman', size: 6, bold: false, color: { argb: '808080' } },
+                    alignment: { horizontal: 'center', vertical: 'middle' },
+                    border: headerBorderStyle,
+                    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF' } } // Màu trắng
+                };
+            });
+
+            // Màu nền cho các nhóm cột header (CHỈ áp dụng cho dòng 3 và 4, KHÔNG áp dụng cho dòng 5)
             const errorBgColor = 'FDE9D9';
             const returnBgColor = 'EBF1DE';
 
-            // Áp dụng màu nền cho cột báo lỗi (G-U)
+            // Áp dụng màu nền cho cột báo lỗi (G-U) - chỉ cho dòng 3 và 4
             for (let col = 7; col <= 21; col++) {
                 mainHeaderRow.getCell(col).fill = {
                     type: 'pattern', pattern: 'solid', fgColor: { argb: errorBgColor }
@@ -1967,7 +1984,7 @@
                 };
             }
 
-            // Áp dụng màu nền cho cột trả lỗi (V-AE)
+            // Áp dụng màu nền cho cột trả lỗi (V-AE) - chỉ cho dòng 3 và 4
             for (let col = 22; col <= 31; col++) {
                 mainHeaderRow.getCell(col).fill = {
                     type: 'pattern', pattern: 'solid', fgColor: { argb: returnBgColor }
@@ -1999,11 +2016,11 @@
                 };
             });
 
-            // Thêm dữ liệu với định dạng giống y hệt bản in
+            // Thêm dữ liệu với định dạng giống y hệt bản in (bắt đầu từ dòng 6)
             selectedItems.forEach((item, index) => {
                 const rowData = [
                     index + 1,
-                    item.order_kd ? parseFloat(item.order_kd) || item.order_kd : '',  // Định dạng số
+                    item.order_kd ? parseFloat(item.order_kd) || item.order_kd : '',
                     item.ten_chi_tiet || '',
                     item.sll || '',
                     item.thoi_han || 'Theo KH',
@@ -2047,33 +2064,29 @@
 
                 const dataRow = worksheet.addRow(rowData);
 
-                // Định dạng cho dòng dữ liệu giống y hệt bản in
+                // Định dạng cho dòng dữ liệu
                 dataRow.eachCell((cell, colNumber) => {
-                    // Border cơ bản: 
-                    // - Trên, trái: đường liền đen mỏng
-                    // - Phải: đường liền đen
-                    // - Dưới: đường đứt nét mờ nhạt (trừ dòng cuối)
                     let cellBorder = {
                         top: { style: 'thin', color: { argb: '000000' } },
                         left: { style: 'thin', color: { argb: '000000' } },
                         right: { style: 'thin', color: { argb: '000000' } },
-                        bottom: { style: 'dotted', color: { argb: 'D3D3D3' } } // Đường đứt nét mờ nhạt
+                        bottom: { style: 'dotted', color: { argb: 'D3D3D3' } }
                     };
 
                     cell.style = {
                         font: {
                             name: 'Times New Roman',
-                            size: 7, // Tăng size lên 8 cho dễ đọc
-                            bold: false, // Không in đậm
-                            color: { argb: '000000' } // Màu đen bình thường
+                            size: 7,
+                            bold: false,
+                            color: { argb: '000000' }
                         },
                         alignment: { horizontal: 'center', vertical: 'middle', wrapText: true },
                         border: cellBorder
                     };
 
                     // Thêm định dạng số cho cột Order KD
-                    if (colNumber === 2) { // Cột B (Order KD)
-                        cell.numFmt = '0'; // Định dạng số nguyên
+                    if (colNumber === 2) {
+                        cell.numFmt = '0';
                     }
 
                     // Màu nền cho các cột báo lỗi
@@ -2088,17 +2101,14 @@
                             type: 'pattern', pattern: 'solid', fgColor: { argb: returnBgColor }
                         };
                     }
-
-                    // KHÔNG có định dạng màu chữ đặc biệt hay in đậm cho nội dung
-                    // Tất cả nội dung đều màu đen bình thường, không in đậm
                 });
 
-                dataRow.height = 20; // Tăng chiều cao để giống bản in
+                dataRow.height = 20;
             });
 
-            // Border cho dòng cuối cùng: đường liền đen
+            // Border cho dòng cuối cùng
             if (selectedItems.length > 0) {
-                const lastRowNumber = 4 + selectedItems.length;
+                const lastRowNumber = 5 + selectedItems.length;
                 const lastRow = worksheet.getRow(lastRowNumber);
 
                 for (let col = 1; col <= 38; col++) {
