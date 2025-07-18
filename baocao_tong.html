@@ -164,6 +164,8 @@
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Máy</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ca</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sản
+                                        lượng</th> <!-- THÊM MỚI -->
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chuẩn bị
                                         (%)</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Chạy thử
@@ -1283,7 +1285,8 @@
                     totalTime: 0,
                     workingTime: 0,
                     downTime: 0,
-                    efficiency: 0
+                    efficiency: 0,
+                    totalProduction: 0  // THÊM MỚI
                 }
             };
 
@@ -1300,18 +1303,25 @@
                 let giaCongTime = 0;
                 let gaLapTime = 0;
                 let tamDungTime = 0;
+                let totalProduction = 0;  // THÊM MỚI
 
-                // Tính tổng thời gian từ bảng trien_khai_3d_laze_dt
+                // Tính tổng thời gian và sản lượng từ bảng trien_khai_3d_laze_dt
                 machineData.forEach(item => {
                     const cb = parseFloat(item.thoi_gian_chuan_bi || 0);
                     const ct = parseFloat(item.thoi_gian_chay_thu || 0);
                     const gc = parseFloat(item.thoi_gian_gia_cong || 0);
                     const gl = parseFloat(item.tong_thoi_gian_ga_lap || 0);
 
+                    // THÊM MỚI: Tính sản lượng từ sl_ok và sl_ng
+                    const slOk = parseInt(item.sl_ok || 0);
+                    const slNg = parseInt(item.sl_ng || 0);
+                    const itemProduction = slOk + slNg;
+
                     chuanBiTime += cb;
                     chayThuTime += ct;
                     giaCongTime += gc;
                     gaLapTime += gl;
+                    totalProduction += itemProduction;  // THÊM MỚI
 
                     console.log(`Item data:`, {
                         machine: item.so_may,
@@ -1319,7 +1329,10 @@
                         chuanBi: cb,
                         chayThu: ct,
                         giaCong: gc,
-                        gaLap: gl
+                        gaLap: gl,
+                        slOk: slOk,      // THÊM MỚI
+                        slNg: slNg,      // THÊM MỚI
+                        production: itemProduction  // THÊM MỚI
                     });
                 });
 
@@ -1345,9 +1358,7 @@
                     });
                 });
 
-                // ===== SỬA PHẦN XỬ LÝ GHI CHÚ - LẤY TẤT CẢ =====
-
-                // 1. Thu thập TẤT CẢ giai_trinh từ bảng 3D của máy này
+                // Thu thập ghi chú (giữ nguyên code cũ)
                 const all3DNotes = [];
                 machineData.forEach(item => {
                     if (item.giai_trinh && item.giai_trinh.trim() !== '') {
@@ -1355,7 +1366,6 @@
                     }
                 });
 
-                // 2. Thu thập TẤT CẢ giai_trinh từ bảng tạm dừng của máy này
                 const allPauseNotes = [];
                 pauseData.forEach(pauseItem => {
                     if (pauseItem.giai_trinh && pauseItem.giai_trinh.trim() !== '') {
@@ -1363,20 +1373,15 @@
                     }
                 });
 
-                // 3. Gộp tất cả ghi chú (loại bỏ trùng lặp)
                 const finalNotes = [];
-
                 if (all3DNotes.length > 0) {
-                    const unique3DNotes = [...new Set(all3DNotes)]; // Loại bỏ trùng lặp
+                    const unique3DNotes = [...new Set(all3DNotes)];
                     finalNotes.push('3D: ' + unique3DNotes.join(', '));
                 }
-
                 if (allPauseNotes.length > 0) {
-                    const uniquePauseNotes = [...new Set(allPauseNotes)]; // Loại bỏ trùng lặp
+                    const uniquePauseNotes = [...new Set(allPauseNotes)];
                     finalNotes.push('Dừng: ' + uniquePauseNotes.join(', '));
                 }
-
-                // 4. Ghi chú cuối cùng cho máy này
                 const combinedNote = finalNotes.length > 0 ? finalNotes.join(' | ') : '-';
 
                 // TÍNH TỔNG THỜI GIAN THỰC TẾ
@@ -1388,7 +1393,8 @@
                     giaCong: giaCongTime,
                     gaLap: gaLapTime,
                     tamDung: tamDungTime,
-                    total: actualTotalTime
+                    total: actualTotalTime,
+                    production: totalProduction  // THÊM MỚI
                 });
 
                 if (actualTotalTime > 0) {
@@ -1407,12 +1413,13 @@
                     processedData.tableData.push({
                         machine: machine,
                         shift: 'Tất cả',
+                        production: totalProduction,  // THÊM MỚI
                         chuanBi: chuanBiPercent,
                         chayThu: chayThuPercent,
                         giaCong: giaCongPercent,
                         gaLap: gaLapPercent,
                         tamDung: tamDungPercent,
-                        note: combinedNote, // ✅ CHỨA TẤT CẢ GHI CHÚ CỦA NHÓM MÁY
+                        note: combinedNote,
                         actualTimes: {
                             chuanBi: chuanBiTime,
                             chayThu: chayThuTime,
@@ -1432,12 +1439,13 @@
                     processedData.tableData.push({
                         machine: machine,
                         shift: 'Tất cả',
+                        production: totalProduction,  // THÊM MỚI
                         chuanBi: 0,
                         chayThu: 0,
                         giaCong: 0,
                         gaLap: 0,
                         tamDung: 0,
-                        note: combinedNote, // ✅ VẪN CHỨA GHI CHÚ NGAY CẢ KHI KHÔNG CÓ THỜI GIAN
+                        note: combinedNote,
                         actualTimes: {
                             chuanBi: 0,
                             chayThu: 0,
@@ -1453,6 +1461,7 @@
                 processedData.summary.totalTime += actualTotalTime;
                 processedData.summary.workingTime += giaCongTime;
                 processedData.summary.downTime += tamDungTime;
+                processedData.summary.totalProduction += totalProduction;  // THÊM MỚI
             });
 
             // Tính hiệu suất tổng thể
@@ -1647,40 +1656,39 @@
             });
         }
 
-        function update3DTable(data) {
-            const tbody = document.getElementById('table3d');
-            tbody.innerHTML = '';
+       function update3DTable(data) {
+    const tbody = document.getElementById('table3d');
+    tbody.innerHTML = '';
 
-            const selectedShift = document.getElementById('shift3d').value;
+    const selectedShift = document.getElementById('shift3d').value;
 
-            data.tableData.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50';
+    data.tableData.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
 
-                let shiftDisplay = 'Tất cả';
-                if (selectedShift) {
-                    shiftDisplay = selectedShift;
-                } else {
-                    shiftDisplay = 'Tất cả ca';
-                }
-
-                // ===== BỎ PHẦN CẮT NGẮN - HIỂN THỊ TOÀN BỘ =====
-                const noteDisplay = row.note && row.note !== '-' ? row.note : '-';
-                // Bỏ dòng này: (row.note.length > 50 ? row.note.substring(0, 50) + '...' : row.note)
-
-                tr.innerHTML = `
-           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.machine}</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${shiftDisplay}</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.chuanBi}%</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.chayThu}%</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.giaCong}%</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.gaLap}%</td>
-           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.tamDung}%</td>
-           <td class="px-6 py-4 text-sm text-gray-500 note-column">${noteDisplay}</td>
-       `;
-                tbody.appendChild(tr);
-            });
+        let shiftDisplay = 'Tất cả';
+        if (selectedShift) {
+            shiftDisplay = selectedShift;
+        } else {
+            shiftDisplay = 'Tất cả ca';
         }
+
+        const noteDisplay = row.note && row.note !== '-' ? row.note : '-';
+
+        tr.innerHTML = `
+            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.machine}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${shiftDisplay}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.production.toLocaleString()}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.chuanBi}%</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.chayThu}%</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.giaCong}%</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.gaLap}%</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.tamDung}%</td>
+            <td class="px-6 py-4 text-sm text-gray-500 note-column">${noteDisplay}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
 
         // ========== PRODUCTION REPORT ==========
         function loadProductionReport() {
@@ -4236,55 +4244,53 @@
 
         // Hàm lấy dữ liệu bảng cho in
         function get3DTableDataForPrint() {
-            const tbody = document.getElementById('table3d');
-            if (!tbody) {
-                return [{
-                    machine: 'Không có dữ liệu',
-                    shift: '-',
-                    chuanBi: '0',
-                    chayThu: '0',
-                    giaCong: '0',
-                    gaLap: '0',
-                    tamDung: '0',
-                    note: '-'  // THÊM DÒNG NÀY
-                }];
-            }
+    const tbody = document.getElementById('table3d');
+    if (!tbody) {
+        return [{
+            machine: 'Không có dữ liệu',
+            shift: '-',
+            production: '0',  // THÊM MỚI
+            chuanBi: '0',
+            chayThu: '0',
+            giaCong: '0',
+            gaLap: '0',
+            tamDung: '0',
+            note: '-'
+        }];
+    }
 
-            const rows = tbody.querySelectorAll('tr');
-            const tableData = [];
+    const rows = tbody.querySelectorAll('tr');
+    const tableData = [];
 
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length >= 8) {  // ĐỔI TỪ 7 THÀNH 8 (bao gồm cả cột ghi chú)
-                    tableData.push({
-                        machine: cells[0]?.textContent?.trim() || '',
-                        shift: cells[1]?.textContent?.trim() || '',
-                        chuanBi: cells[2]?.textContent?.trim().replace('%', '') || '0',
-                        chayThu: cells[3]?.textContent?.trim().replace('%', '') || '0',
-                        giaCong: cells[4]?.textContent?.trim().replace('%', '') || '0',
-                        gaLap: cells[5]?.textContent?.trim().replace('%', '') || '0',
-                        tamDung: cells[6]?.textContent?.trim().replace('%', '') || '0',
-                        note: cells[7]?.textContent?.trim() || '-'  // THÊM DÒNG NÀY
-                    });
-                }
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 9) {  // Tăng từ 8 thành 9
+            tableData.push({
+                machine: cells[0]?.textContent?.trim() || '',
+                shift: cells[1]?.textContent?.trim() || '',
+                production: cells[2]?.textContent?.trim() || '0',  // THÊM MỚI
+                chuanBi: cells[3]?.textContent?.trim().replace('%', '') || '0',
+                chayThu: cells[4]?.textContent?.trim().replace('%', '') || '0',
+                giaCong: cells[5]?.textContent?.trim().replace('%', '') || '0',
+                gaLap: cells[6]?.textContent?.trim().replace('%', '') || '0',
+                tamDung: cells[7]?.textContent?.trim().replace('%', '') || '0',
+                note: cells[8]?.textContent?.trim() || '-'
             });
-
-            // Nếu không có dữ liệu, trả về dữ liệu mẫu
-            if (tableData.length === 0) {
-                return [{
-                    machine: 'Không có dữ liệu',
-                    shift: '-',
-                    chuanBi: '0',
-                    chayThu: '0',
-                    giaCong: '0',
-                    gaLap: '0',
-                    tamDung: '0',
-                    note: '-'  // THÊM DÒNG NÀY
-                }];
-            }
-
-            return tableData;
         }
+    });
+
+    return tableData.length > 0 ? tableData : [{
+        machine: 'Không có dữ liệu',
+        shift: '-',
+        production: '0',  // THÊM MỚI
+        chuanBi: '0',
+        chayThu: '0',
+        giaCong: '0',
+        gaLap: '0',
+        tamDung: '0',
+        note: '-'
+    }];
+}
 
         // ========== IMPROVED PRINT FUNCTION WITH CHART AND PRINT BUTTON ==========
         function print3DReport() {
@@ -4735,6 +4741,7 @@
                     <tr>
                         <th>Máy</th>
                         <th>Ca</th>
+                        <th>Sản lượng</th> <!-- THÊM MỚI -->
                         <th>Chuẩn Bị (%)</th>
                         <th>Chạy Thử (%)</th>
                         <th>Gia Công (%)</th>
@@ -4748,6 +4755,7 @@
                         <tr>
                             <td><strong>${row.machine}</strong></td>
                             <td>${row.shift}</td>
+                            <td>${row.production}</td>
                             <td>${row.chuanBi}%</td>
                             <td>${row.chayThu}%</td>
                             <td>${row.giaCong}%</td>
