@@ -797,13 +797,15 @@
 
         // Global data storage - Lưu trữ toàn bộ dữ liệu
         let globalData = {
-            data3D: [], // Bảng trien_khai_3d_laze_dt
-            dataPause: [], // Bảng tam_dung
+            data3D: [],
+            dataPause: [],
             dataProduction: [],
             dataError: [],
             dataPolishing: [],
             dataReceive: [],
             dataDelivery: [],
+            dataPlanPKT: [],
+            dataOpticalReport: [],  // THÊM MỚI
             isLoaded: false
         };
 
@@ -865,7 +867,7 @@
                 showLoading(true);
                 showToast('Đang tải toàn bộ dữ liệu...', 'warning');
 
-                // Load all tables in parallel - SỬA LẠI DANH SÁCH BẢNG
+                // Load all tables in parallel - THÊM BẢNG MỚI
                 const [
                     data3D,
                     dataPause,
@@ -874,7 +876,8 @@
                     dataPolishing,
                     dataReceive,
                     dataDelivery,
-                    dataPlanPKT  // THÊM MỚI
+                    dataPlanPKT,
+                    dataOpticalReport  // THÊM MỚI
                 ] = await Promise.all([
                     fetchAppSheetData('trien_khai_3d_laze_dt'),
                     fetchAppSheetData('tam_dung'),
@@ -883,30 +886,31 @@
                     fetchAppSheetData('hoan_thien_danh_bong_dt'),
                     fetchAppSheetData('so_giao_nhan'),
                     fetchAppSheetData('giao_kho_vp'),
-                    fetchAppSheetData('ke_hoach_pkt')  // THÊM MỚI
+                    fetchAppSheetData('ke_hoach_pkt'),
+                    fetchAppSheetData('bao_cao_may_do_quang')  // THÊM MỚI
                 ]);
-
-                // Lưu vào global data
-                globalData.dataPlanPKT = dataPlanPKT;  // THÊM MỚI
 
                 // Store in global data
                 globalData.data3D = data3D;
-                globalData.dataPause = dataPause; // Lưu dữ liệu tạm dừng
+                globalData.dataPause = dataPause;
                 globalData.dataProduction = dataProduction;
                 globalData.dataError = dataError;
                 globalData.dataPolishing = dataPolishing;
                 globalData.dataReceive = dataReceive;
                 globalData.dataDelivery = dataDelivery;
+                globalData.dataPlanPKT = dataPlanPKT;
+                globalData.dataOpticalReport = dataOpticalReport;  // THÊM MỚI
                 globalData.isLoaded = true;
 
                 console.log('All data loaded:', {
                     '3D Data': data3D.length,
-                    'Pause Data': dataPause.length, // Thay đổi log
+                    'Pause Data': dataPause.length,
                     'Production': dataProduction.length,
                     'Error': dataError.length,
                     'Polishing': dataPolishing.length,
                     'Receive': dataReceive.length,
-                    'Delivery': dataDelivery.length
+                    'Delivery': dataDelivery.length,
+                    'Optical Report': dataOpticalReport.length  // THÊM MỚI
                 });
 
                 // Populate all dropdowns with real data
@@ -920,6 +924,67 @@
             } finally {
                 showLoading(false);
             }
+        }
+
+        // Hàm tính sản lượng từ bảng bao_cao_may_do_quang
+        function calculateOpticalData(filters) {
+            if (!globalData.dataOpticalReport) return { machineProduction: 0, personProduction: 0 };
+
+            // Lọc dữ liệu optical theo filter
+            const filteredOptical = globalData.dataOpticalReport.filter(item => {
+                // Áp dụng filter ngày tháng
+                if (filters.dateFrom && filters.dateTo && item[filters.dateField]) {
+                    const itemDate = new Date(item[filters.dateField]);
+                    const fromDate = new Date(filters.dateFrom);
+                    const toDate = new Date(filters.dateTo);
+
+                    fromDate.setHours(0, 0, 0, 0);
+                    toDate.setHours(23, 59, 59, 999);
+                    itemDate.setHours(0, 0, 0, 0);
+
+                    if (itemDate < fromDate || itemDate > toDate) {
+                        return false;
+                    }
+                }
+
+                // Áp dụng filter ca làm việc
+                if (filters.ca_lam_viec && filters.ca_lam_viec !== '') {
+                    const itemShift = item.ca_lam_viec ? item.ca_lam_viec.toString().trim() : '';
+                    if (itemShift !== filters.ca_lam_viec) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+
+            // Tính sản lượng cho máy 3D QUANG (so_may = "3D QUANG")
+            const machineProduction = filteredOptical
+                .filter(item => item.so_may && item.so_may.toString().trim() === '3D QUANG')
+                .reduce((sum, item) => {
+                    const slOk = parseInt(item.sl_ok || 0);
+                    const slNg = parseInt(item.sl_ng || 0);
+                    return sum + slOk + slNg;
+                }, 0);
+
+            // Tính sản lượng cho người đo (so_may trống)
+            const personProduction = filteredOptical
+                .filter(item => !item.so_may || item.so_may.toString().trim() === '')
+                .reduce((sum, item) => {
+                    const slOk = parseInt(item.sl_ok || 0);
+                    const slNg = parseInt(item.sl_ng || 0);
+                    return sum + slOk + slNg;
+                }, 0);
+
+            console.log('Optical Data Calculation:', {
+                totalRecords: globalData.dataOpticalReport.length,
+                filteredRecords: filteredOptical.length,
+                machineProduction: machineProduction,
+                personProduction: personProduction,
+                filters: filters
+            });
+
+            return { machineProduction, personProduction };
         }
 
         function populateTeamDropdown() {
@@ -1274,7 +1339,7 @@
             const machines = allMachines.length > 0 ? allMachines : ['3D AUTO2', '3D CƠ', '3D AUTO3'];
 
             const processedData = {
-                machines: machines,
+                machines: machines, // GIỮ NGUYÊN - KHÔNG THÊM MỚI
                 chuanBi: [],
                 chayThu: [],
                 giaCong: [],
@@ -1286,13 +1351,24 @@
                     workingTime: 0,
                     downTime: 0,
                     efficiency: 0,
-                    totalProduction: 0  // THÊM MỚI
+                    totalProduction: 0
                 }
             };
 
             console.log('Processing 3D Data:', data);
             console.log('Found machines:', machines);
 
+            // THÊM: Tính sản lượng optical với cùng filter
+            const filters = {
+                dateFrom: document.getElementById('dateFrom3d').value,
+                dateTo: document.getElementById('dateTo3d').value,
+                dateField: 'ngay_tao',
+                ca_lam_viec: document.getElementById('shift3d').value
+            };
+
+            const opticalData = calculateOpticalData(filters);
+
+            // XỬ LÝ CÁC MÁY GỐC (GIỮ NGUYÊN CODE CŨ)
             machines.forEach(machine => {
                 const machineData = data.filter(item => item.so_may === machine);
 
@@ -1303,7 +1379,7 @@
                 let giaCongTime = 0;
                 let gaLapTime = 0;
                 let tamDungTime = 0;
-                let totalProduction = 0;  // THÊM MỚI
+                let totalProduction = 0;
 
                 // Tính tổng thời gian và sản lượng từ bảng trien_khai_3d_laze_dt
                 machineData.forEach(item => {
@@ -1312,7 +1388,6 @@
                     const gc = parseFloat(item.thoi_gian_gia_cong || 0);
                     const gl = parseFloat(item.tong_thoi_gian_ga_lap || 0);
 
-                    // THÊM MỚI: Tính sản lượng từ sl_ok và sl_ng
                     const slOk = parseInt(item.sl_ok || 0);
                     const slNg = parseInt(item.sl_ng || 0);
                     const itemProduction = slOk + slNg;
@@ -1321,23 +1396,11 @@
                     chayThuTime += ct;
                     giaCongTime += gc;
                     gaLapTime += gl;
-                    totalProduction += itemProduction;  // THÊM MỚI
-
-                    console.log(`Item data:`, {
-                        machine: item.so_may,
-                        id: item.id_trien_khai_3d_laze,
-                        chuanBi: cb,
-                        chayThu: ct,
-                        giaCong: gc,
-                        gaLap: gl,
-                        slOk: slOk,      // THÊM MỚI
-                        slNg: slNg,      // THÊM MỚI
-                        production: itemProduction  // THÊM MỚI
-                    });
+                    totalProduction += itemProduction;
                 });
 
                 // LẤY THỜI GIAN TẠM DỪNG TỪ BẢNG tam_dung
-                const filters = {
+                const pauseFilters = {
                     dateFrom: document.getElementById('dateFrom3d').value,
                     dateTo: document.getElementById('dateTo3d').value,
                     dateField: 'ngay_tao',
@@ -1345,20 +1408,14 @@
                     ca_lam_viec: document.getElementById('shift3d').value
                 };
 
-                const pauseData = filterData(globalData.dataPause, filters);
+                const pauseData = filterData(globalData.dataPause, pauseFilters);
 
                 pauseData.forEach(pauseItem => {
                     const td = parseFloat(pauseItem.Thoi_Gian_Thuc_Te || 0);
                     tamDungTime += td;
-
-                    console.log(`Pause data for ${machine}:`, {
-                        id: pauseItem.id_tam_dung,
-                        machine: pauseItem.so_may,
-                        tamDung: td
-                    });
                 });
 
-                // Thu thập ghi chú (giữ nguyên code cũ)
+                // Thu thập ghi chú
                 const all3DNotes = [];
                 machineData.forEach(item => {
                     if (item.giai_trinh && item.giai_trinh.trim() !== '') {
@@ -1384,18 +1441,13 @@
                 }
                 const combinedNote = finalNotes.length > 0 ? finalNotes.join(' | ') : '-';
 
-                // TÍNH TỔNG THỜI GIAN THỰC TẾ
                 const actualTotalTime = chuanBiTime + chayThuTime + giaCongTime + gaLapTime + tamDungTime;
 
-                console.log(`Machine ${machine} totals:`, {
-                    chuanBi: chuanBiTime,
-                    chayThu: chayThuTime,
-                    giaCong: giaCongTime,
-                    gaLap: gaLapTime,
-                    tamDung: tamDungTime,
-                    total: actualTotalTime,
-                    production: totalProduction  // THÊM MỚI
-                });
+                // THAY THẾ SẢN LƯỢNG 3D QUANG BẰNG SẢN LƯỢNG MÁY ĐO
+                let finalProduction = totalProduction;
+                if (machine === '3D QUANG' && opticalData.machineProduction > 0) {
+                    finalProduction = opticalData.machineProduction;
+                }
 
                 if (actualTotalTime > 0) {
                     const chuanBiPercent = Math.round((chuanBiTime / actualTotalTime) * 100);
@@ -1404,6 +1456,7 @@
                     const gaLapPercent = Math.round((gaLapTime / actualTotalTime) * 100);
                     const tamDungPercent = Math.round((tamDungTime / actualTotalTime) * 100);
 
+                    // CHỈ THÊM VÀO BIỂU ĐỒ CHO CÁC MÁY GỐC
                     processedData.chuanBi.push(chuanBiPercent);
                     processedData.chayThu.push(chayThuPercent);
                     processedData.giaCong.push(giaCongPercent);
@@ -1413,7 +1466,7 @@
                     processedData.tableData.push({
                         machine: machine,
                         shift: 'Tất cả',
-                        production: totalProduction,  // THÊM MỚI
+                        production: finalProduction,
                         chuanBi: chuanBiPercent,
                         chayThu: chayThuPercent,
                         giaCong: giaCongPercent,
@@ -1430,6 +1483,7 @@
                         }
                     });
                 } else {
+                    // CHỈ THÊM VÀO BIỂU ĐỒ CHO CÁC MÁY GỐC
                     processedData.chuanBi.push(0);
                     processedData.chayThu.push(0);
                     processedData.giaCong.push(0);
@@ -1439,7 +1493,7 @@
                     processedData.tableData.push({
                         machine: machine,
                         shift: 'Tất cả',
-                        production: totalProduction,  // THÊM MỚI
+                        production: finalProduction,
                         chuanBi: 0,
                         chayThu: 0,
                         giaCong: 0,
@@ -1461,8 +1515,31 @@
                 processedData.summary.totalTime += actualTotalTime;
                 processedData.summary.workingTime += giaCongTime;
                 processedData.summary.downTime += tamDungTime;
-                processedData.summary.totalProduction += totalProduction;  // THÊM MỚI
+                processedData.summary.totalProduction += finalProduction;
             });
+
+            // CHỈ THÊM DÒNG NGƯỜI ĐO VÀO BẢNG
+            if (opticalData.personProduction > 0) {
+                processedData.tableData.push({
+                    machine: 'Người đo',
+                    shift: 'Tất cả',
+                    production: opticalData.personProduction,
+                    chuanBi: '-',
+                    chayThu: '-',
+                    giaCong: '-',
+                    gaLap: '-',
+                    tamDung: '-',
+                    note: '',
+                    actualTimes: {
+                        chuanBi: 0,
+                        chayThu: 0,
+                        giaCong: 0,
+                        gaLap: 0,
+                        tamDung: 0,
+                        total: 0
+                    }
+                });
+            }
 
             // Tính hiệu suất tổng thể
             if (processedData.summary.totalTime > 0) {
@@ -1656,39 +1733,47 @@
             });
         }
 
-       function update3DTable(data) {
-    const tbody = document.getElementById('table3d');
-    tbody.innerHTML = '';
+        function update3DTable(data) {
+            const tbody = document.getElementById('table3d');
+            tbody.innerHTML = '';
 
-    const selectedShift = document.getElementById('shift3d').value;
+            const selectedShift = document.getElementById('shift3d').value;
 
-    data.tableData.forEach(row => {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-gray-50';
+            data.tableData.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50';
 
-        let shiftDisplay = 'Tất cả';
-        if (selectedShift) {
-            shiftDisplay = selectedShift;
-        } else {
-            shiftDisplay = 'Tất cả ca';
-        }
+                let shiftDisplay = 'Tất cả';
+                if (selectedShift) {
+                    shiftDisplay = selectedShift;
+                } else {
+                    shiftDisplay = 'Tất cả ca';
+                }
 
-        const noteDisplay = row.note && row.note !== '-' ? row.note : '-';
+                const noteDisplay = row.note && row.note !== '-' ? row.note : '-';
 
-        tr.innerHTML = `
+                // XỬ LÝ HIỂN THỊ % - KIỂM TRA NẾU LÀ DẠNG STRING THÌ HIỂN THỊ TRỰC TIẾP
+                const formatPercent = (value) => {
+                    if (typeof value === 'string') {
+                        return value; // Nếu là string ('-') thì hiển thị nguyên bản
+                    }
+                    return value + '%'; // Nếu là số thì thêm %
+                };
+
+                tr.innerHTML = `
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.machine}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${shiftDisplay}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.production.toLocaleString()}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.chuanBi}%</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.chayThu}%</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.giaCong}%</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.gaLap}%</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.tamDung}%</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatPercent(row.chuanBi)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatPercent(row.chayThu)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatPercent(row.giaCong)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatPercent(row.gaLap)}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${formatPercent(row.tamDung)}</td>
             <td class="px-6 py-4 text-sm text-gray-500 note-column">${noteDisplay}</td>
         `;
-        tbody.appendChild(tr);
-    });
-}
+                tbody.appendChild(tr);
+            });
+        }
 
         // ========== PRODUCTION REPORT ==========
         function loadProductionReport() {
@@ -4244,53 +4329,62 @@
 
         // Hàm lấy dữ liệu bảng cho in
         function get3DTableDataForPrint() {
-    const tbody = document.getElementById('table3d');
-    if (!tbody) {
-        return [{
-            machine: 'Không có dữ liệu',
-            shift: '-',
-            production: '0',  // THÊM MỚI
-            chuanBi: '0',
-            chayThu: '0',
-            giaCong: '0',
-            gaLap: '0',
-            tamDung: '0',
-            note: '-'
-        }];
-    }
+            const tbody = document.getElementById('table3d');
+            if (!tbody) {
+                return [{
+                    machine: 'Không có dữ liệu',
+                    shift: '-',
+                    production: '0',
+                    chuanBi: '-',
+                    chayThu: '-',
+                    giaCong: '-',
+                    gaLap: '-',
+                    tamDung: '-',
+                    note: '-'
+                }];
+            }
 
-    const rows = tbody.querySelectorAll('tr');
-    const tableData = [];
+            const rows = tbody.querySelectorAll('tr');
+            const tableData = [];
 
-    rows.forEach(row => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length >= 9) {  // Tăng từ 8 thành 9
-            tableData.push({
-                machine: cells[0]?.textContent?.trim() || '',
-                shift: cells[1]?.textContent?.trim() || '',
-                production: cells[2]?.textContent?.trim() || '0',  // THÊM MỚI
-                chuanBi: cells[3]?.textContent?.trim().replace('%', '') || '0',
-                chayThu: cells[4]?.textContent?.trim().replace('%', '') || '0',
-                giaCong: cells[5]?.textContent?.trim().replace('%', '') || '0',
-                gaLap: cells[6]?.textContent?.trim().replace('%', '') || '0',
-                tamDung: cells[7]?.textContent?.trim().replace('%', '') || '0',
-                note: cells[8]?.textContent?.trim() || '-'
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 9) {
+                    // HÀM PHỤ TRỢ ĐỂ XỬ LÝ GIÁ TRỊ % VÀ -
+                    const cleanPercentValue = (text) => {
+                        const cleanText = text.trim();
+                        if (cleanText === '-') {
+                            return '-'; // GIỮ NGUYÊN DẤU -
+                        }
+                        return cleanText.replace('%', ''); // CHỈ XÓA % VỚI CÁC GIÁ TRỊ KHÁC
+                    };
+
+                    tableData.push({
+                        machine: cells[0]?.textContent?.trim() || '',
+                        shift: cells[1]?.textContent?.trim() || '',
+                        production: cells[2]?.textContent?.trim() || '0',
+                        chuanBi: cleanPercentValue(cells[3]?.textContent || '-'),
+                        chayThu: cleanPercentValue(cells[4]?.textContent || '-'),
+                        giaCong: cleanPercentValue(cells[5]?.textContent || '-'),
+                        gaLap: cleanPercentValue(cells[6]?.textContent || '-'),
+                        tamDung: cleanPercentValue(cells[7]?.textContent || '-'),
+                        note: cells[8]?.textContent?.trim() || '-'
+                    });
+                }
             });
-        }
-    });
 
-    return tableData.length > 0 ? tableData : [{
-        machine: 'Không có dữ liệu',
-        shift: '-',
-        production: '0',  // THÊM MỚI
-        chuanBi: '0',
-        chayThu: '0',
-        giaCong: '0',
-        gaLap: '0',
-        tamDung: '0',
-        note: '-'
-    }];
-}
+            return tableData.length > 0 ? tableData : [{
+                machine: 'Không có dữ liệu',
+                shift: '-',
+                production: '0',
+                chuanBi: '-',
+                chayThu: '-',
+                giaCong: '-',
+                gaLap: '-',
+                tamDung: '-',
+                note: '-'
+            }];
+        }
 
         // ========== IMPROVED PRINT FUNCTION WITH CHART AND PRINT BUTTON ==========
         function print3DReport() {
@@ -4548,7 +4642,7 @@
         .data-table th {
             background: #3b82f6;
             color: white;
-            padding: 15px 10px;
+            padding: 10px 8px;
             text-align: center;
             font-weight: bold;
             font-size: 12px;
@@ -4556,7 +4650,7 @@
         }
         
         .data-table td {
-            padding: 12px 10px;
+            padding: 10px 5px;
             text-align: center;
             border: 1px solid #e5e7eb;
             font-size: 12px;
@@ -4640,7 +4734,7 @@
 
             .data-table th:last-child,
             .data-table td:last-child {
-                width: 20% !important; 
+                width: 42% !important; 
             }
             
             .chart-section {
@@ -4740,7 +4834,7 @@
                 <thead>
                     <tr>
                         <th>Máy</th>
-                        <th>Ca</th>
+                        <th style="width: 50px;">Ca</th>
                         <th>Sản lượng</th> <!-- THÊM MỚI -->
                         <th>Chuẩn Bị (%)</th>
                         <th>Chạy Thử (%)</th>
@@ -4756,11 +4850,11 @@
                             <td><strong>${row.machine}</strong></td>
                             <td>${row.shift}</td>
                             <td>${row.production}</td>
-                            <td>${row.chuanBi}%</td>
-                            <td>${row.chayThu}%</td>
-                            <td>${row.giaCong}%</td>
-                            <td>${row.gaLap}%</td>
-                            <td>${row.tamDung}%</td>
+                            <td>${row.chuanBi === '-' ? '-' : row.chuanBi + '%'}</td>
+                            <td>${row.chayThu === '-' ? '-' : row.chayThu + '%'}</td>
+                            <td>${row.giaCong === '-' ? '-' : row.giaCong + '%'}</td>
+                            <td>${row.gaLap === '-' ? '-' : row.gaLap + '%'}</td>
+                            <td>${row.tamDung === '-' ? '-' : row.tamDung + '%'}</td>
                             <td>${row.note}</td>
                         </tr>
                     `).join('')}
