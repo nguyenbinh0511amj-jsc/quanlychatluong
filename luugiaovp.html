@@ -1,0 +1,724 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xuất Lưu Dữ Liệu Giao VP</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input[type="date"], button, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .button-group button {
+            margin-top: 0;
+        }
+        
+        input[type="date"]:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+        
+        button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        #loadBtn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+        }
+        
+        #exportBtn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 20px;
+        }
+        
+        .error {
+            background: #ffe6e6;
+            color: #d32f2f;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #d32f2f;
+        }
+        
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #2e7d32;
+        }
+        
+        .date-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .date-inputs {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .table-container {
+            margin-top: 20px;
+            overflow-x: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            background: white;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+            white-space: nowrap;
+        }
+        
+        th {
+            background-color: #f5f5f5; /* Màu nền xám nhạt */
+            color: #333; /* Màu chữ đen */
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border: 1px solid #ddd; /* Viền đơn giản */
+        }
+        
+        /* Định dạng riêng cho STT và Số ĐH */
+        th:first-child, th:nth-child(2) {
+            font-size: 14px;
+            font-weight: 700;
+            background-color: #f5f5f5; /* Giữ nền xám nhạt */
+            text-align: center;
+        }
+        
+        th:first-child {
+            width: 60px;
+        }
+        
+        th:nth-child(2) {
+            width: 120px;
+        }
+        
+        tbody tr:hover {
+            background-color: #f8f9ff;
+            transform: scale(1.01);
+            transition: all 0.2s ease;
+        }
+        
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        td {
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .stt-col {
+            width: 60px;
+            text-align: center;
+            font-weight: 600;
+            color: #333; /* Thay đổi màu chữ STT thành đen */
+        }
+        
+        h2 {
+            color: #333;
+            margin: 30px 0 15px 0;
+            font-size: 1.8em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .data-summary {
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .table-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            max-width: 300px;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+        
+        .pagination button {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin: 0;
+            width: auto;
+        }
+        
+        .pagination select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        @media (max-width: 768px) {
+            .table-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .search-box {
+                max-width: 100%;
+            }
+            
+            .pagination {
+                justify-content: center;
+            }
+            
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Xuất Excel Lưu Dữ Liệu</h1>
+        
+        <div class="date-inputs">
+            <div class="form-group">
+                <label for="fromDate">Từ ngày:</label>
+                <input type="date" id="fromDate" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="toDate">Đến ngày:</label>
+                <input type="date" id="toDate" required>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button onclick="loadData()" id="loadBtn">
+                🔍 Tải dữ liệu
+            </button>
+            <button onclick="exportToExcel()" id="exportBtn" disabled>
+                📥 Xuất Excel
+            </button>
+        </div>
+        
+        <div id="status"></div>
+        
+        <div id="dataTable" style="display: none;">
+            <h2>📋 Dữ liệu chi tiết</h2>
+            <div class="table-actions">
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Tìm kiếm..." onkeyup="filterData()">
+                </div>
+                <div class="pagination">
+                    <button onclick="changePage('prev')" id="prevBtn">Trước</button>
+                    <span id="pageInfo"></span>
+                    <button onclick="changePage('next')" id="nextBtn">Sau</button>
+                    <select id="pageSelect" onchange="changeItemsPerPage()">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="resultTable">
+                    <thead>
+                        <tr>
+                            <th>STT</th>
+                            <th>Số ĐH</th>
+                            <th>Order KD</th>
+                            <th>Order Phôi</th>
+                            <th>Order Vật Liệu</th>
+                            <th>Tên Chi Tiết</th>
+                            <th>ĐVT</th>
+                            <th>SLL</th>
+                            <th>Ngày Đóng Gói</th>
+                            <th>Thời Hạn</th>
+                            <th>Xác Nhận Từ RC</th>
+                            <th>Ghi Chú</th>
+                            <th>Số Gói</th>
+                            <th>Lần Giao</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Biến toàn cục để lưu dữ liệu
+        let currentData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        let itemsPerPage = 20;
+
+        // Cấu hình AppSheet
+        const APP_ID = 'e1339939-5987-4d7a-8c73-436348abf6b7';
+        const ACCESS_KEY = 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL';
+        const TABLE_NAME = 'giao_kho_vp';
+
+        // Thiết lập ngày mặc định (7 ngày gần nhất)
+        window.onload = function () {
+            const today = new Date();
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            document.getElementById('toDate').value = today.toISOString().split('T')[0];
+            document.getElementById('fromDate').value = weekAgo.toISOString().split('T')[0];
+        };
+
+        function showStatus(message, type = 'loading') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('vi-VN');
+        }
+
+        async function fetchAppSheetData(fromDate, toDate) {
+            const url = `https://api.appsheet.com/api/v2/apps/${APP_ID}/tables/${TABLE_NAME}/Action`;
+
+            const requestBody = {
+                Action: 'Find',
+                Properties: {},
+                Rows: []
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'ApplicationAccessKey': ACCESS_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Lọc dữ liệu theo ngày
+                const filteredData = data.filter(row => {
+                    if (!row.ngay_dong_goi) return false;
+
+                    const rowDate = new Date(row.ngay_dong_goi);
+                    const from = new Date(fromDate);
+                    const to = new Date(toDate);
+
+                    return rowDate >= from && rowDate <= to;
+                });
+
+                return filteredData;
+            } catch (error) {
+                console.error('Lỗi khi gọi API AppSheet:', error);
+                throw error;
+            }
+        }
+
+        async function loadData() {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const exportBtn = document.getElementById('exportBtn');
+
+            if (!fromDate || !toDate) {
+                showStatus('Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc!', 'error');
+                return;
+            }
+
+            if (new Date(fromDate) > new Date(toDate)) {
+                showStatus('Ngày bắt đầu không thể lớn hơn ngày kết thúc!', 'error');
+                return;
+            }
+
+            exportBtn.disabled = true;
+            showStatus('🔄 Đang tải dữ liệu từ AppSheet...', 'loading');
+
+            try {
+                const data = await fetchAppSheetData(fromDate, toDate);
+
+                if (data.length === 0) {
+                    showStatus('Không tìm thấy dữ liệu trong khoảng thời gian đã chọn!', 'error');
+                    exportBtn.disabled = true;
+                    document.getElementById('dataTable').style.display = 'none';
+                    return;
+                }
+
+                currentData = data;
+                filteredData = [...currentData];
+                showStatus(`📋 Đã tải ${data.length} bản ghi thành công!`, 'success');
+                displayDataTable(data);
+                exportBtn.disabled = false;
+            } catch (error) {
+                console.error('Lỗi:', error);
+                showStatus(`❌ Lỗi khi tải dữ liệu: ${error.message}`, 'error');
+                exportBtn.disabled = true;
+            }
+        }
+
+        function filterData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            if (!searchTerm) {
+                filteredData = [...currentData];
+            } else {
+                filteredData = currentData.filter(row =>
+                    Object.values(row).some(
+                        value => value && value.toString().toLowerCase().includes(searchTerm)
+                    )
+                );
+            }
+
+            currentPage = 1;
+            displayPaginatedData();
+        }
+
+        function displayPaginatedData() {
+            const totalItems = filteredData.length;
+            const totalPages = Math.ceil(totalItems / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            // Cập nhật bảng
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            pageData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="stt-col">${startIndex + index + 1}</td>
+                    <td title="${row.so_dh || ''}">${row.so_dh || '-'}</td>
+                    <td title="${row.order_kd || ''}">${row.order_kd || '-'}</td>
+                    <td title="${row.order_phoi || ''}">${row.order_phoi || '-'}</td>
+                    <td title="${row.order_vat_lieu || ''}">${row.order_vat_lieu || '-'}</td>
+                    <td title="${row.ten_chi_tiet || ''}">${row.ten_chi_tiet || '-'}</td>
+                    <td title="${row.dvt || ''}">${row.dvt || '-'}</td>
+                    <td title="${row.sll || ''}">${row.sll || '-'}</td>
+                    <td title="${formatDate(row.ngay_dong_goi)}">${formatDate(row.ngay_dong_goi) || '-'}</td>
+                    <td title="${row.thoi_han || ''}">${row.thoi_han || '-'}</td>
+                    <td title="${row.xac_nhan_tu_rc || ''}">${row.xac_nhan_tu_rc || '-'}</td>
+                    <td title="${row.ghi_chu || ''}">${row.ghi_chu || '-'}</td>
+                    <td title="${row.so_goi || ''}">${row.so_goi || '-'}</td>
+                    <td title="${row.lan_giao || ''}">${row.lan_giao || '-'}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // Cập nhật thông tin phân trang
+            updatePaginationInfo(totalItems, totalPages);
+        }
+
+        function updatePaginationInfo(totalItems, totalPages) {
+            const startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+            const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+            document.getElementById('pageInfo').textContent =
+                `Hiển thị ${startItem}-${endItem} trong tổng số ${totalItems} bản ghi`;
+
+            document.getElementById('prevBtn').disabled = currentPage <= 1;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+            document.getElementById('pageSelect').value = itemsPerPage;
+        }
+
+        function changePage(direction) {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+
+            if (direction === 'prev' && currentPage > 1) {
+                currentPage--;
+            } else if (direction === 'next' && currentPage < totalPages) {
+                currentPage++;
+            }
+
+            displayPaginatedData();
+        }
+
+        function changeItemsPerPage() {
+            itemsPerPage = parseInt(document.getElementById('pageSelect').value);
+            currentPage = 1;
+            displayPaginatedData();
+        }
+
+        function displayDataTable(data) {
+            const tableContainer = document.getElementById('dataTable');
+            const tableBody = document.getElementById('tableBody');
+
+            // Xóa dữ liệu cũ
+            tableBody.innerHTML = '';
+
+            // Thêm summary
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'data-summary';
+            summaryDiv.innerHTML = `📊 Tổng cộng: <strong>${data.length}</strong> bản ghi được tìm thấy`;
+
+            // Thêm summary vào trước bảng
+            const existingSummary = tableContainer.querySelector('.data-summary');
+            if (existingSummary) {
+                existingSummary.remove();
+            }
+            tableContainer.insertBefore(summaryDiv, tableContainer.querySelector('.table-container'));
+
+            // Hiển thị dữ liệu phân trang
+            filteredData = [...data];
+            displayPaginatedData();
+
+            // Hiển thị bảng
+            tableContainer.style.display = 'block';
+
+            // Cuộn xuống bảng
+            setTimeout(() => {
+                tableContainer.scrollIntoView({ behavior: 'smooth' });
+            }, 100);
+        }
+
+        function exportToExcel() {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const exportBtn = document.getElementById('exportBtn');
+
+            if (!fromDate || !toDate) {
+                showStatus('Vui lòng chọn đầy đủ ngày bắt đầu và kết thúc!', 'error');
+                return;
+            }
+
+            if (new Date(fromDate) > new Date(toDate)) {
+                showStatus('Ngày bắt đầu không thể lớn hơn ngày kết thúc!', 'error');
+                return;
+            }
+
+            const data = filteredData.length > 0 ? filteredData : currentData;
+
+            if (!data || data.length === 0) {
+                showStatus('Không có dữ liệu để xuất! Vui lòng tải dữ liệu trước.', 'error');
+                return;
+            }
+
+            exportBtn.disabled = true;
+            showStatus('🔄 Đang tạo file Excel...', 'loading');
+
+            try {
+                // Chuẩn bị dữ liệu cho Excel với tiêu đề tiếng Việt
+                const excelData = data.map(row => ({
+                    'Số ĐH': row.so_dh || '',
+                    'Order KD': row.order_kd || '',
+                    'Order Phôi': row.order_phoi || '',
+                    'Order Vật Liệu': row.order_vat_lieu || '',
+                    'Tên Chi Tiết': row.ten_chi_tiet || '',
+                    'ĐVT': row.dvt || '',
+                    'SLL': row.sll || '',
+                    'Ngày Đóng Gói': formatDate(row.ngay_dong_goi) || '',
+                    'Thời Hạn': row.thoi_han || '',
+                    'Xác Nhận Từ RC': row.xac_nhan_tu_rc || '',
+                    'Ghi Chú': row.ghi_chu || '',
+                    'Số Gói': row.so_goi || '',
+                    'Lần Giao': row.lan_giao || ''
+                }));
+
+                // Tạo worksheet từ dữ liệu
+                const ws = XLSX.utils.json_to_sheet(excelData);
+
+                // Thiết lập độ rộng cột
+                const colWidths = [
+                    { wch: 15 }, // Số ĐH
+                    { wch: 15 }, // Order KD
+                    { wch: 15 }, // Order Phôi
+                    { wch: 18 }, // Order Vật Liệu
+                    { wch: 25 }, // Tên Chi Tiết
+                    { wch: 8 },  // ĐVT
+                    { wch: 10 }, // SLL
+                    { wch: 15 }, // Ngày Đóng Gói
+                    { wch: 12 }, // Thời Hạn
+                    { wch: 18 }, // Xác Nhận Từ RC
+                    { wch: 20 }, // Ghi Chú
+                    { wch: 10 }, // Số Gói
+                    { wch: 10 }  // Lần Giao
+                ];
+                ws['!cols'] = colWidths;
+
+                // Tạo workbook và thêm worksheet
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Giao Kho VP');
+
+                // Tạo tên file với thời gian
+                const now = new Date();
+                const timestamp = now.toISOString().slice(0, 19).replace(/[:-]/g, '');
+                const filename = `GiaoKhoVP_${fromDate}_${toDate}_${timestamp}.xlsx`;
+
+                // Xuất file
+                XLSX.writeFile(wb, filename);
+
+                // Xóa thông báo sau khi xuất thành công để tránh hiển thị dư thừa
+                setTimeout(() => {
+                    showStatus('', ''); // Xóa thông báo
+                }, 3000);
+            } catch (error) {
+                console.error('Lỗi khi xuất Excel:', error);
+                showStatus(`❌ Lỗi khi xuất dữ liệu: ${error.message}`, 'error');
+            } finally {
+                exportBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
