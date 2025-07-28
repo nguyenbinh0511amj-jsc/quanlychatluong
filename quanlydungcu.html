@@ -174,8 +174,6 @@
     <div class="container">
         <h1>📊 Xuất Dữ Liệu Dụng Cụ</h1>
         
-
-        
         <div class="button-group">
             <button onclick="fetchAndExportData()" id="exportBtn">
                 📥 Lấy dữ liệu và xuất Excel
@@ -205,7 +203,7 @@
         const TABLE_NAME = 'dung_cu';
         
         // Danh sách các trường cần lấy từ API (đầy đủ)
-        const FIELDS = [
+        const API_FIELDS = [
             'id', 'ten_dung_cu', 'chung_loai', 'dung_cu_dien_tu_co', 'so_series',
             'ngay_nhan_dung_cu', 'tinh_trang_dung_cu', 'ghi_chu', 'noi_quan_ly',
             'vi_tri', 'ngay_kiem_ke', 'trang_thai', 'sl_ok', 'sl_ng', 'update',
@@ -213,11 +211,18 @@
             'Duyệt', 'id_lich_su_muon_tra'
         ];
 
-        // Danh sách các trường cần xuất Excel (chỉ 10 cột)
-        const EXPORT_FIELDS = [
+        // Danh sách các trường hiển thị trên web và xuất Excel
+        const DISPLAY_FIELDS = [
             'ten_dung_cu', 'chung_loai', 'dung_cu_dien_tu_co', 'so_series',
             'ngay_nhan_dung_cu', 'tinh_trang_dung_cu', 'ghi_chu', 'noi_quan_ly',
-            'vi_tri', 'ngay_kiem_ke'
+            'vi_tri'
+        ];
+
+        // Tên hiển thị tiếng Việt cho các cột
+        const DISPLAY_HEADERS = [
+            'Tên Dụng Cụ', 'Chủng Loại', 'Dụng Cụ Điện Tử', 'Số Series',
+            'Ngày Nhận Dụng Cụ', 'Tình Trạng Dụng Cụ', 'Ghi Chú', 'Nơi Quản Lý',
+            'Vị Trí'
         ];
 
         let currentData = null;
@@ -259,7 +264,7 @@
                 currentData = data;
                 filteredData = data;
                 
-                // Chỉ hiển thị thông báo ngắn gọn
+                // Hiển thị thông báo ngắn gọn
                 statusDiv.innerHTML = `<div class="status success">✅ Đã tải ${data.length} bản ghi từ AppSheet</div>`;
                 
                 // Hiển thị search box
@@ -297,16 +302,28 @@
             const previewData = data.slice(0, 10);
             
             let tableHtml = '<div class="data-preview"><table><thead><tr>';
-            FIELDS.forEach(field => {
-                tableHtml += `<th>${field}</th>`;
+            DISPLAY_HEADERS.forEach(header => {
+                tableHtml += `<th>${header}</th>`;
             });
             tableHtml += '</tr></thead><tbody>';
             
             previewData.forEach(row => {
                 tableHtml += '<tr>';
-                FIELDS.forEach(field => {
+                DISPLAY_FIELDS.forEach(field => {
                     const value = row[field] || '';
-                    tableHtml += `<td>${String(value).substring(0, 30)}${String(value).length > 30 ? '...' : ''}</td>`;
+                    // Format ngày tháng cho các cột ngày
+                    let displayValue = String(value);
+                    if (field.includes('ngay') && value) {
+                        try {
+                            const date = new Date(value);
+                            if (!isNaN(date.getTime())) {
+                                displayValue = date.toLocaleDateString('vi-VN');
+                            }
+                        } catch (e) {
+                            // Giữ nguyên giá trị nếu không parse được
+                        }
+                    }
+                    tableHtml += `<td>${displayValue.substring(0, 30)}${displayValue.length > 30 ? '...' : ''}</td>`;
                 });
                 tableHtml += '</tr>';
             });
@@ -330,9 +347,9 @@
                 filteredData = currentData;
                 searchInfo.innerHTML = '';
             } else {
-                // Tìm kiếm trong tất cả các trường
+                // Tìm kiếm trong các trường hiển thị
                 filteredData = currentData.filter(row => {
-                    return FIELDS.some(field => {
+                    return DISPLAY_FIELDS.some(field => {
                         const value = String(row[field] || '').toLowerCase();
                         return value.includes(searchTerm);
                     });
@@ -351,11 +368,11 @@
                 // Tạo workbook mới
                 const wb = XLSX.utils.book_new();
                 
-                // Tạo header với tên tiếng Việt cho 10 cột cần xuất
+                // Tạo header với tên tiếng Việt
                 const headers = [
                     'Tên Dụng Cụ', 'Chủng Loại', 'Dụng Cụ Điện Tử', 'Số Series',
                     'Ngày Nhận Dụng Cụ', 'Tình Trạng Dụng Cụ', 'Ghi Chú', 'Nơi Quản Lý',
-                    'Vị Trí', 'Ngày Kiểm Kê'
+                    'Vị Trí'
                 ];
                 
                 // Chuẩn bị dữ liệu cho worksheet
@@ -363,35 +380,44 @@
                 
                 // Dòng 1: Tiêu đề chính (merge toàn bộ)
                 const mainTitle = ['DANH SÁCH QUẢN LÝ DỤNG CỤ THIẾT BỊ'];
-                for (let i = 1; i < headers.length; i++) {
+                for (let i = 1; i < headers.length + 1; i++) {
                     mainTitle.push('');
                 }
                 wsData.push(mainTitle);
                 
                 // Dòng 2: Trống để tạo khoảng cách
-                const emptyRow1 = new Array(headers.length).fill('');
+                const emptyRow1 = new Array(headers.length + 1).fill('');
                 wsData.push(emptyRow1);
                 
-                // Dòng 3: Thông tin công ty/đơn vị (có thể tùy chỉnh)
+                // Dòng 3: Thông tin công ty/đơn vị
                 const companyInfo = ['Đơn vị: _______________________'];
-                for (let i = 1; i < headers.length; i++) {
+                for (let i = 1; i < headers.length + 1; i++) {
                     companyInfo.push('');
                 }
                 wsData.push(companyInfo);
                 
-                // Dòng 4: Thông tin ngày tháng
-                const dateInfo = [`Ngày xuất báo cáo: ${new Date().toLocaleDateString('vi-VN')}`];
+                // Dòng 4: Thông tin ngày tháng (cập nhật theo thời gian hiện tại)
+                const currentDateTime = new Date('2025-07-28T12:25:00+07:00');
+                const dateTimeStr = currentDateTime.toLocaleString('vi-VN', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric', 
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    hour12: false 
+                }).replace(', ', ' ');
+                const dateInfo = [`Ngày xuất báo cáo: ${dateTimeStr}`];
                 for (let i = 1; i < 4; i++) {
                     dateInfo.push('');
                 }
                 dateInfo.push(`Tổng số thiết bị: ${data.length} (chiếc)`);
-                for (let i = 5; i < headers.length; i++) {
+                for (let i = 5; i < headers.length + 1; i++) {
                     dateInfo.push('');
                 }
                 wsData.push(dateInfo);
                 
                 // Dòng 5: Trống
-                const emptyRow2 = new Array(headers.length).fill('');
+                const emptyRow2 = new Array(headers.length + 1).fill('');
                 wsData.push(emptyRow2);
                 
                 // Dòng 6: Header với STT
@@ -401,7 +427,7 @@
                 // Thêm dữ liệu với STT
                 data.forEach((row, index) => {
                     const rowData = [index + 1]; // STT bắt đầu từ 1
-                    EXPORT_FIELDS.forEach(field => {
+                    DISPLAY_FIELDS.forEach(field => {
                         let value = row[field] || '';
                         // Format ngày tháng theo định dạng Việt Nam
                         if (field.includes('ngay') && value) {
@@ -435,7 +461,7 @@
                 wsData.push(emptyRow4);
                 wsData.push(emptyRow4);
                 
-                const signatureRow1 = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Xác nhận của TBP'];
+                const signatureRow1 = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Thủ trưởng đơn vị'];
                 wsData.push(signatureRow1);
                 
                 const emptyRow5 = new Array(headerWithSTT.length).fill('');
@@ -443,13 +469,13 @@
                 wsData.push(emptyRow5);
                 wsData.push(emptyRow5);
                 
-                const signatureRow2 = ['', '', '', '', '', '', '', '(Ký ghi rõ họ tên)', '', '(Ký ghi rõ họ tên)'];
+                const signatureRow2 = ['', '', '', '', '', '', '', '(Ký, họ tên)', '', '(Ký, họ tên, đóng dấu)'];
                 wsData.push(signatureRow2);
                 
                 // Tạo worksheet
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 
-                // Định dạng độ rộng cột (có thêm cột STT)
+                // Định dạng độ rộng cột
                 const colWidths = [
                     { wch: 6 },   // STT
                     { wch: 30 },  // Tên Dụng Cụ
@@ -460,8 +486,7 @@
                     { wch: 20 },  // Tình Trạng
                     { wch: 35 },  // Ghi Chú
                     { wch: 20 },  // Nơi Quản Lý
-                    { wch: 15 },  // Vị Trí
-                    { wch: 18 }   // Ngày Kiểm Kê
+                    { wch: 15 }   // Vị Trí
                 ];
                 ws['!cols'] = colWidths;
                 
@@ -487,47 +512,72 @@
                 const headerRowIndex = 5; // Dòng header thực tế (0-indexed)
                 const dataStartRow = 6;
                 const dataEndRow = dataStartRow + data.length - 1;
-                
-                // Style cho tiêu đề chính (dòng 1)
-                ws['A1'].s = {
-                    font: { bold: true, size: 18, color: { rgb: "FFFFFF" }, name: "Times New Roman" },
-                    fill: { fgColor: { rgb: "1F4E79" } },
-                    alignment: { horizontal: "center", vertical: "center" }
+                const summaryRowIndex = wsData.length - 8;
+                const totalColumns = headerWithSTT.length;
+                const totalRows = wsData.length;
+
+                // Border style definitions
+                const mediumBorder = {
+                    top: { style: "medium", color: { rgb: "000000" } },
+                    bottom: { style: "medium", color: { rgb: "000000" } },
+                    left: { style: "medium", color: { rgb: "000000" } },
+                    right: { style: "medium", color: { rgb: "000000" } }
                 };
-                
-                // Style cho thông tin công ty và ngày
-                ['A3', 'A4', 'E4'].forEach(cell => {
-                    if (ws[cell]) {
-                        ws[cell].s = {
-                            font: { bold: true, size: 12, name: "Times New Roman" },
-                            alignment: { horizontal: "left", vertical: "center" }
-                        };
-                    }
-                });
-                
-                // Style cho header (dòng 6)
-                for (let col = 0; col < headerWithSTT.length; col++) {
-                    const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
-                    if (ws[cellAddress]) {
-                        ws[cellAddress].s = {
-                            font: { bold: true, size: 12, color: { rgb: "FFFFFF" }, name: "Times New Roman" },
-                            fill: { fgColor: { rgb: "4472C4" } },
-                            alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                            border: {
-                                top: { style: "medium", color: { rgb: "000000" } },
-                                bottom: { style: "medium", color: { rgb: "000000" } },
-                                left: { style: "medium", color: { rgb: "000000" } },
-                                right: { style: "medium", color: { rgb: "000000" } }
-                            }
-                        };
-                    }
-                }
-                
-                // Style cho dữ liệu
-                for (let row = dataStartRow; row <= dataEndRow; row++) {
-                    for (let col = 0; col < headerWithSTT.length; col++) {
+                const thinBorder = {
+                    top: { style: "thin", color: { rgb: "000000" } },
+                    bottom: { style: "thin", color: { rgb: "000000" } },
+                    left: { style: "thin", color: { rgb: "000000" } },
+                    right: { style: "thin", color: { rgb: "000000" } }
+                };
+
+                // Apply borders and styles to all cells
+                for (let row = 0; row < totalRows; row++) {
+                    for (let col = 0; col < totalColumns; col++) {
                         const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                        if (ws[cellAddress]) {
+                        if (!ws[cellAddress]) {
+                            ws[cellAddress] = { t: 's', v: '' }; // Ensure empty cells exist for styling
+                        }
+
+                        // Initialize cell style
+                        ws[cellAddress].s = ws[cellAddress].s || {};
+
+                        // Apply outer medium borders for the entire table
+                        let borderStyle = thinBorder;
+                        if (row === 0 || row === totalRows - 1 || col === 0 || col === totalColumns - 1) {
+                            borderStyle = mediumBorder;
+                        }
+
+                        // Apply styles based on row
+                        if (row === 0) {
+                            // Title row
+                            ws[cellAddress].s = {
+                                font: { bold: true, size: 18, color: { rgb: "FFFFFF" }, name: "Times New Roman" },
+                                fill: { fgColor: { rgb: "1F4E79" } },
+                                alignment: { horizontal: "center", vertical: "center" },
+                                border: borderStyle
+                            };
+                        } else if (row === 2 || row === 3) {
+                            // Company info and date row
+                            ws[cellAddress].s = {
+                                font: { bold: true, size: 12, name: "Times New Roman" },
+                                alignment: { horizontal: "left", vertical: "center" },
+                                border: borderStyle
+                            };
+                        } else if (row === 4) {
+                            // Empty row between date and header
+                            ws[cellAddress].s = {
+                                border: borderStyle
+                            };
+                        } else if (row === headerRowIndex) {
+                            // Header row
+                            ws[cellAddress].s = {
+                                font: { bold: true, size: 12, color: { rgb: "FFFFFF" }, name: "Times New Roman" },
+                                fill: { fgColor: { rgb: "4472C4" } },
+                                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                                border: borderStyle
+                            };
+                        } else if (row >= dataStartRow && row <= dataEndRow) {
+                            // Data rows
                             const isEvenRow = (row - dataStartRow) % 2 === 0;
                             ws[cellAddress].s = {
                                 font: { size: 11, name: "Times New Roman" },
@@ -537,49 +587,37 @@
                                     vertical: "center",
                                     wrapText: col === 7 // Wrap text cho cột ghi chú
                                 },
-                                border: {
-                                    top: { style: "thin", color: { rgb: "CCCCCC" } },
-                                    bottom: { style: "thin", color: { rgb: "CCCCCC" } },
-                                    left: { style: "thin", color: { rgb: "CCCCCC" } },
-                                    right: { style: "thin", color: { rgb: "CCCCCC" } }
-                                }
+                                border: borderStyle
                             };
-                        }
-                    }
-                }
-                
-                // Style cho dòng tổng cộng
-                const summaryRowIndex = wsData.length - 8;
-                for (let col = 1; col <= 9; col++) {
-                    const cellAddress = XLSX.utils.encode_cell({ r: summaryRowIndex, c: col });
-                    if (ws[cellAddress]) {
-                        ws[cellAddress].s = {
-                            font: { bold: true, size: 12, name: "Times New Roman" },
-                            fill: { fgColor: { rgb: "D9E2F3" } },
-                            alignment: { horizontal: "center", vertical: "center" },
-                            border: {
-                                top: { style: "medium", color: { rgb: "000000" } },
-                                bottom: { style: "medium", color: { rgb: "000000" } },
-                                left: { style: "thin", color: { rgb: "000000" } },
-                                right: { style: "thin", color: { rgb: "000000" } }
-                            }
-                        };
-                    }
-                }
-                
-                // Style cho chữ ký
-                [wsData.length - 4, wsData.length - 1].forEach(rowIndex => {
-                    for (let col = 7; col <= 10; col++) {
-                        const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: col });
-                        if (ws[cellAddress]) {
+                        } else if (row === summaryRowIndex) {
+                            // Summary row
                             ws[cellAddress].s = {
-                                font: { bold: true, size: 11, name: "Times New Roman", italic: rowIndex === wsData.length - 1 },
-                                alignment: { horizontal: "center", vertical: "center" }
+                                font: { bold: true, size: 12, name: "Times New Roman" },
+                                fill: { fgColor: { rgb: "D9E2F3" } },
+                                alignment: { horizontal: "center", vertical: "center" },
+                                border: borderStyle
+                            };
+                        } else if (row >= wsData.length - 4 && row <= wsData.length - 1) {
+                            // Signature rows
+                            ws[cellAddress].s = {
+                                font: { 
+                                    bold: true, 
+                                    size: 11, 
+                                    name: "Times New Roman", 
+                                    italic: row === wsData.length - 1 
+                                },
+                                alignment: { horizontal: "center", vertical: "center" },
+                                border: borderStyle
+                            };
+                        } else {
+                            // Empty rows
+                            ws[cellAddress].s = {
+                                border: borderStyle
                             };
                         }
                     }
-                });
-                
+                }
+
                 // Thiết lập chiều cao dòng
                 ws['!rows'] = [];
                 ws['!rows'][0] = { hpx: 30 }; // Tiêu đề chính
@@ -589,7 +627,7 @@
                 XLSX.utils.book_append_sheet(wb, ws, 'Danh Sách Dụng Cụ');
                 
                 // Tạo tên file đẹp hơn
-                const now = new Date();
+                const now = new Date('2025-07-28T12:25:00+07:00');
                 const dateStr = now.toLocaleDateString('vi-VN').replace(/\//g, '-');
                 const timeStr = now.toLocaleTimeString('vi-VN', {hour12: false}).replace(/:/g, '-');
                 const filename = `BaoCao_DungCu_${dateStr}_${timeStr}.xlsx`;
@@ -597,7 +635,7 @@
                 // Xuất file
                 XLSX.writeFile(wb, filename);
                 
-                // Không hiển thị thông báo chi tiết, chỉ log để debug
+                // Log để debug
                 console.log(`Đã xuất file: ${filename} với ${data.length} bản ghi`);
                 
             } catch (error) {
