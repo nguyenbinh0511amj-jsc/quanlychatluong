@@ -168,6 +168,42 @@
             color: #6c757d;
             font-style: italic;
         }
+
+        /* Pagination and row selection styles */
+        .pagination-controls {
+            margin: 20px 0;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .rows-per-page {
+            padding: 5px 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .pagination-btn {
+            padding: 8px 15px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .pagination-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .pagination-btn:hover:not(:disabled) {
+            background: #0056b3;
+        }
     </style>
 </head>
 <body>
@@ -227,6 +263,8 @@
 
         let currentData = null;
         let filteredData = null;
+        let rowsPerPage = 10;
+        let currentPage = 1;
 
         async function fetchAndExportData() {
             const statusDiv = document.getElementById('status');
@@ -298,10 +336,39 @@
                 return;
             }
 
-            // Tạo bảng preview (hiển thị tối đa 10 dòng đầu)
-            const previewData = data.slice(0, 10);
+            // Hiển thị ngày giờ hiện tại
+            const currentDateTime = new Date('2025-07-28T12:49:00+07:00');
+            const dateTimeStr = currentDateTime.toLocaleString('vi-VN', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                hour12: false 
+            }).replace(', ', ' ');
+            let tableHtml = `<p style="text-align: center; margin-bottom: 15px; color: #666; font-size: 14px;">Cập nhật lúc: ${dateTimeStr}</p>`;
+
+            // Thêm điều khiển số dòng và phân trang
+            tableHtml += `
+                <div class="pagination-controls">
+                    <select class="rows-per-page" onchange="changeRowsPerPage(this.value)">
+                        <option value="5" ${rowsPerPage === 5 ? 'selected' : ''}>5 dòng</option>
+                        <option value="10" ${rowsPerPage === 10 ? 'selected' : ''}>10 dòng</option>
+                        <option value="20" ${rowsPerPage === 20 ? 'selected' : ''}>20 dòng</option>
+                        <option value="50" ${rowsPerPage === 50 ? 'selected' : ''}>50 dòng</option>
+                    </select>
+                    <button class="pagination-btn" onclick="previousPage()" ${currentPage === 1 ? 'disabled' : ''}>Trước</button>
+                    <span>Trang ${currentPage} / ${Math.ceil(data.length / rowsPerPage)}</span>
+                    <button class="pagination-btn" onclick="nextPage()" ${currentPage === Math.ceil(data.length / rowsPerPage) ? 'disabled' : ''}>Tiếp</button>
+                </div>
+            `;
+
+            // Tính toán dữ liệu hiển thị
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, data.length);
+            const previewData = data.slice(startIndex, endIndex);
             
-            let tableHtml = '<div class="data-preview"><table><thead><tr>';
+            tableHtml += '<div class="data-preview"><table><thead><tr>';
             DISPLAY_HEADERS.forEach(header => {
                 tableHtml += `<th>${header}</th>`;
             });
@@ -323,15 +390,52 @@
                             // Giữ nguyên giá trị nếu không parse được
                         }
                     }
-                    tableHtml += `<td>${displayValue.substring(0, 30)}${displayValue.length > 30 ? '...' : ''}</td>`;
+                    // Conditional text color for Tình Trạng Dụng Cụ
+                    let textStyle = '';
+                    if (field === 'tinh_trang_dung_cu') {
+                        if (displayValue.toLowerCase().includes('bình thường')) textStyle = 'color: green;';
+                        else if (displayValue.toLowerCase().includes('ng - báo lỗi')) textStyle = 'color: red;';
+                    }
+                    // Remove background class for Tình Trạng Dụng Cụ column
+                    let statusClass = '';
+                    if (field !== 'tinh_trang_dung_cu') {
+                        if (field === 'tinh_trang_dung_cu' && displayValue.toLowerCase().includes('bình thường')) statusClass = 'status-good';
+                        else if (field === 'tinh_trang_dung_cu' && displayValue.toLowerCase().includes('ng - báo lỗi')) statusClass = 'status-bad';
+                        else if (field === 'tinh_trang_dung_cu') statusClass = 'status-unknown';
+                    }
+                    tableHtml += `<td class="${statusClass}" style="${textStyle}">${displayValue.substring(0, 30)}${displayValue.length > 30 ? '...' : ''}</td>`;
                 });
                 tableHtml += '</tr>';
             });
             
             tableHtml += '</tbody></table></div>';
-            tableHtml += `<p style="text-align: center; margin-top: 15px; color: #666; font-size: 16px;">Hiển thị ${previewData.length} / ${data.length} bản ghi đầu tiên</p>`;
+            tableHtml += `<p style="text-align: center; margin-top: 15px; color: #666; font-size: 16px;">Hiển thị ${previewData.length} / ${data.length} bản ghi (từ ${startIndex + 1} đến ${endIndex})</p>`;
             
             previewDiv.innerHTML = tableHtml;
+        }
+
+        function changeRowsPerPage(value) {
+            rowsPerPage = parseInt(value);
+            currentPage = 1; // Reset to first page when changing rows per page
+            if (filteredData) showDataPreview(filteredData);
+            else if (currentData) showDataPreview(currentData);
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                if (filteredData) showDataPreview(filteredData);
+                else if (currentData) showDataPreview(currentData);
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil((filteredData || currentData).length / rowsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                if (filteredData) showDataPreview(filteredData);
+                else if (currentData) showDataPreview(currentData);
+            }
         }
 
         function searchData() {
@@ -359,7 +463,7 @@
                 searchInfo.innerHTML = `Tìm thấy <strong>${filteredData.length}</strong> kết quả cho "<strong>${searchTerm}</strong>"`;
             }
             
-            // Hiển thị kết quả tìm kiếm
+            currentPage = 1; // Reset to first page after search
             showDataPreview(filteredData);
         }
 
@@ -397,7 +501,7 @@
                 wsData.push(companyInfo);
                 
                 // Dòng 4: Thông tin ngày tháng (cập nhật theo thời gian hiện tại)
-                const currentDateTime = new Date('2025-07-28T12:25:00+07:00');
+                const currentDateTime = new Date('2025-07-28T12:49:00+07:00');
                 const dateTimeStr = currentDateTime.toLocaleString('vi-VN', { 
                     day: '2-digit', 
                     month: '2-digit', 
@@ -461,7 +565,7 @@
                 wsData.push(emptyRow4);
                 wsData.push(emptyRow4);
                 
-                const signatureRow1 = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Thủ trưởng đơn vị'];
+                const signatureRow1 = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Xác nhận của TBP'];
                 wsData.push(signatureRow1);
                 
                 const emptyRow5 = new Array(headerWithSTT.length).fill('');
@@ -469,7 +573,7 @@
                 wsData.push(emptyRow5);
                 wsData.push(emptyRow5);
                 
-                const signatureRow2 = ['', '', '', '', '', '', '', '(Ký, họ tên)', '', '(Ký, họ tên, đóng dấu)'];
+                const signatureRow2 = ['', '', '', '', '', '', '', '(Ký ghi rõ họ tên)', '', '(Ký ghi rõ họ tên)'];
                 wsData.push(signatureRow2);
                 
                 // Tạo worksheet
@@ -627,7 +731,7 @@
                 XLSX.utils.book_append_sheet(wb, ws, 'Danh Sách Dụng Cụ');
                 
                 // Tạo tên file đẹp hơn
-                const now = new Date('2025-07-28T12:25:00+07:00');
+                const now = new Date('2025-07-28T12:49:00+07:00');
                 const dateStr = now.toLocaleDateString('vi-VN').replace(/\//g, '-');
                 const timeStr = now.toLocaleTimeString('vi-VN', {hour12: false}).replace(/:/g, '-');
                 const filename = `BaoCao_DungCu_${dateStr}_${timeStr}.xlsx`;
@@ -653,6 +757,8 @@
             document.getElementById('searchInfo').innerHTML = '';
             currentData = null;
             filteredData = null;
+            rowsPerPage = 10;
+            currentPage = 1;
         }
 
         // Thêm thông tin hướng dẫn khi trang được tải
