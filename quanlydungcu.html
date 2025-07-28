@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xuất dữ liệu AppSheet ra Excel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 50px;
+            font-size: 2.8em;
+            font-weight: 300;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .button-group {
+            text-align: center;
+            margin: 50px 0;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            font-size: 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            margin: 0 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(0,123,255,0.3);
+            min-width: 200px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,123,255,0.4);
+        }
+        
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .data-preview {
+            margin-top: 30px;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            background: #f8f9fa;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .data-preview table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        .data-preview th, .data-preview td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .data-preview th {
+            background: #007bff;
+            color: white;
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+        }
+        
+        .field-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .field-item {
+            background: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Xuất Dữ Liệu Dụng Cụ</h1>
+        
+
+        
+        <div class="button-group">
+            <button onclick="fetchAndExportData()" id="exportBtn">
+                📥 Lấy dữ liệu và xuất Excel
+            </button>
+            <button onclick="clearStatus()" id="clearBtn">
+                🧹 Xóa kết quả
+            </button>
+        </div>
+        
+        <div id="status"></div>
+        <div id="dataPreview"></div>
+    </div>
+
+    <script>
+        // Cấu hình AppSheet API
+        const APP_ID = 'bd6e1158-d412-4790-88fe-d8e2a46206cb';
+        const ACCESS_KEY = 'V2-6wqzK-qw3K3-bMSkd-ikr4H-pz5SG-02Xzy-IumRs-6oMzl';
+        const TABLE_NAME = 'dung_cu';
+        
+        // Danh sách các trường cần xuất
+        const FIELDS = [
+            'id', 'ten_dung_cu', 'chung_loai', 'dung_cu_dien_tu_co', 'so_series',
+            'ngay_nhan_dung_cu', 'tinh_trang_dung_cu', 'ghi_chu', 'noi_quan_ly',
+            'vi_tri', 'ngay_kiem_ke', 'trang_thai', 'sl_ok', 'sl_ng', 'update',
+            'Code', 'ho_va_ten', 'hinh_anh_kiem_ke', 'ngay_huy', 'xac_nhan_dung_cu_loi',
+            'Duyệt', 'id_lich_su_muon_tra'
+        ];
+
+        let currentData = null;
+
+        async function fetchAndExportData() {
+            const statusDiv = document.getElementById('status');
+            const exportBtn = document.getElementById('exportBtn');
+            
+            // Hiển thị trạng thái loading
+            statusDiv.innerHTML = '<div class="status loading">🔄 Đang kết nối với AppSheet API...</div>';
+            exportBtn.disabled = true;
+
+            try {
+                // Gọi AppSheet API
+                const response = await fetch(`https://api.appsheet.com/api/v2/apps/${APP_ID}/tables/${TABLE_NAME}/Action`, {
+                    method: 'POST',
+                    headers: {
+                        'ApplicationAccessKey': ACCESS_KEY,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        "Action": "Find",
+                        "Properties": {},
+                        "Rows": []
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                
+                if (!data || !Array.isArray(data)) {
+                    throw new Error('Dữ liệu trả về không hợp lệ');
+                }
+
+                currentData = data;
+                
+                // Chỉ hiển thị thông báo ngắn gọn
+                statusDiv.innerHTML = `<div class="status success">✅ Đã tải ${data.length} bản ghi từ AppSheet</div>`;
+                
+                // Hiển thị preview dữ liệu
+                showDataPreview(data);
+                
+                // Tự động xuất Excel sau 800ms
+                setTimeout(() => {
+                    exportToExcel(data);
+                    // Xóa thông báo sau khi xuất xong
+                    setTimeout(() => {
+                        statusDiv.innerHTML = '';
+                    }, 1500);
+                }, 800);
+
+            } catch (error) {
+                console.error('Lỗi:', error);
+                statusDiv.innerHTML = `<div class="status error">❌ Lỗi: ${error.message}</div>`;
+            } finally {
+                exportBtn.disabled = false;
+            }
+        }
+
+        function showDataPreview(data) {
+            const previewDiv = document.getElementById('dataPreview');
+            
+            if (data.length === 0) {
+                previewDiv.innerHTML = '<div class="status">Không có dữ liệu để hiển thị</div>';
+                return;
+            }
+
+            // Tạo bảng preview (hiển thị tối đa 10 dòng đầu)
+            const previewData = data.slice(0, 10);
+            
+            let tableHtml = '<div class="data-preview"><table><thead><tr>';
+            FIELDS.forEach(field => {
+                tableHtml += `<th>${field}</th>`;
+            });
+            tableHtml += '</tr></thead><tbody>';
+            
+            previewData.forEach(row => {
+                tableHtml += '<tr>';
+                FIELDS.forEach(field => {
+                    const value = row[field] || '';
+                    tableHtml += `<td>${String(value).substring(0, 30)}${String(value).length > 30 ? '...' : ''}</td>`;
+                });
+                tableHtml += '</tr>';
+            });
+            
+            tableHtml += '</tbody></table></div>';
+            tableHtml += `<p style="text-align: center; margin-top: 15px; color: #666; font-size: 16px;">Hiển thị ${previewData.length} / ${data.length} bản ghi đầu tiên</p>`;
+            
+            previewDiv.innerHTML = tableHtml;
+        }
+
+        function exportToExcel(data) {
+            try {
+                // Tạo workbook mới
+                const wb = XLSX.utils.book_new();
+                
+                // Tạo header với tên tiếng Việt đẹp hơn
+                const headers = [
+                    'ID', 'Tên Dụng Cụ', 'Chủng Loại', 'Dụng Cụ Điện Tử', 'Số Series',
+                    'Ngày Nhận Dụng Cụ', 'Tình Trạng Dụng Cụ', 'Ghi Chú', 'Nơi Quản Lý',
+                    'Vị Trí', 'Ngày Kiểm Kê', 'Trạng Thái', 'SL OK', 'SL NG', 'Cập Nhật',
+                    'Mã Code', 'Họ Và Tên', 'Hình Ảnh Kiểm Kê', 'Ngày Hủy', 'Xác Nhận Dụng Cụ Lỗi',
+                    'Duyệt', 'ID Lịch Sử Mượn Trả'
+                ];
+                
+                // Chuẩn bị dữ liệu cho worksheet
+                const wsData = [];
+                
+                // Thêm tiêu đề chính
+                const mainTitle = ['DANH SÁCH DỤNG CỤ'];
+                const emptyRow = [''];
+                const dateInfo = [`Ngày xuất: ${new Date().toLocaleString('vi-VN')}`];
+                const totalInfo = [`Tổng số bản ghi: ${data.length}`];
+                
+                wsData.push(mainTitle);
+                wsData.push(emptyRow);
+                wsData.push(dateInfo);
+                wsData.push(totalInfo);
+                wsData.push(emptyRow);
+                wsData.push(headers);
+                
+                // Thêm dữ liệu
+                data.forEach(row => {
+                    const rowData = FIELDS.map(field => {
+                        let value = row[field] || '';
+                        // Format ngày tháng nếu có
+                        if (field.includes('ngay') && value) {
+                            try {
+                                const date = new Date(value);
+                                if (!isNaN(date.getTime())) {
+                                    value = date.toLocaleDateString('vi-VN');
+                                }
+                            } catch (e) {
+                                // Giữ nguyên giá trị nếu không parse được
+                            }
+                        }
+                        return value;
+                    });
+                    wsData.push(rowData);
+                });
+                
+                // Tạo worksheet
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                
+                // Định dạng độ rộng cột theo nội dung
+                const colWidths = [
+                    { wch: 8 },   // ID
+                    { wch: 25 },  // Tên Dụng Cụ
+                    { wch: 15 },  // Chủng Loại
+                    { wch: 12 },  // Dụng Cụ Điện Tử
+                    { wch: 15 },  // Số Series
+                    { wch: 18 },  // Ngày Nhận
+                    { wch: 20 },  // Tình Trạng
+                    { wch: 30 },  // Ghi Chú
+                    { wch: 20 },  // Nơi Quản Lý
+                    { wch: 15 },  // Vị Trí
+                    { wch: 15 },  // Ngày Kiểm Kê
+                    { wch: 12 },  // Trạng Thái
+                    { wch: 8 },   // SL OK
+                    { wch: 8 },   // SL NG
+                    { wch: 18 },  // Cập Nhật
+                    { wch: 12 },  // Mã Code
+                    { wch: 20 },  // Họ Và Tên
+                    { wch: 20 },  // Hình Ảnh
+                    { wch: 15 },  // Ngày Hủy
+                    { wch: 22 },  // Xác Nhận Lỗi
+                    { wch: 10 },  // Duyệt
+                    { wch: 20 }   // ID Lịch Sử
+                ];
+                ws['!cols'] = colWidths;
+                
+                // Định dạng merge cells cho tiêu đề chính
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                ws['!merges'] = [
+                    { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } }, // Merge tiêu đề chính
+                    { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } }, // Merge ngày xuất
+                    { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } }  // Merge tổng số bản ghi
+                ];
+                
+                // Định dạng style cho các cell
+                const headerRowIndex = 5; // Dòng header thực tế
+                
+                // Style cho tiêu đề chính
+                if (ws['A1']) {
+                    ws['A1'].s = {
+                        font: { bold: true, size: 16, color: { rgb: "FFFFFF" } },
+                        fill: { fgColor: { rgb: "4472C4" } },
+                        alignment: { horizontal: "center", vertical: "center" }
+                    };
+                }
+                
+                // Style cho thông tin ngày và tổng số
+                if (ws['A3']) {
+                    ws['A3'].s = {
+                        font: { bold: true, italic: true, color: { rgb: "666666" } }
+                    };
+                }
+                if (ws['A4']) {
+                    ws['A4'].s = {
+                        font: { bold: true, italic: true, color: { rgb: "666666" } }
+                    };
+                }
+                
+                // Style cho header
+                for (let col = 0; col < headers.length; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
+                    if (ws[cellAddress]) {
+                        ws[cellAddress].s = {
+                            font: { bold: true, color: { rgb: "FFFFFF" } },
+                            fill: { fgColor: { rgb: "70AD47" } },
+                            alignment: { horizontal: "center", vertical: "center" },
+                            border: {
+                                top: { style: "thin" },
+                                bottom: { style: "thin" },
+                                left: { style: "thin" },
+                                right: { style: "thin" }
+                            }
+                        };
+                    }
+                }
+                
+                // Style cho dữ liệu (zebra striping)
+                for (let row = headerRowIndex + 1; row < wsData.length; row++) {
+                    const isEvenRow = (row - headerRowIndex) % 2 === 0;
+                    for (let col = 0; col < headers.length; col++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                        if (ws[cellAddress]) {
+                            ws[cellAddress].s = {
+                                fill: { fgColor: { rgb: isEvenRow ? "F2F2F2" : "FFFFFF" } },
+                                border: {
+                                    top: { style: "thin", color: { rgb: "D0D0D0" } },
+                                    bottom: { style: "thin", color: { rgb: "D0D0D0" } },
+                                    left: { style: "thin", color: { rgb: "D0D0D0" } },
+                                    right: { style: "thin", color: { rgb: "D0D0D0" } }
+                                },
+                                alignment: { vertical: "center" }
+                            };
+                        }
+                    }
+                }
+                
+                // Thêm worksheet vào workbook
+                XLSX.utils.book_append_sheet(wb, ws, 'Danh Sách Dụng Cụ');
+                
+                // Tạo tên file với timestamp đẹp hơn
+                const now = new Date();
+                const dateStr = now.toISOString().slice(0, 10);
+                const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+                const filename = `DanhSach_DungCu_${dateStr}_${timeStr}.xlsx`;
+                
+                // Xuất file
+                XLSX.writeFile(wb, filename);
+                
+                // Không hiển thị thông báo chi tiết, chỉ log để debug
+                console.log(`Đã xuất file: ${filename} với ${data.length} bản ghi`);
+                
+            } catch (error) {
+                console.error('Lỗi xuất Excel:', error);
+                const statusDiv = document.getElementById('status');
+                statusDiv.innerHTML = `<div class="status error">❌ Lỗi xuất Excel: ${error.message}</div>`;
+            }
+        }
+
+        function clearStatus() {
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('dataPreview').innerHTML = '';
+            currentData = null;
+        }
+
+        // Thêm thông tin hướng dẫn khi trang được tải
+        window.onload = function() {
+            console.log('AppSheet to Excel Exporter đã sẵn sàng!');
+        };
+    </script>
+</body>
+</html>
