@@ -167,13 +167,20 @@
         const ACCESS_KEY = 'V2-6wqzK-qw3K3-bMSkd-ikr4H-pz5SG-02Xzy-IumRs-6oMzl';
         const TABLE_NAME = 'dung_cu';
         
-        // Danh sách các trường cần xuất
+        // Danh sách các trường cần lấy từ API (đầy đủ)
         const FIELDS = [
             'id', 'ten_dung_cu', 'chung_loai', 'dung_cu_dien_tu_co', 'so_series',
             'ngay_nhan_dung_cu', 'tinh_trang_dung_cu', 'ghi_chu', 'noi_quan_ly',
             'vi_tri', 'ngay_kiem_ke', 'trang_thai', 'sl_ok', 'sl_ng', 'update',
             'Code', 'ho_va_ten', 'hinh_anh_kiem_ke', 'ngay_huy', 'xac_nhan_dung_cu_loi',
             'Duyệt', 'id_lich_su_muon_tra'
+        ];
+
+        // Danh sách các trường cần xuất Excel (chỉ 10 cột)
+        const EXPORT_FIELDS = [
+            'ten_dung_cu', 'chung_loai', 'dung_cu_dien_tu_co', 'so_series',
+            'ngay_nhan_dung_cu', 'tinh_trang_dung_cu', 'ghi_chu', 'noi_quan_ly',
+            'vi_tri', 'ngay_kiem_ke'
         ];
 
         let currentData = null;
@@ -273,13 +280,11 @@
                 // Tạo workbook mới
                 const wb = XLSX.utils.book_new();
                 
-                // Tạo header với tên tiếng Việt đẹp hơn
+                // Tạo header với tên tiếng Việt cho 10 cột cần xuất
                 const headers = [
-                    'ID', 'Tên Dụng Cụ', 'Chủng Loại', 'Dụng Cụ Điện Tử', 'Số Series',
+                    'Tên Dụng Cụ', 'Chủng Loại', 'Dụng Cụ Điện Tử', 'Số Series',
                     'Ngày Nhận Dụng Cụ', 'Tình Trạng Dụng Cụ', 'Ghi Chú', 'Nơi Quản Lý',
-                    'Vị Trí', 'Ngày Kiểm Kê', 'Trạng Thái', 'SL OK', 'SL NG', 'Cập Nhật',
-                    'Mã Code', 'Họ Và Tên', 'Hình Ảnh Kiểm Kê', 'Ngày Hủy', 'Xác Nhận Dụng Cụ Lỗi',
-                    'Duyệt', 'ID Lịch Sử Mượn Trả'
+                    'Vị Trí', 'Ngày Kiểm Kê'
                 ];
                 
                 // Chuẩn bị dữ liệu cho worksheet
@@ -298,9 +303,9 @@
                 wsData.push(emptyRow);
                 wsData.push(headers);
                 
-                // Thêm dữ liệu
+                // Thêm dữ liệu (chỉ 10 cột cần xuất)
                 data.forEach(row => {
-                    const rowData = FIELDS.map(field => {
+                    const rowData = EXPORT_FIELDS.map(field => {
                         let value = row[field] || '';
                         // Format ngày tháng nếu có
                         if (field.includes('ngay') && value) {
