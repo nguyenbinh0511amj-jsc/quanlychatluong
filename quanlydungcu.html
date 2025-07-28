@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Báo cáo quản lý dụng cụ</title>
+    <title>Xuất dữ liệu AppSheet ra Excel</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
@@ -208,7 +208,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Xuất Dữ Liệu Dụng Cụ</h1>
+        <h1>📊 Xuất Dữ Liệu Dụng Cụ</h1>
         
         <div class="button-group">
             <button onclick="fetchAndExportData()" id="exportBtn">
@@ -337,7 +337,7 @@
             }
 
             // Hiển thị ngày giờ hiện tại
-            const currentDateTime = new Date('2025-07-28T12:49:00+07:00');
+            const currentDateTime = new Date('2025-07-28T13:39:00+07:00');
             const dateTimeStr = currentDateTime.toLocaleString('vi-VN', { 
                 day: '2-digit', 
                 month: '2-digit', 
@@ -479,29 +479,29 @@
                     'Vị Trí'
                 ];
                 
-                // Chuẩn bị dữ liệu cho worksheet
-                const wsData = [];
+                // Chuẩn bị dữ liệu cho worksheet "Danh Sách Dụng Cụ"
+                const wsDataAll = [];
                 
                 // Dòng 1: Tiêu đề chính (merge toàn bộ)
-                const mainTitle = ['DANH SÁCH QUẢN LÝ DỤNG CỤ THIẾT BỊ'];
+                const mainTitleAll = ['DANH SÁCH QUẢN LÝ DỤNG CỤ THIẾT BỊ'];
                 for (let i = 1; i < headers.length + 1; i++) {
-                    mainTitle.push('');
+                    mainTitleAll.push('');
                 }
-                wsData.push(mainTitle);
+                wsDataAll.push(mainTitleAll);
                 
                 // Dòng 2: Trống để tạo khoảng cách
-                const emptyRow1 = new Array(headers.length + 1).fill('');
-                wsData.push(emptyRow1);
+                const emptyRow1All = new Array(headers.length + 1).fill('');
+                wsDataAll.push(emptyRow1All);
                 
                 // Dòng 3: Thông tin công ty/đơn vị
-                const companyInfo = ['Đơn vị: _______________________'];
+                const companyInfoAll = ['Đơn vị: _______________________'];
                 for (let i = 1; i < headers.length + 1; i++) {
-                    companyInfo.push('');
+                    companyInfoAll.push('');
                 }
-                wsData.push(companyInfo);
+                wsDataAll.push(companyInfoAll);
                 
-                // Dòng 4: Thông tin ngày tháng (cập nhật theo thời gian hiện tại)
-                const currentDateTime = new Date('2025-07-28T12:49:00+07:00');
+                // Dòng 4: Thông tin ngày tháng
+                const currentDateTime = new Date('2025-07-28T13:39:00+07:00');
                 const dateTimeStr = currentDateTime.toLocaleString('vi-VN', { 
                     day: '2-digit', 
                     month: '2-digit', 
@@ -510,237 +510,411 @@
                     minute: '2-digit', 
                     hour12: false 
                 }).replace(', ', ' ');
-                const dateInfo = [`Ngày xuất báo cáo: ${dateTimeStr}`];
+                const dateInfoAll = [`Ngày xuất báo cáo: ${dateTimeStr}`];
                 for (let i = 1; i < 4; i++) {
-                    dateInfo.push('');
+                    dateInfoAll.push('');
                 }
-                dateInfo.push(`Tổng số thiết bị: ${data.length} (chiếc)`);
+                dateInfoAll.push(`Tổng số thiết bị: ${data.length} (chiếc)`);
                 for (let i = 5; i < headers.length + 1; i++) {
-                    dateInfo.push('');
+                    dateInfoAll.push('');
                 }
-                wsData.push(dateInfo);
+                wsDataAll.push(dateInfoAll);
                 
                 // Dòng 5: Trống
-                const emptyRow2 = new Array(headers.length + 1).fill('');
-                wsData.push(emptyRow2);
+                const emptyRow2All = new Array(headers.length + 1).fill('');
+                wsDataAll.push(emptyRow2All);
                 
                 // Dòng 6: Header với STT
-                const headerWithSTT = ['STT', ...headers];
-                wsData.push(headerWithSTT);
+                const headerWithSTTAll = ['STT', ...headers];
+                wsDataAll.push(headerWithSTTAll);
                 
-                // Thêm dữ liệu với STT
+                // Thêm dữ liệu với STT cho tất cả
                 data.forEach((row, index) => {
-                    const rowData = [index + 1]; // STT bắt đầu từ 1
+                    const rowData = [index + 1];
                     DISPLAY_FIELDS.forEach(field => {
                         let value = row[field] || '';
-                        // Format ngày tháng theo định dạng Việt Nam
                         if (field.includes('ngay') && value) {
                             try {
                                 const date = new Date(value);
                                 if (!isNaN(date.getTime())) {
                                     value = date.toLocaleDateString('vi-VN');
                                 }
-                            } catch (e) {
-                                // Giữ nguyên giá trị nếu không parse được
-                            }
+                            } catch (e) {}
                         }
-                        // Format số lượng
                         if ((field.includes('sl_') || field.includes('so_')) && value && !isNaN(value)) {
                             value = Number(value).toLocaleString('vi-VN');
                         }
                         rowData.push(value);
                     });
-                    wsData.push(rowData);
+                    wsDataAll.push(rowData);
                 });
                 
-                // Thêm dòng tổng kết ở cuối
-                const emptyRow3 = new Array(headerWithSTT.length).fill('');
-                wsData.push(emptyRow3);
-                
-                const summaryRow = ['', 'TỔNG CỘNG:', '', '', '', '', '', '', '', `${data.length} thiết bị`];
-                wsData.push(summaryRow);
+                // Thêm dòng tổng kết
+                const emptyRow3All = new Array(headerWithSTTAll.length).fill('');
+                wsDataAll.push(emptyRow3All);
+                const summaryRowAll = ['', 'TỔNG CỘNG:', '', '', '', '', '', '', '', `${data.length} thiết bị`];
+                wsDataAll.push(summaryRowAll);
                 
                 // Thêm chữ ký
-                const emptyRow4 = new Array(headerWithSTT.length).fill('');
-                wsData.push(emptyRow4);
-                wsData.push(emptyRow4);
+                const emptyRow4All = new Array(headerWithSTTAll.length).fill('');
+                wsDataAll.push(emptyRow4All);
+                wsDataAll.push(emptyRow4All);
+                const signatureRow1All = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Thủ trưởng đơn vị'];
+                wsDataAll.push(signatureRow1All);
+                const emptyRow5All = new Array(headerWithSTTAll.length).fill('');
+                wsDataAll.push(emptyRow5All);
+                wsDataAll.push(emptyRow5All);
+                wsDataAll.push(emptyRow5All);
+                const signatureRow2All = ['', '', '', '', '', '', '', '(Ký, họ tên)', '', '(Ký, họ tên, đóng dấu)'];
+                wsDataAll.push(signatureRow2All);
                 
-                const signatureRow1 = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Xác nhận của TBP'];
-                wsData.push(signatureRow1);
-                
-                const emptyRow5 = new Array(headerWithSTT.length).fill('');
-                wsData.push(emptyRow5);
-                wsData.push(emptyRow5);
-                wsData.push(emptyRow5);
-                
-                const signatureRow2 = ['', '', '', '', '', '', '', '(Ký ghi rõ họ tên)', '', '(Ký ghi rõ họ tên)'];
-                wsData.push(signatureRow2);
-                
-                // Tạo worksheet
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-                
-                // Định dạng độ rộng cột
-                const colWidths = [
-                    { wch: 6 },   // STT
-                    { wch: 30 },  // Tên Dụng Cụ
-                    { wch: 18 },  // Chủng Loại
-                    { wch: 15 },  // Dụng Cụ Điện Tử
-                    { wch: 18 },  // Số Series
-                    { wch: 18 },  // Ngày Nhận
-                    { wch: 20 },  // Tình Trạng
-                    { wch: 35 },  // Ghi Chú
-                    { wch: 20 },  // Nơi Quản Lý
-                    { wch: 15 }   // Vị Trí
+                // Tạo worksheet "Danh Sách Dụng Cụ"
+                const wsAll = XLSX.utils.aoa_to_sheet(wsDataAll);
+                const colWidthsAll = [
+                    { wch: 6 }, { wch: 30 }, { wch: 18 }, { wch: 15 }, { wch: 18 },
+                    { wch: 18 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 15 }
                 ];
-                ws['!cols'] = colWidths;
-                
-                // Định dạng merge cells
-                ws['!merges'] = [
-                    // Merge tiêu đề chính (dòng 1)
-                    { s: { r: 0, c: 0 }, e: { r: 0, c: headerWithSTT.length - 1 } },
-                    // Merge thông tin công ty (dòng 3)
+                wsAll['!cols'] = colWidthsAll;
+                wsAll['!merges'] = [
+                    { s: { r: 0, c: 0 }, e: { r: 0, c: headerWithSTTAll.length - 1 } },
                     { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
-                    // Merge ngày xuất (dòng 4)
                     { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
-                    { s: { r: 3, c: 4 }, e: { r: 3, c: headerWithSTT.length - 1 } },
-                    // Merge tổng cộng
-                    { s: { r: wsData.length - 8, c: 1 }, e: { r: wsData.length - 8, c: 8 } },
-                    // Merge chữ ký
-                    { s: { r: wsData.length - 4, c: 7 }, e: { r: wsData.length - 4, c: 8 } },
-                    { s: { r: wsData.length - 4, c: 9 }, e: { r: wsData.length - 4, c: 10 } },
-                    { s: { r: wsData.length - 1, c: 7 }, e: { r: wsData.length - 1, c: 8 } },
-                    { s: { r: wsData.length - 1, c: 9 }, e: { r: wsData.length - 1, c: 10 } }
+                    { s: { r: 3, c: 4 }, e: { r: 3, c: headerWithSTTAll.length - 1 } },
+                    { s: { r: wsDataAll.length - 8, c: 1 }, e: { r: wsDataAll.length - 8, c: 8 } },
+                    { s: { r: wsDataAll.length - 4, c: 7 }, e: { r: wsDataAll.length - 4, c: 8 } },
+                    { s: { r: wsDataAll.length - 4, c: 9 }, e: { r: wsDataAll.length - 4, c: 10 } },
+                    { s: { r: wsDataAll.length - 1, c: 7 }, e: { r: wsDataAll.length - 1, c: 8 } },
+                    { s: { r: wsDataAll.length - 1, c: 9 }, e: { r: wsDataAll.length - 1, c: 10 } }
                 ];
-                
-                // Áp dụng styles chi tiết
-                const headerRowIndex = 5; // Dòng header thực tế (0-indexed)
-                const dataStartRow = 6;
-                const dataEndRow = dataStartRow + data.length - 1;
-                const summaryRowIndex = wsData.length - 8;
-                const totalColumns = headerWithSTT.length;
-                const totalRows = wsData.length;
-
-                // Border style definitions
-                const mediumBorder = {
-                    top: { style: "medium", color: { rgb: "000000" } },
-                    bottom: { style: "medium", color: { rgb: "000000" } },
-                    left: { style: "medium", color: { rgb: "000000" } },
-                    right: { style: "medium", color: { rgb: "000000" } }
-                };
-                const thinBorder = {
-                    top: { style: "thin", color: { rgb: "000000" } },
-                    bottom: { style: "thin", color: { rgb: "000000" } },
-                    left: { style: "thin", color: { rgb: "000000" } },
-                    right: { style: "thin", color: { rgb: "000000" } }
-                };
-
-                // Apply borders and styles to all cells
-                for (let row = 0; row < totalRows; row++) {
-                    for (let col = 0; col < totalColumns; col++) {
+                const headerRowIndexAll = 5;
+                const dataStartRowAll = 6;
+                const dataEndRowAll = dataStartRowAll + data.length - 1;
+                const summaryRowIndexAll = wsDataAll.length - 8;
+                const totalColumnsAll = headerWithSTTAll.length;
+                const totalRowsAll = wsDataAll.length;
+                for (let row = 0; row < totalRowsAll; row++) {
+                    for (let col = 0; col < totalColumnsAll; col++) {
                         const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-                        if (!ws[cellAddress]) {
-                            ws[cellAddress] = { t: 's', v: '' }; // Ensure empty cells exist for styling
+                        if (!wsAll[cellAddress]) wsAll[cellAddress] = { t: 's', v: '' };
+                        wsAll[cellAddress].s = wsAll[cellAddress].s || {};
+                        let borderStyle = { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } };
+                        if (row === 0 || row === totalRowsAll - 1 || col === 0 || col === totalColumnsAll - 1) {
+                            borderStyle = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "medium" }, right: { style: "medium" } };
                         }
-
-                        // Initialize cell style
-                        ws[cellAddress].s = ws[cellAddress].s || {};
-
-                        // Apply outer medium borders for the entire table
-                        let borderStyle = thinBorder;
-                        if (row === 0 || row === totalRows - 1 || col === 0 || col === totalColumns - 1) {
-                            borderStyle = mediumBorder;
-                        }
-
-                        // Apply styles based on row
                         if (row === 0) {
-                            // Title row
-                            ws[cellAddress].s = {
-                                font: { bold: true, size: 18, color: { rgb: "FFFFFF" }, name: "Times New Roman" },
-                                fill: { fgColor: { rgb: "1F4E79" } },
-                                alignment: { horizontal: "center", vertical: "center" },
-                                border: borderStyle
-                            };
+                            wsAll[cellAddress].s = { font: { bold: true, size: 18, color: { rgb: "FFFFFF" }, name: "Times New Roman" }, fill: { fgColor: { rgb: "1F4E79" } }, alignment: { horizontal: "center", vertical: "center" }, border: borderStyle };
                         } else if (row === 2 || row === 3) {
-                            // Company info and date row
-                            ws[cellAddress].s = {
-                                font: { bold: true, size: 12, name: "Times New Roman" },
-                                alignment: { horizontal: "left", vertical: "center" },
-                                border: borderStyle
-                            };
+                            wsAll[cellAddress].s = { font: { bold: true, size: 12, name: "Times New Roman" }, alignment: { horizontal: "left", vertical: "center" }, border: borderStyle };
                         } else if (row === 4) {
-                            // Empty row between date and header
-                            ws[cellAddress].s = {
-                                border: borderStyle
-                            };
-                        } else if (row === headerRowIndex) {
-                            // Header row
-                            ws[cellAddress].s = {
-                                font: { bold: true, size: 12, color: { rgb: "FFFFFF" }, name: "Times New Roman" },
-                                fill: { fgColor: { rgb: "4472C4" } },
-                                alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                                border: borderStyle
-                            };
-                        } else if (row >= dataStartRow && row <= dataEndRow) {
-                            // Data rows
-                            const isEvenRow = (row - dataStartRow) % 2 === 0;
-                            ws[cellAddress].s = {
-                                font: { size: 11, name: "Times New Roman" },
-                                fill: { fgColor: { rgb: isEvenRow ? "F8F9FA" : "FFFFFF" } },
-                                alignment: { 
-                                    horizontal: col === 0 ? "center" : (col === 1 || col === 7 ? "left" : "center"),
-                                    vertical: "center",
-                                    wrapText: col === 7 // Wrap text cho cột ghi chú
-                                },
-                                border: borderStyle
-                            };
-                        } else if (row === summaryRowIndex) {
-                            // Summary row
-                            ws[cellAddress].s = {
-                                font: { bold: true, size: 12, name: "Times New Roman" },
-                                fill: { fgColor: { rgb: "D9E2F3" } },
-                                alignment: { horizontal: "center", vertical: "center" },
-                                border: borderStyle
-                            };
-                        } else if (row >= wsData.length - 4 && row <= wsData.length - 1) {
-                            // Signature rows
-                            ws[cellAddress].s = {
-                                font: { 
-                                    bold: true, 
-                                    size: 11, 
-                                    name: "Times New Roman", 
-                                    italic: row === wsData.length - 1 
-                                },
-                                alignment: { horizontal: "center", vertical: "center" },
-                                border: borderStyle
-                            };
+                            wsAll[cellAddress].s = { border: borderStyle };
+                        } else if (row === headerRowIndexAll) {
+                            wsAll[cellAddress].s = { font: { bold: true, size: 12, color: { rgb: "FFFFFF" }, name: "Times New Roman" }, fill: { fgColor: { rgb: "4472C4" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderStyle };
+                        } else if (row >= dataStartRowAll && row <= dataEndRowAll) {
+                            const isEvenRow = (row - dataStartRowAll) % 2 === 0;
+                            wsAll[cellAddress].s = { font: { size: 11, name: "Times New Roman" }, fill: { fgColor: { rgb: isEvenRow ? "F8F9FA" : "FFFFFF" } }, alignment: { horizontal: col === 0 ? "center" : (col === 1 || col === 7 ? "left" : "center"), vertical: "center", wrapText: col === 7 }, border: borderStyle };
+                        } else if (row === summaryRowIndexAll) {
+                            wsAll[cellAddress].s = { font: { bold: true, size: 12, name: "Times New Roman" }, fill: { fgColor: { rgb: "D9E2F3" } }, alignment: { horizontal: "center", vertical: "center" }, border: borderStyle };
+                        } else if (row >= wsDataAll.length - 4 && row <= wsDataAll.length - 1) {
+                            wsAll[cellAddress].s = { font: { bold: true, size: 11, name: "Times New Roman", italic: row === wsDataAll.length - 1 }, alignment: { horizontal: "center", vertical: "center" }, border: borderStyle };
                         } else {
-                            // Empty rows
-                            ws[cellAddress].s = {
-                                border: borderStyle
-                            };
+                            wsAll[cellAddress].s = { border: borderStyle };
                         }
                     }
                 }
+                wsAll['!rows'] = [];
+                wsAll['!rows'][0] = { hpx: 30 };
+                wsAll['!rows'][headerRowIndexAll] = { hpx: 40 };
+                XLSX.utils.book_append_sheet(wb, wsAll, 'Danh Sách Dụng Cụ');
 
-                // Thiết lập chiều cao dòng
-                ws['!rows'] = [];
-                ws['!rows'][0] = { hpx: 30 }; // Tiêu đề chính
-                ws['!rows'][headerRowIndex] = { hpx: 40 }; // Header
+                // Chuẩn bị dữ liệu cho worksheet "Danh Sách Dụng Cụ Huỷ"
+                const filteredDataCancelled = data.filter(row => String(row['tinh_trang_dung_cu'] || '').toLowerCase().includes('ng - báo lỗi'));
+                const wsDataCancelled = [];
                 
-                // Thêm worksheet vào workbook
-                XLSX.utils.book_append_sheet(wb, ws, 'Danh Sách Dụng Cụ');
+                // Dòng 1: Tiêu đề chính (merge toàn bộ)
+                const mainTitleCancelled = ['DANH SÁCH DỤNG CỤ HUỶ'];
+                for (let i = 1; i < headers.length + 1; i++) {
+                    mainTitleCancelled.push('');
+                }
+                wsDataCancelled.push(mainTitleCancelled);
                 
+                // Dòng 2: Trống để tạo khoảng cách
+                const emptyRow1Cancelled = new Array(headers.length + 1).fill('');
+                wsDataCancelled.push(emptyRow1Cancelled);
+                
+                // Dòng 3: Thông tin công ty/đơn vị
+                const companyInfoCancelled = ['Đơn vị: _______________________'];
+                for (let i = 1; i < headers.length + 1; i++) {
+                    companyInfoCancelled.push('');
+                }
+                wsDataCancelled.push(companyInfoCancelled);
+                
+                // Dòng 4: Thông tin ngày tháng
+                const dateInfoCancelled = [`Ngày xuất báo cáo: ${dateTimeStr}`];
+                for (let i = 1; i < 4; i++) {
+                    dateInfoCancelled.push('');
+                }
+                dateInfoCancelled.push(`Tổng số thiết bị lỗi: ${filteredDataCancelled.length} (chiếc)`);
+                for (let i = 5; i < headers.length + 1; i++) {
+                    dateInfoCancelled.push('');
+                }
+                wsDataCancelled.push(dateInfoCancelled);
+                
+                // Dòng 5: Trống
+                const emptyRow2Cancelled = new Array(headers.length + 1).fill('');
+                wsDataCancelled.push(emptyRow2Cancelled);
+                
+                // Dòng 6: Header với STT
+                const headerWithSTTCancelled = ['STT', ...headers];
+                wsDataCancelled.push(headerWithSTTCancelled);
+                
+                // Thêm dữ liệu với STT cho dụng cụ lỗi
+                filteredDataCancelled.forEach((row, index) => {
+                    const rowData = [index + 1];
+                    DISPLAY_FIELDS.forEach(field => {
+                        let value = row[field] || '';
+                        if (field.includes('ngay') && value) {
+                            try {
+                                const date = new Date(value);
+                                if (!isNaN(date.getTime())) {
+                                    value = date.toLocaleDateString('vi-VN');
+                                }
+                            } catch (e) {}
+                        }
+                        if ((field.includes('sl_') || field.includes('so_')) && value && !isNaN(value)) {
+                            value = Number(value).toLocaleString('vi-VN');
+                        }
+                        rowData.push(value);
+                    });
+                    wsDataCancelled.push(rowData);
+                });
+                
+                // Thêm dòng tổng kết
+                const emptyRow3Cancelled = new Array(headerWithSTTCancelled.length).fill('');
+                wsDataCancelled.push(emptyRow3Cancelled);
+                const summaryRowCancelled = ['', 'TỔNG CỘNG:', '', '', '', '', '', '', '', `${filteredDataCancelled.length} thiết bị`];
+                wsDataCancelled.push(summaryRowCancelled);
+                
+                // Thêm chữ ký
+                const emptyRow4Cancelled = new Array(headerWithSTTCancelled.length).fill('');
+                wsDataCancelled.push(emptyRow4Cancelled);
+                wsDataCancelled.push(emptyRow4Cancelled);
+                const signatureRow1Cancelled = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Thủ trưởng đơn vị'];
+                wsDataCancelled.push(signatureRow1Cancelled);
+                const emptyRow5Cancelled = new Array(headerWithSTTCancelled.length).fill('');
+                wsDataCancelled.push(emptyRow5Cancelled);
+                wsDataCancelled.push(emptyRow5Cancelled);
+                wsDataCancelled.push(emptyRow5Cancelled);
+                const signatureRow2Cancelled = ['', '', '', '', '', '', '', '(Ký, họ tên)', '', '(Ký, họ tên, đóng dấu)'];
+                wsDataCancelled.push(signatureRow2Cancelled);
+                
+                // Tạo worksheet "Danh Sách Dụng Cụ Huỷ"
+                const wsCancelled = XLSX.utils.aoa_to_sheet(wsDataCancelled);
+                const colWidthsCancelled = [
+                    { wch: 6 }, { wch: 30 }, { wch: 18 }, { wch: 15 }, { wch: 18 },
+                    { wch: 18 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 15 }
+                ];
+                wsCancelled['!cols'] = colWidthsCancelled;
+                wsCancelled['!merges'] = [
+                    { s: { r: 0, c: 0 }, e: { r: 0, c: headerWithSTTCancelled.length - 1 } },
+                    { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
+                    { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
+                    { s: { r: 3, c: 4 }, e: { r: 3, c: headerWithSTTCancelled.length - 1 } },
+                    { s: { r: wsDataCancelled.length - 8, c: 1 }, e: { r: wsDataCancelled.length - 8, c: 8 } },
+                    { s: { r: wsDataCancelled.length - 4, c: 7 }, e: { r: wsDataCancelled.length - 4, c: 8 } },
+                    { s: { r: wsDataCancelled.length - 4, c: 9 }, e: { r: wsDataCancelled.length - 4, c: 10 } },
+                    { s: { r: wsDataCancelled.length - 1, c: 7 }, e: { r: wsDataCancelled.length - 1, c: 8 } },
+                    { s: { r: wsDataCancelled.length - 1, c: 9 }, e: { r: wsDataCancelled.length - 1, c: 10 } }
+                ];
+                const headerRowIndexCancelled = 5;
+                const dataStartRowCancelled = 6;
+                const dataEndRowCancelled = dataStartRowCancelled + filteredDataCancelled.length - 1;
+                const summaryRowIndexCancelled = wsDataCancelled.length - 8;
+                const totalColumnsCancelled = headerWithSTTCancelled.length;
+                const totalRowsCancelled = wsDataCancelled.length;
+                for (let row = 0; row < totalRowsCancelled; row++) {
+                    for (let col = 0; col < totalColumnsCancelled; col++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                        if (!wsCancelled[cellAddress]) wsCancelled[cellAddress] = { t: 's', v: '' };
+                        wsCancelled[cellAddress].s = wsCancelled[cellAddress].s || {};
+                        let borderStyle = { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } };
+                        if (row === 0 || row === totalRowsCancelled - 1 || col === 0 || col === totalColumnsCancelled - 1) {
+                            borderStyle = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "medium" }, right: { style: "medium" } };
+                        }
+                        if (row === 0) {
+                            wsCancelled[cellAddress].s = { font: { bold: true, size: 18, color: { rgb: "FFFFFF" }, name: "Times New Roman" }, fill: { fgColor: { rgb: "C44E52" } }, alignment: { horizontal: "center", vertical: "center" }, border: borderStyle };
+                        } else if (row === 2 || row === 3) {
+                            wsCancelled[cellAddress].s = { font: { bold: true, size: 12, name: "Times New Roman" }, alignment: { horizontal: "left", vertical: "center" }, border: borderStyle };
+                        } else if (row === 4) {
+                            wsCancelled[cellAddress].s = { border: borderStyle };
+                        } else if (row === headerRowIndexCancelled) {
+                            wsCancelled[cellAddress].s = { font: { bold: true, size: 12, color: { rgb: "FFFFFF" }, name: "Times New Roman" }, fill: { fgColor: { rgb: "4472C4" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderStyle };
+                        } else if (row >= dataStartRowCancelled && row <= dataEndRowCancelled) {
+                            const isEvenRow = (row - dataStartRowCancelled) % 2 === 0;
+                            wsCancelled[cellAddress].s = { font: { size: 11, name: "Times New Roman" }, fill: { fgColor: { rgb: isEvenRow ? "F8F9FA" : "FFFFFF" } }, alignment: { horizontal: col === 0 ? "center" : (col === 1 || col === 7 ? "left" : "center"), vertical: "center", wrapText: col === 7 }, border: borderStyle };
+                        } else if (row === summaryRowIndexCancelled) {
+                            wsCancelled[cellAddress].s = { font: { bold: true, size: 12, name: "Times New Roman" }, fill: { fgColor: { rgb: "D9E2F3" } }, alignment: { horizontal: "center", vertical: "center" }, border: borderStyle };
+                        } else if (row >= wsDataCancelled.length - 4 && row <= wsDataCancelled.length - 1) {
+                            wsCancelled[cellAddress].s = { font: { bold: true, size: 11, name: "Times New Roman", italic: row === wsDataCancelled.length - 1 }, alignment: { horizontal: "center", vertical: "center" }, border: borderStyle };
+                        } else {
+                            wsCancelled[cellAddress].s = { border: borderStyle };
+                        }
+                    }
+                }
+                wsCancelled['!rows'] = [];
+                wsCancelled['!rows'][0] = { hpx: 30 };
+                wsCancelled['!rows'][headerRowIndexCancelled] = { hpx: 40 };
+                XLSX.utils.book_append_sheet(wb, wsCancelled, 'Danh Sách Dụng Cụ Huỷ');
+
+                // Chuẩn bị dữ liệu cho worksheet "Danh Sách Dụng Cụ Bình Thường"
+                const filteredDataNormal = data.filter(row => !String(row['tinh_trang_dung_cu'] || '').toLowerCase().includes('ng - báo lỗi'));
+                const wsDataNormal = [];
+                
+                // Dòng 1: Tiêu đề chính (merge toàn bộ)
+                const mainTitleNormal = ['DANH SÁCH DỤNG CỤ BÌNH THƯỜNG'];
+                for (let i = 1; i < headers.length + 1; i++) {
+                    mainTitleNormal.push('');
+                }
+                wsDataNormal.push(mainTitleNormal);
+                
+                // Dòng 2: Trống để tạo khoảng cách
+                const emptyRow1Normal = new Array(headers.length + 1).fill('');
+                wsDataNormal.push(emptyRow1Normal);
+                
+                // Dòng 3: Thông tin công ty/đơn vị
+                const companyInfoNormal = ['Đơn vị: _______________________'];
+                for (let i = 1; i < headers.length + 1; i++) {
+                    companyInfoNormal.push('');
+                }
+                wsDataNormal.push(companyInfoNormal);
+                
+                // Dòng 4: Thông tin ngày tháng
+                const dateInfoNormal = [`Ngày xuất báo cáo: ${dateTimeStr}`];
+                for (let i = 1; i < 4; i++) {
+                    dateInfoNormal.push('');
+                }
+                dateInfoNormal.push(`Tổng số thiết bị bình thường: ${filteredDataNormal.length} (chiếc)`);
+                for (let i = 5; i < headers.length + 1; i++) {
+                    dateInfoNormal.push('');
+                }
+                wsDataNormal.push(dateInfoNormal);
+                
+                // Dòng 5: Trống
+                const emptyRow2Normal = new Array(headers.length + 1).fill('');
+                wsDataNormal.push(emptyRow2Normal);
+                
+                // Dòng 6: Header với STT
+                const headerWithSTTNormal = ['STT', ...headers];
+                wsDataNormal.push(headerWithSTTNormal);
+                
+                // Thêm dữ liệu với STT cho dụng cụ bình thường
+                filteredDataNormal.forEach((row, index) => {
+                    const rowData = [index + 1];
+                    DISPLAY_FIELDS.forEach(field => {
+                        let value = row[field] || '';
+                        if (field.includes('ngay') && value) {
+                            try {
+                                const date = new Date(value);
+                                if (!isNaN(date.getTime())) {
+                                    value = date.toLocaleDateString('vi-VN');
+                                }
+                            } catch (e) {}
+                        }
+                        if ((field.includes('sl_') || field.includes('so_')) && value && !isNaN(value)) {
+                            value = Number(value).toLocaleString('vi-VN');
+                        }
+                        rowData.push(value);
+                    });
+                    wsDataNormal.push(rowData);
+                });
+                
+                // Thêm dòng tổng kết
+                const emptyRow3Normal = new Array(headerWithSTTNormal.length).fill('');
+                wsDataNormal.push(emptyRow3Normal);
+                const summaryRowNormal = ['', 'TỔNG CỘNG:', '', '', '', '', '', '', '', `${filteredDataNormal.length} thiết bị`];
+                wsDataNormal.push(summaryRowNormal);
+                
+                // Thêm chữ ký
+                const emptyRow4Normal = new Array(headerWithSTTNormal.length).fill('');
+                wsDataNormal.push(emptyRow4Normal);
+                wsDataNormal.push(emptyRow4Normal);
+                const signatureRow1Normal = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Thủ trưởng đơn vị'];
+                wsDataNormal.push(signatureRow1Normal);
+                const emptyRow5Normal = new Array(headerWithSTTNormal.length).fill('');
+                wsDataNormal.push(emptyRow5Normal);
+                wsDataNormal.push(emptyRow5Normal);
+                wsDataNormal.push(emptyRow5Normal);
+                const signatureRow2Normal = ['', '', '', '', '', '', '', '(Ký, họ tên)', '', '(Ký, họ tên, đóng dấu)'];
+                wsDataNormal.push(signatureRow2Normal);
+                
+                // Tạo worksheet "Danh Sách Dụng Cụ Bình Thường"
+                const wsNormal = XLSX.utils.aoa_to_sheet(wsDataNormal);
+                const colWidthsNormal = [
+                    { wch: 6 }, { wch: 30 }, { wch: 18 }, { wch: 15 }, { wch: 18 },
+                    { wch: 18 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 15 }
+                ];
+                wsNormal['!cols'] = colWidthsNormal;
+                wsNormal['!merges'] = [
+                    { s: { r: 0, c: 0 }, e: { r: 0, c: headerWithSTTNormal.length - 1 } },
+                    { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
+                    { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
+                    { s: { r: 3, c: 4 }, e: { r: 3, c: headerWithSTTNormal.length - 1 } },
+                    { s: { r: wsDataNormal.length - 8, c: 1 }, e: { r: wsDataNormal.length - 8, c: 8 } },
+                    { s: { r: wsDataNormal.length - 4, c: 7 }, e: { r: wsDataNormal.length - 4, c: 8 } },
+                    { s: { r: wsDataNormal.length - 4, c: 9 }, e: { r: wsDataNormal.length - 4, c: 10 } },
+                    { s: { r: wsDataNormal.length - 1, c: 7 }, e: { r: wsDataNormal.length - 1, c: 8 } },
+                    { s: { r: wsDataNormal.length - 1, c: 9 }, e: { r: wsDataNormal.length - 1, c: 10 } }
+                ];
+                const headerRowIndexNormal = 5;
+                const dataStartRowNormal = 6;
+                const dataEndRowNormal = dataStartRowNormal + filteredDataNormal.length - 1;
+                const summaryRowIndexNormal = wsDataNormal.length - 8;
+                const totalColumnsNormal = headerWithSTTNormal.length;
+                const totalRowsNormal = wsDataNormal.length;
+                for (let row = 0; row < totalRowsNormal; row++) {
+                    for (let col = 0; col < totalColumnsNormal; col++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                        if (!wsNormal[cellAddress]) wsNormal[cellAddress] = { t: 's', v: '' };
+                        wsNormal[cellAddress].s = wsNormal[cellAddress].s || {};
+                        let borderStyle = { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } };
+                        if (row === 0 || row === totalRowsNormal - 1 || col === 0 || col === totalColumnsNormal - 1) {
+                            borderStyle = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "medium" }, right: { style: "medium" } };
+                        }
+                        if (row === 0) {
+                            wsNormal[cellAddress].s = { font: { bold: true, size: 18, color: { rgb: "FFFFFF" }, name: "Times New Roman" }, fill: { fgColor: { rgb: "4CAF50" } }, alignment: { horizontal: "center", vertical: "center" }, border: borderStyle };
+                        } else if (row === 2 || row === 3) {
+                            wsNormal[cellAddress].s = { font: { bold: true, size: 12, name: "Times New Roman" }, alignment: { horizontal: "left", vertical: "center" }, border: borderStyle };
+                        } else if (row === 4) {
+                            wsNormal[cellAddress].s = { border: borderStyle };
+                        } else if (row === headerRowIndexNormal) {
+                            wsNormal[cellAddress].s = { font: { bold: true, size: 12, color: { rgb: "FFFFFF" }, name: "Times New Roman" }, fill: { fgColor: { rgb: "4472C4" } }, alignment: { horizontal: "center", vertical: "center", wrapText: true }, border: borderStyle };
+                        } else if (row >= dataStartRowNormal && row <= dataEndRowNormal) {
+                            const isEvenRow = (row - dataStartRowNormal) % 2 === 0;
+                            wsNormal[cellAddress].s = { font: { size: 11, name: "Times New Roman" }, fill: { fgColor: { rgb: isEvenRow ? "F8F9FA" : "FFFFFF" } }, alignment: { horizontal: col === 0 ? "center" : (col === 1 || col === 7 ? "left" : "center"), vertical: "center", wrapText: col === 7 }, border: borderStyle };
+                        } else if (row === summaryRowIndexNormal) {
+                            wsNormal[cellAddress].s = { font: { bold: true, size: 12, name: "Times New Roman" }, fill: { fgColor: { rgb: "D9E2F3" } }, alignment: { horizontal: "center", vertical: "center" }, border: borderStyle };
+                        } else if (row >= wsDataNormal.length - 4 && row <= wsDataNormal.length - 1) {
+                            wsNormal[cellAddress].s = { font: { bold: true, size: 11, name: "Times New Roman", italic: row === wsDataNormal.length - 1 }, alignment: { horizontal: "center", vertical: "center" }, border: borderStyle };
+                        } else {
+                            wsNormal[cellAddress].s = { border: borderStyle };
+                        }
+                    }
+                }
+                wsNormal['!rows'] = [];
+                wsNormal['!rows'][0] = { hpx: 30 };
+                wsNormal['!rows'][headerRowIndexNormal] = { hpx: 40 };
+                XLSX.utils.book_append_sheet(wb, wsNormal, 'Danh Sách Dụng Cụ Bình Thường');
+
                 // Tạo tên file đẹp hơn
-                const now = new Date('2025-07-28T12:49:00+07:00');
+                const now = new Date('2025-07-28T13:39:00+07:00');
                 const dateStr = now.toLocaleDateString('vi-VN').replace(/\//g, '-');
                 const timeStr = now.toLocaleTimeString('vi-VN', {hour12: false}).replace(/:/g, '-');
-                const filename = `Báo cáo dụng cụ ${dateStr}_${timeStr}.xlsx`;
+                const filename = `BaoCao_DungCu_${dateStr}_${timeStr}.xlsx`;
                 
                 // Xuất file
                 XLSX.writeFile(wb, filename);
                 
                 // Log để debug
-                console.log(`Đã xuất file: ${filename} với ${data.length} bản ghi`);
+                console.log(`Đã xuất file: ${filename} với ${data.length} bản ghi (bao gồm ${filteredDataCancelled.length} bản ghi lỗi và ${filteredDataNormal.length} bản ghi bình thường)`);
                 
             } catch (error) {
                 console.error('Lỗi xuất Excel:', error);
