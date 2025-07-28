@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xuất dữ liệu AppSheet ra Excel</title>
+    <title>Báo cáo quản lý dụng cụ</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
@@ -169,7 +169,6 @@
             font-style: italic;
         }
 
-        /* Pagination and row selection styles */
         .pagination-controls {
             margin: 20px 0;
             text-align: center;
@@ -208,7 +207,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Xuất Dữ Liệu Dụng Cụ</h1>
+        <h1>Xuất Dữ Liệu Dụng Cụ</h1>
         
         <div class="button-group">
             <button onclick="fetchAndExportData()" id="exportBtn">
@@ -238,7 +237,7 @@
         const ACCESS_KEY = 'V2-6wqzK-qw3K3-bMSkd-ikr4H-pz5SG-02Xzy-IumRs-6oMzl';
         const TABLE_NAME = 'dung_cu';
         
-        // Danh sách các trường cần lấy từ API (đầy đủ)
+        // Danh sách các trường cần lấy từ API
         const API_FIELDS = [
             'id', 'ten_dung_cu', 'chung_loai', 'dung_cu_dien_tu_co', 'so_series',
             'ngay_nhan_dung_cu', 'tinh_trang_dung_cu', 'ghi_chu', 'noi_quan_ly',
@@ -251,14 +250,14 @@
         const DISPLAY_FIELDS = [
             'ten_dung_cu', 'chung_loai', 'dung_cu_dien_tu_co', 'so_series',
             'ngay_nhan_dung_cu', 'tinh_trang_dung_cu', 'ghi_chu', 'noi_quan_ly',
-            'vi_tri'
+            'vi_tri', 'sl_ok', 'sl_ng'
         ];
 
         // Tên hiển thị tiếng Việt cho các cột
         const DISPLAY_HEADERS = [
             'Tên Dụng Cụ', 'Chủng Loại', 'Dụng Cụ Điện Tử', 'Số Series',
             'Ngày Nhận Dụng Cụ', 'Tình Trạng Dụng Cụ', 'Ghi Chú', 'Nơi Quản Lý',
-            'Vị Trí'
+            'Vị Trí', 'Số Lượng OK', 'Số Lượng NG'
         ];
 
         let currentData = null;
@@ -266,16 +265,23 @@
         let rowsPerPage = 10;
         let currentPage = 1;
 
+        // Hàm sắp xếp dữ liệu theo tên dụng cụ
+        function sortDataByTenDungCu(data) {
+            return data.sort((a, b) => {
+                const nameA = (a.ten_dung_cu || '').toLowerCase().trim();
+                const nameB = (b.ten_dung_cu || '').toLowerCase().trim();
+                return nameA.localeCompare(nameB, 'vi', { numeric: true });
+            });
+        }
+
         async function fetchAndExportData() {
             const statusDiv = document.getElementById('status');
             const exportBtn = document.getElementById('exportBtn');
             
-            // Hiển thị trạng thái loading
             statusDiv.innerHTML = '<div class="status loading">🔄 Đang kết nối với AppSheet API...</div>';
             exportBtn.disabled = true;
 
             try {
-                // Gọi AppSheet API
                 const response = await fetch(`https://api.appsheet.com/api/v2/apps/${APP_ID}/tables/${TABLE_NAME}/Action`, {
                     method: 'POST',
                     headers: {
@@ -299,22 +305,16 @@
                     throw new Error('Dữ liệu trả về không hợp lệ');
                 }
 
-                currentData = data;
-                filteredData = data;
+                const sortedData = sortDataByTenDungCu(data);
+                currentData = sortedData;
+                filteredData = sortedData;
                 
-                // Hiển thị thông báo ngắn gọn
-                statusDiv.innerHTML = `<div class="status success">✅ Đã tải ${data.length} bản ghi từ AppSheet</div>`;
-                
-                // Hiển thị search box
+                statusDiv.innerHTML = `<div class="status success">✅ Đã tải ${sortedData.length} bản ghi từ AppSheet (đã sắp xếp theo tên)</div>`;
                 document.getElementById('searchContainer').style.display = 'block';
+                showDataPreview(sortedData);
                 
-                // Hiển thị preview dữ liệu
-                showDataPreview(data);
-                
-                // Tự động xuất Excel sau 800ms
                 setTimeout(() => {
-                    exportToExcel(data);
-                    // Xóa thông báo sau khi xuất xong
+                    exportToExcel(sortedData);
                     setTimeout(() => {
                         statusDiv.innerHTML = '';
                     }, 1500);
@@ -336,8 +336,7 @@
                 return;
             }
 
-            // Hiển thị ngày giờ hiện tại
-            const currentDateTime = new Date('2025-07-28T13:39:00+07:00');
+            const currentDateTime = new Date();
             const dateTimeStr = currentDateTime.toLocaleString('vi-VN', { 
                 day: '2-digit', 
                 month: '2-digit', 
@@ -346,9 +345,8 @@
                 minute: '2-digit', 
                 hour12: false 
             }).replace(', ', ' ');
-            let tableHtml = `<p style="text-align: center; margin-bottom: 15px; color: #666; font-size: 14px;">Cập nhật lúc: ${dateTimeStr}</p>`;
+            let tableHtml = `<p style="text-align: center; margin-bottom: 15px; color: #666; font-size: 14px;">Cập nhật lúc: ${dateTimeStr} (đã sắp xếp theo tên dụng cụ)</p>`;
 
-            // Thêm điều khiển số dòng và phân trang
             tableHtml += `
                 <div class="pagination-controls">
                     <select class="rows-per-page" onchange="changeRowsPerPage(this.value)">
@@ -363,7 +361,6 @@
                 </div>
             `;
 
-            // Tính toán dữ liệu hiển thị
             const startIndex = (currentPage - 1) * rowsPerPage;
             const endIndex = Math.min(startIndex + rowsPerPage, data.length);
             const previewData = data.slice(startIndex, endIndex);
@@ -378,7 +375,6 @@
                 tableHtml += '<tr>';
                 DISPLAY_FIELDS.forEach(field => {
                     const value = row[field] || '';
-                    // Format ngày tháng cho các cột ngày
                     let displayValue = String(value);
                     if (field.includes('ngay') && value) {
                         try {
@@ -386,24 +382,17 @@
                             if (!isNaN(date.getTime())) {
                                 displayValue = date.toLocaleDateString('vi-VN');
                             }
-                        } catch (e) {
-                            // Giữ nguyên giá trị nếu không parse được
-                        }
+                        } catch (e) {}
                     }
-                    // Conditional text color for Tình Trạng Dụng Cụ
+                    if ((field === 'sl_ok' || field === 'sl_ng') && value && !isNaN(value)) {
+                        displayValue = Number(value).toLocaleString('vi-VN');
+                    }
                     let textStyle = '';
                     if (field === 'tinh_trang_dung_cu') {
                         if (displayValue.toLowerCase().includes('bình thường')) textStyle = 'color: green;';
                         else if (displayValue.toLowerCase().includes('ng - báo lỗi')) textStyle = 'color: red;';
                     }
-                    // Remove background class for Tình Trạng Dụng Cụ column
-                    let statusClass = '';
-                    if (field !== 'tinh_trang_dung_cu') {
-                        if (field === 'tinh_trang_dung_cu' && displayValue.toLowerCase().includes('bình thường')) statusClass = 'status-good';
-                        else if (field === 'tinh_trang_dung_cu' && displayValue.toLowerCase().includes('ng - báo lỗi')) statusClass = 'status-bad';
-                        else if (field === 'tinh_trang_dung_cu') statusClass = 'status-unknown';
-                    }
-                    tableHtml += `<td class="${statusClass}" style="${textStyle}">${displayValue.substring(0, 30)}${displayValue.length > 30 ? '...' : ''}</td>`;
+                    tableHtml += `<td style="${textStyle}">${displayValue.substring(0, 30)}${displayValue.length > 30 ? '...' : ''}</td>`;
                 });
                 tableHtml += '</tr>';
             });
@@ -416,7 +405,7 @@
 
         function changeRowsPerPage(value) {
             rowsPerPage = parseInt(value);
-            currentPage = 1; // Reset to first page when changing rows per page
+            currentPage = 1;
             if (filteredData) showDataPreview(filteredData);
             else if (currentData) showDataPreview(currentData);
         }
@@ -442,66 +431,39 @@
             const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
             const searchInfo = document.getElementById('searchInfo');
             
-            if (!currentData) {
-                return;
-            }
+            if (!currentData) return;
             
             if (searchTerm === '') {
-                // Không có từ khóa tìm kiếm, hiển thị tất cả
                 filteredData = currentData;
                 searchInfo.innerHTML = '';
             } else {
-                // Tìm kiếm trong các trường hiển thị
                 filteredData = currentData.filter(row => {
                     return DISPLAY_FIELDS.some(field => {
                         const value = String(row[field] || '').toLowerCase();
                         return value.includes(searchTerm);
                     });
                 });
-                
-                // Hiển thị thông tin tìm kiếm
-                searchInfo.innerHTML = `Tìm thấy <strong>${filteredData.length}</strong> kết quả cho "<strong>${searchTerm}</strong>"`;
+                filteredData = sortDataByTenDungCu(filteredData);
+                searchInfo.innerHTML = `Tìm thấy <strong>${filteredData.length}</strong> kết quả cho "<strong>${searchTerm}</strong>" (đã sắp xếp theo tên)`;
             }
             
-            currentPage = 1; // Reset to first page after search
+            currentPage = 1;
             showDataPreview(filteredData);
         }
 
         function exportToExcel(data) {
             try {
-                // Tạo workbook mới
                 const wb = XLSX.utils.book_new();
                 
-                // Tạo header với tên tiếng Việt
                 const headers = [
                     'Tên Dụng Cụ', 'Chủng Loại', 'Dụng Cụ Điện Tử', 'Số Series',
                     'Ngày Nhận Dụng Cụ', 'Tình Trạng Dụng Cụ', 'Ghi Chú', 'Nơi Quản Lý',
-                    'Vị Trí'
+                    'Vị Trí', 'Số Lượng OK', 'Số Lượng NG'
                 ];
                 
-                // Chuẩn bị dữ liệu cho worksheet "Danh Sách Dụng Cụ"
+                // Worksheet "Danh Sách Dụng Cụ"
                 const wsDataAll = [];
-                
-                // Dòng 1: Tiêu đề chính (merge toàn bộ)
-                const mainTitleAll = ['DANH SÁCH QUẢN LÝ DỤNG CỤ THIẾT BỊ'];
-                for (let i = 1; i < headers.length + 1; i++) {
-                    mainTitleAll.push('');
-                }
-                wsDataAll.push(mainTitleAll);
-                
-                // Dòng 2: Trống để tạo khoảng cách
-                const emptyRow1All = new Array(headers.length + 1).fill('');
-                wsDataAll.push(emptyRow1All);
-                
-                // Dòng 3: Thông tin công ty/đơn vị
-                const companyInfoAll = ['Đơn vị: _______________________'];
-                for (let i = 1; i < headers.length + 1; i++) {
-                    companyInfoAll.push('');
-                }
-                wsDataAll.push(companyInfoAll);
-                
-                // Dòng 4: Thông tin ngày tháng
-                const currentDateTime = new Date('2025-07-28T13:39:00+07:00');
+                const currentDateTime = new Date();
                 const dateTimeStr = currentDateTime.toLocaleString('vi-VN', { 
                     day: '2-digit', 
                     month: '2-digit', 
@@ -510,25 +472,30 @@
                     minute: '2-digit', 
                     hour12: false 
                 }).replace(', ', ' ');
+                
+                const mainTitleAll = ['DANH SÁCH QUẢN LÝ DỤNG CỤ THIẾT BỊ (Sắp xếp theo tên dụng cụ)'];
+                for (let i = 1; i < headers.length + 1; i++) mainTitleAll.push('');
+                wsDataAll.push(mainTitleAll);
+                
+                const emptyRow1All = new Array(headers.length + 1).fill('');
+                wsDataAll.push(emptyRow1All);
+                
+                const companyInfoAll = ['Đơn vị: _______________________'];
+                for (let i = 1; i < headers.length + 1; i++) companyInfoAll.push('');
+                wsDataAll.push(companyInfoAll);
+                
                 const dateInfoAll = [`Ngày xuất báo cáo: ${dateTimeStr}`];
-                for (let i = 1; i < 4; i++) {
-                    dateInfoAll.push('');
-                }
+                for (let i = 1; i < 4; i++) dateInfoAll.push('');
                 dateInfoAll.push(`Tổng số thiết bị: ${data.length} (chiếc)`);
-                for (let i = 5; i < headers.length + 1; i++) {
-                    dateInfoAll.push('');
-                }
+                for (let i = 5; i < headers.length + 1; i++) dateInfoAll.push('');
                 wsDataAll.push(dateInfoAll);
                 
-                // Dòng 5: Trống
                 const emptyRow2All = new Array(headers.length + 1).fill('');
                 wsDataAll.push(emptyRow2All);
                 
-                // Dòng 6: Header với STT
                 const headerWithSTTAll = ['STT', ...headers];
                 wsDataAll.push(headerWithSTTAll);
                 
-                // Thêm dữ liệu với STT cho tất cả
                 data.forEach((row, index) => {
                     const rowData = [index + 1];
                     DISPLAY_FIELDS.forEach(field => {
@@ -541,7 +508,7 @@
                                 }
                             } catch (e) {}
                         }
-                        if ((field.includes('sl_') || field.includes('so_')) && value && !isNaN(value)) {
+                        if ((field === 'sl_ok' || field === 'sl_ng') && value && !isNaN(value)) {
                             value = Number(value).toLocaleString('vi-VN');
                         }
                         rowData.push(value);
@@ -549,30 +516,27 @@
                     wsDataAll.push(rowData);
                 });
                 
-                // Thêm dòng tổng kết
                 const emptyRow3All = new Array(headerWithSTTAll.length).fill('');
                 wsDataAll.push(emptyRow3All);
-                const summaryRowAll = ['', 'TỔNG CỘNG:', '', '', '', '', '', '', '', `${data.length} thiết bị`];
+                const summaryRowAll = ['', 'TỔNG CỘNG:', '', '', '', '', '', '', '', '', `${data.length} thiết bị`];
                 wsDataAll.push(summaryRowAll);
                 
-                // Thêm chữ ký
                 const emptyRow4All = new Array(headerWithSTTAll.length).fill('');
                 wsDataAll.push(emptyRow4All);
                 wsDataAll.push(emptyRow4All);
-                const signatureRow1All = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Thủ trưởng đơn vị'];
+                const signatureRow1All = ['', '', '', '', '', '', '', '', 'Người lập biểu', '', 'Xác nhận của TBP'];
                 wsDataAll.push(signatureRow1All);
                 const emptyRow5All = new Array(headerWithSTTAll.length).fill('');
                 wsDataAll.push(emptyRow5All);
                 wsDataAll.push(emptyRow5All);
                 wsDataAll.push(emptyRow5All);
-                const signatureRow2All = ['', '', '', '', '', '', '', '(Ký, họ tên)', '', '(Ký, họ tên, đóng dấu)'];
+                const signatureRow2All = ['', '', '', '', '', '', '', '', '(Ký và ghi rõ họ tên)', '', '(Ký và ghi rõ họ tên)'];
                 wsDataAll.push(signatureRow2All);
                 
-                // Tạo worksheet "Danh Sách Dụng Cụ"
                 const wsAll = XLSX.utils.aoa_to_sheet(wsDataAll);
                 const colWidthsAll = [
                     { wch: 6 }, { wch: 30 }, { wch: 18 }, { wch: 15 }, { wch: 18 },
-                    { wch: 18 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 15 }
+                    { wch: 18 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 15 }, { wch: 15 }
                 ];
                 wsAll['!cols'] = colWidthsAll;
                 wsAll['!merges'] = [
@@ -580,11 +544,11 @@
                     { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
                     { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
                     { s: { r: 3, c: 4 }, e: { r: 3, c: headerWithSTTAll.length - 1 } },
-                    { s: { r: wsDataAll.length - 8, c: 1 }, e: { r: wsDataAll.length - 8, c: 8 } },
-                    { s: { r: wsDataAll.length - 4, c: 7 }, e: { r: wsDataAll.length - 4, c: 8 } },
-                    { s: { r: wsDataAll.length - 4, c: 9 }, e: { r: wsDataAll.length - 4, c: 10 } },
-                    { s: { r: wsDataAll.length - 1, c: 7 }, e: { r: wsDataAll.length - 1, c: 8 } },
-                    { s: { r: wsDataAll.length - 1, c: 9 }, e: { r: wsDataAll.length - 1, c: 10 } }
+                    { s: { r: wsDataAll.length - 8, c: 1 }, e: { r: wsDataAll.length - 8, c: 9 } },
+                    { s: { r: wsDataAll.length - 4, c: 8 }, e: { r: wsDataAll.length - 4, c: 9 } },
+                    { s: { r: wsDataAll.length - 4, c: 10 }, e: { r: wsDataAll.length - 4, c: 11 } },
+                    { s: { r: wsDataAll.length - 1, c: 8 }, e: { r: wsDataAll.length - 1, c: 9 } },
+                    { s: { r: wsDataAll.length - 1, c: 10 }, e: { r: wsDataAll.length - 1, c: 11 } }
                 ];
                 const headerRowIndexAll = 5;
                 const dataStartRowAll = 6;
@@ -626,49 +590,35 @@
                 wsAll['!rows'][headerRowIndexAll] = { hpx: 40 };
                 XLSX.utils.book_append_sheet(wb, wsAll, 'Danh Sách Dụng Cụ');
 
-                // Chuẩn bị dữ liệu cho worksheet "Danh Sách Dụng Cụ Huỷ"
+                // Worksheet "Danh Sách Dụng Cụ Huỷ"
                 const filteredDataCancelled = data.filter(row => String(row['tinh_trang_dung_cu'] || '').toLowerCase().includes('ng - báo lỗi'));
+                const sortedDataCancelled = sortDataByTenDungCu(filteredDataCancelled);
                 const wsDataCancelled = [];
                 
-                // Dòng 1: Tiêu đề chính (merge toàn bộ)
-                const mainTitleCancelled = ['DANH SÁCH DỤNG CỤ HUỶ'];
-                for (let i = 1; i < headers.length + 1; i++) {
-                    mainTitleCancelled.push('');
-                }
+                const mainTitleCancelled = ['DANH SÁCH DỤNG CỤ HUỶ (Sắp xếp theo tên dụng cụ)'];
+                for (let i = 1; i < headers.length + 1; i++) mainTitleCancelled.push('');
                 wsDataCancelled.push(mainTitleCancelled);
                 
-                // Dòng 2: Trống để tạo khoảng cách
                 const emptyRow1Cancelled = new Array(headers.length + 1).fill('');
                 wsDataCancelled.push(emptyRow1Cancelled);
                 
-                // Dòng 3: Thông tin công ty/đơn vị
                 const companyInfoCancelled = ['Đơn vị: _______________________'];
-                for (let i = 1; i < headers.length + 1; i++) {
-                    companyInfoCancelled.push('');
-                }
+                for (let i = 1; i < headers.length + 1; i++) companyInfoCancelled.push('');
                 wsDataCancelled.push(companyInfoCancelled);
                 
-                // Dòng 4: Thông tin ngày tháng
                 const dateInfoCancelled = [`Ngày xuất báo cáo: ${dateTimeStr}`];
-                for (let i = 1; i < 4; i++) {
-                    dateInfoCancelled.push('');
-                }
-                dateInfoCancelled.push(`Tổng số thiết bị lỗi: ${filteredDataCancelled.length} (chiếc)`);
-                for (let i = 5; i < headers.length + 1; i++) {
-                    dateInfoCancelled.push('');
-                }
+                for (let i = 1; i < 4; i++) dateInfoCancelled.push('');
+                dateInfoCancelled.push(`Tổng số thiết bị lỗi: ${sortedDataCancelled.length} (chiếc)`);
+                for (let i = 5; i < headers.length + 1; i++) dateInfoCancelled.push('');
                 wsDataCancelled.push(dateInfoCancelled);
                 
-                // Dòng 5: Trống
                 const emptyRow2Cancelled = new Array(headers.length + 1).fill('');
                 wsDataCancelled.push(emptyRow2Cancelled);
                 
-                // Dòng 6: Header với STT
                 const headerWithSTTCancelled = ['STT', ...headers];
                 wsDataCancelled.push(headerWithSTTCancelled);
                 
-                // Thêm dữ liệu với STT cho dụng cụ lỗi
-                filteredDataCancelled.forEach((row, index) => {
+                sortedDataCancelled.forEach((row, index) => {
                     const rowData = [index + 1];
                     DISPLAY_FIELDS.forEach(field => {
                         let value = row[field] || '';
@@ -680,7 +630,7 @@
                                 }
                             } catch (e) {}
                         }
-                        if ((field.includes('sl_') || field.includes('so_')) && value && !isNaN(value)) {
+                        if ((field === 'sl_ok' || field === 'sl_ng') && value && !isNaN(value)) {
                             value = Number(value).toLocaleString('vi-VN');
                         }
                         rowData.push(value);
@@ -688,30 +638,27 @@
                     wsDataCancelled.push(rowData);
                 });
                 
-                // Thêm dòng tổng kết
                 const emptyRow3Cancelled = new Array(headerWithSTTCancelled.length).fill('');
                 wsDataCancelled.push(emptyRow3Cancelled);
-                const summaryRowCancelled = ['', 'TỔNG CỘNG:', '', '', '', '', '', '', '', `${filteredDataCancelled.length} thiết bị`];
+                const summaryRowCancelled = ['', 'TỔNG CỘNG:', '', '', '', '', '', '', '', '', `${sortedDataCancelled.length} thiết bị`];
                 wsDataCancelled.push(summaryRowCancelled);
                 
-                // Thêm chữ ký
                 const emptyRow4Cancelled = new Array(headerWithSTTCancelled.length).fill('');
                 wsDataCancelled.push(emptyRow4Cancelled);
                 wsDataCancelled.push(emptyRow4Cancelled);
-                const signatureRow1Cancelled = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Thủ trưởng đơn vị'];
+                const signatureRow1Cancelled = ['', '', '', '', '', '', '', '', 'Người lập biểu', '', 'Xác nhận của TBP'];
                 wsDataCancelled.push(signatureRow1Cancelled);
                 const emptyRow5Cancelled = new Array(headerWithSTTCancelled.length).fill('');
                 wsDataCancelled.push(emptyRow5Cancelled);
                 wsDataCancelled.push(emptyRow5Cancelled);
                 wsDataCancelled.push(emptyRow5Cancelled);
-                const signatureRow2Cancelled = ['', '', '', '', '', '', '', '(Ký, họ tên)', '', '(Ký, họ tên, đóng dấu)'];
+                const signatureRow2Cancelled = ['', '', '', '', '', '', '', '', '(Ký và ghi rõ họ tên)', '', '(Ký và ghi rõ họ tên)'];
                 wsDataCancelled.push(signatureRow2Cancelled);
                 
-                // Tạo worksheet "Danh Sách Dụng Cụ Huỷ"
                 const wsCancelled = XLSX.utils.aoa_to_sheet(wsDataCancelled);
                 const colWidthsCancelled = [
                     { wch: 6 }, { wch: 30 }, { wch: 18 }, { wch: 15 }, { wch: 18 },
-                    { wch: 18 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 15 }
+                    { wch: 18 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 15 }, { wch: 15 }
                 ];
                 wsCancelled['!cols'] = colWidthsCancelled;
                 wsCancelled['!merges'] = [
@@ -719,15 +666,15 @@
                     { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
                     { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
                     { s: { r: 3, c: 4 }, e: { r: 3, c: headerWithSTTCancelled.length - 1 } },
-                    { s: { r: wsDataCancelled.length - 8, c: 1 }, e: { r: wsDataCancelled.length - 8, c: 8 } },
-                    { s: { r: wsDataCancelled.length - 4, c: 7 }, e: { r: wsDataCancelled.length - 4, c: 8 } },
-                    { s: { r: wsDataCancelled.length - 4, c: 9 }, e: { r: wsDataCancelled.length - 4, c: 10 } },
-                    { s: { r: wsDataCancelled.length - 1, c: 7 }, e: { r: wsDataCancelled.length - 1, c: 8 } },
-                    { s: { r: wsDataCancelled.length - 1, c: 9 }, e: { r: wsDataCancelled.length - 1, c: 10 } }
+                    { s: { r: wsDataCancelled.length - 8, c: 1 }, e: { r: wsDataCancelled.length - 8, c: 9 } },
+                    { s: { r: wsDataCancelled.length - 4, c: 8 }, e: { r: wsDataCancelled.length - 4, c: 9 } },
+                    { s: { r: wsDataCancelled.length - 4, c: 10 }, e: { r: wsDataCancelled.length - 4, c: 11 } },
+                    { s: { r: wsDataCancelled.length - 1, c: 8 }, e: { r: wsDataCancelled.length - 1, c: 9 } },
+                    { s: { r: wsDataCancelled.length - 1, c: 10 }, e: { r: wsDataCancelled.length - 1, c: 11 } }
                 ];
                 const headerRowIndexCancelled = 5;
                 const dataStartRowCancelled = 6;
-                const dataEndRowCancelled = dataStartRowCancelled + filteredDataCancelled.length - 1;
+                const dataEndRowCancelled = dataStartRowCancelled + sortedDataCancelled.length - 1;
                 const summaryRowIndexCancelled = wsDataCancelled.length - 8;
                 const totalColumnsCancelled = headerWithSTTCancelled.length;
                 const totalRowsCancelled = wsDataCancelled.length;
@@ -765,49 +712,35 @@
                 wsCancelled['!rows'][headerRowIndexCancelled] = { hpx: 40 };
                 XLSX.utils.book_append_sheet(wb, wsCancelled, 'Danh Sách Dụng Cụ Huỷ');
 
-                // Chuẩn bị dữ liệu cho worksheet "Danh Sách Dụng Cụ Bình Thường"
+                // Worksheet "Danh Sách Dụng Cụ Bình Thường"
                 const filteredDataNormal = data.filter(row => !String(row['tinh_trang_dung_cu'] || '').toLowerCase().includes('ng - báo lỗi'));
+                const sortedDataNormal = sortDataByTenDungCu(filteredDataNormal);
                 const wsDataNormal = [];
                 
-                // Dòng 1: Tiêu đề chính (merge toàn bộ)
-                const mainTitleNormal = ['DANH SÁCH DỤNG CỤ BÌNH THƯỜNG'];
-                for (let i = 1; i < headers.length + 1; i++) {
-                    mainTitleNormal.push('');
-                }
+                const mainTitleNormal = ['DANH SÁCH DỤNG CỤ BÌNH THƯỜNG (Sắp xếp theo tên dụng cụ)'];
+                for (let i = 1; i < headers.length + 1; i++) mainTitleNormal.push('');
                 wsDataNormal.push(mainTitleNormal);
                 
-                // Dòng 2: Trống để tạo khoảng cách
                 const emptyRow1Normal = new Array(headers.length + 1).fill('');
                 wsDataNormal.push(emptyRow1Normal);
                 
-                // Dòng 3: Thông tin công ty/đơn vị
                 const companyInfoNormal = ['Đơn vị: _______________________'];
-                for (let i = 1; i < headers.length + 1; i++) {
-                    companyInfoNormal.push('');
-                }
+                for (let i = 1; i < headers.length + 1; i++) companyInfoNormal.push('');
                 wsDataNormal.push(companyInfoNormal);
                 
-                // Dòng 4: Thông tin ngày tháng
                 const dateInfoNormal = [`Ngày xuất báo cáo: ${dateTimeStr}`];
-                for (let i = 1; i < 4; i++) {
-                    dateInfoNormal.push('');
-                }
-                dateInfoNormal.push(`Tổng số thiết bị bình thường: ${filteredDataNormal.length} (chiếc)`);
-                for (let i = 5; i < headers.length + 1; i++) {
-                    dateInfoNormal.push('');
-                }
+                for (let i = 1; i < 4; i++) dateInfoNormal.push('');
+                dateInfoNormal.push(`Tổng số thiết bị bình thường: ${sortedDataNormal.length} (chiếc)`);
+                for (let i = 5; i < headers.length + 1; i++) dateInfoNormal.push('');
                 wsDataNormal.push(dateInfoNormal);
                 
-                // Dòng 5: Trống
                 const emptyRow2Normal = new Array(headers.length + 1).fill('');
                 wsDataNormal.push(emptyRow2Normal);
                 
-                // Dòng 6: Header với STT
                 const headerWithSTTNormal = ['STT', ...headers];
                 wsDataNormal.push(headerWithSTTNormal);
                 
-                // Thêm dữ liệu với STT cho dụng cụ bình thường
-                filteredDataNormal.forEach((row, index) => {
+                sortedDataNormal.forEach((row, index) => {
                     const rowData = [index + 1];
                     DISPLAY_FIELDS.forEach(field => {
                         let value = row[field] || '';
@@ -819,7 +752,7 @@
                                 }
                             } catch (e) {}
                         }
-                        if ((field.includes('sl_') || field.includes('so_')) && value && !isNaN(value)) {
+                        if ((field === 'sl_ok' || field === 'sl_ng') && value && !isNaN(value)) {
                             value = Number(value).toLocaleString('vi-VN');
                         }
                         rowData.push(value);
@@ -827,30 +760,27 @@
                     wsDataNormal.push(rowData);
                 });
                 
-                // Thêm dòng tổng kết
                 const emptyRow3Normal = new Array(headerWithSTTNormal.length).fill('');
                 wsDataNormal.push(emptyRow3Normal);
-                const summaryRowNormal = ['', 'TỔNG CỘNG:', '', '', '', '', '', '', '', `${filteredDataNormal.length} thiết bị`];
+                const summaryRowNormal = ['', 'TỔNG CỘNG:', '', '', '', '', '', '', '', '', `${sortedDataNormal.length} thiết bị`];
                 wsDataNormal.push(summaryRowNormal);
                 
-                // Thêm chữ ký
                 const emptyRow4Normal = new Array(headerWithSTTNormal.length).fill('');
                 wsDataNormal.push(emptyRow4Normal);
                 wsDataNormal.push(emptyRow4Normal);
-                const signatureRow1Normal = ['', '', '', '', '', '', '', 'Người lập biểu', '', 'Thủ trưởng đơn vị'];
+                const signatureRow1Normal = ['', '', '', '', '', '', '', '', 'Người lập biểu', '', 'Xác nhận của TBP'];
                 wsDataNormal.push(signatureRow1Normal);
                 const emptyRow5Normal = new Array(headerWithSTTNormal.length).fill('');
                 wsDataNormal.push(emptyRow5Normal);
                 wsDataNormal.push(emptyRow5Normal);
                 wsDataNormal.push(emptyRow5Normal);
-                const signatureRow2Normal = ['', '', '', '', '', '', '', '(Ký, họ tên)', '', '(Ký, họ tên, đóng dấu)'];
+                const signatureRow2Normal = ['', '', '', '', '', '', '', '', '(Ký và ghi rõ họ tên)', '', '(Ký và ghi rõ họ tên)'];
                 wsDataNormal.push(signatureRow2Normal);
                 
-                // Tạo worksheet "Danh Sách Dụng Cụ Bình Thường"
                 const wsNormal = XLSX.utils.aoa_to_sheet(wsDataNormal);
                 const colWidthsNormal = [
                     { wch: 6 }, { wch: 30 }, { wch: 18 }, { wch: 15 }, { wch: 18 },
-                    { wch: 18 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 15 }
+                    { wch: 18 }, { wch: 20 }, { wch: 35 }, { wch: 20 }, { wch: 15 }, { wch: 15 }
                 ];
                 wsNormal['!cols'] = colWidthsNormal;
                 wsNormal['!merges'] = [
@@ -858,15 +788,15 @@
                     { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
                     { s: { r: 3, c: 0 }, e: { r: 3, c: 3 } },
                     { s: { r: 3, c: 4 }, e: { r: 3, c: headerWithSTTNormal.length - 1 } },
-                    { s: { r: wsDataNormal.length - 8, c: 1 }, e: { r: wsDataNormal.length - 8, c: 8 } },
-                    { s: { r: wsDataNormal.length - 4, c: 7 }, e: { r: wsDataNormal.length - 4, c: 8 } },
-                    { s: { r: wsDataNormal.length - 4, c: 9 }, e: { r: wsDataNormal.length - 4, c: 10 } },
-                    { s: { r: wsDataNormal.length - 1, c: 7 }, e: { r: wsDataNormal.length - 1, c: 8 } },
-                    { s: { r: wsDataNormal.length - 1, c: 9 }, e: { r: wsDataNormal.length - 1, c: 10 } }
+                    { s: { r: wsDataNormal.length - 8, c: 1 }, e: { r: wsDataNormal.length - 8, c: 9 } },
+                    { s: { r: wsDataNormal.length - 4, c: 8 }, e: { r: wsDataNormal.length - 4, c: 9 } },
+                    { s: { r: wsDataNormal.length - 4, c: 10 }, e: { r: wsDataNormal.length - 4, c: 11 } },
+                    { s: { r: wsDataNormal.length - 1, c: 8 }, e: { r: wsDataNormal.length - 1, c: 9 } },
+                    { s: { r: wsDataNormal.length - 1, c: 10 }, e: { r: wsDataNormal.length - 1, c: 11 } }
                 ];
                 const headerRowIndexNormal = 5;
                 const dataStartRowNormal = 6;
-                const dataEndRowNormal = dataStartRowNormal + filteredDataNormal.length - 1;
+                const dataEndRowNormal = dataStartRowNormal + sortedDataNormal.length - 1;
                 const summaryRowIndexNormal = wsDataNormal.length - 8;
                 const totalColumnsNormal = headerWithSTTNormal.length;
                 const totalRowsNormal = wsDataNormal.length;
@@ -876,7 +806,7 @@
                         if (!wsNormal[cellAddress]) wsNormal[cellAddress] = { t: 's', v: '' };
                         wsNormal[cellAddress].s = wsNormal[cellAddress].s || {};
                         let borderStyle = { top: { style: "thin" }, bottom: { style: "thin" }, left: { style: "thin" }, right: { style: "thin" } };
-                        if (row === 0 || row === totalRowsNormal - 1 || col === 0 || col === totalColumnsNormal - 1) {
+                        if (row === 0 || row === totalRowsNormal - 1 || col == 0 || col === totalColumnsNormal - 1) {
                             borderStyle = { top: { style: "medium" }, bottom: { style: "medium" }, left: { style: "medium" }, right: { style: "medium" } };
                         }
                         if (row === 0) {
@@ -904,17 +834,14 @@
                 wsNormal['!rows'][headerRowIndexNormal] = { hpx: 40 };
                 XLSX.utils.book_append_sheet(wb, wsNormal, 'Danh Sách Dụng Cụ Bình Thường');
 
-                // Tạo tên file đẹp hơn
-                const now = new Date('2025-07-28T13:39:00+07:00');
+                const now = new Date();
                 const dateStr = now.toLocaleDateString('vi-VN').replace(/\//g, '-');
                 const timeStr = now.toLocaleTimeString('vi-VN', {hour12: false}).replace(/:/g, '-');
                 const filename = `BaoCao_DungCu_${dateStr}_${timeStr}.xlsx`;
                 
-                // Xuất file
                 XLSX.writeFile(wb, filename);
                 
-                // Log để debug
-                console.log(`Đã xuất file: ${filename} với ${data.length} bản ghi (bao gồm ${filteredDataCancelled.length} bản ghi lỗi và ${filteredDataNormal.length} bản ghi bình thường)`);
+                console.log(`Đã xuất file: ${filename} với ${data.length} bản ghi (bao gồm ${sortedDataCancelled.length} bản ghi lỗi và ${sortedDataNormal.length} bản ghi bình thường) - Tất cả đã được sắp xếp theo tên dụng cụ`);
                 
             } catch (error) {
                 console.error('Lỗi xuất Excel:', error);
@@ -935,9 +862,8 @@
             currentPage = 1;
         }
 
-        // Thêm thông tin hướng dẫn khi trang được tải
         window.onload = function() {
-            console.log('AppSheet to Excel Exporter đã sẵn sàng!');
+            console.log('AppSheet to Excel Exporter đã sẵn sàng! (Có tính năng sắp xếp theo tên dụng cụ và bổ sung cột Số Lượng OK, Số Lượng NG)');
         };
     </script>
 </body>
