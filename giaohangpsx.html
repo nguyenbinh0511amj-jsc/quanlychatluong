@@ -1,43 +1,4 @@
-<script type="text/javascript">
-        var gk_isXlsx = false;
-        var gk_xlsxFileLookup = {};
-        var gk_fileData = {};
-        function filledCell(cell) {
-          return cell !== '' && cell != null;
-        }
-        function loadFileData(filename) {
-        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-            try {
-                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                var firstSheetName = workbook.SheetNames[0];
-                var worksheet = workbook.Sheets[firstSheetName];
-
-                // Convert sheet to JSON to filter blank rows
-                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                // Filter out blank rows (rows where all cells are empty, null, or undefined)
-                var filteredData = jsonData.filter(row => row.some(filledCell));
-
-                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
-                var headerRowIndex = filteredData.findIndex((row, index) =>
-                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                );
-                // Fallback
-                if (headerRowIndex === -1 || headerRowIndex > 25) {
-                  headerRowIndex = 0;
-                }
-
-                // Convert filtered JSON back to CSV
-                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
-                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                return csv;
-            } catch (e) {
-                console.error(e);
-                return "";
-            }
-        }
-        return gk_fileData[filename] || "";
-        }
-        </script><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -46,12 +7,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        /* [Previous CSS remains unchanged] */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: 'Roboto', sans-serif;
             background: linear-gradient(135deg, #f5f7fa, #e0e7ff);
@@ -62,7 +23,6 @@
             padding: 20px;
             overflow-x: hidden;
         }
-
         .container {
             background: #ffffff;
             border-radius: 30px;
@@ -73,12 +33,10 @@
             transition: transform 0.4s ease, box-shadow 0.4s ease;
             overflow: hidden;
         }
-
         .container:hover {
             transform: translateY(-6px);
             box-shadow: 0 25px 70px rgba(0, 0, 0, 0.15);
         }
-
         h1 {
             font-family: 'Lora', serif;
             font-size: 2.8rem;
@@ -93,7 +51,6 @@
             letter-spacing: -0.02em;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
-
         .filter-section {
             background: linear-gradient(135deg, #f9fafb, #eef2f7);
             border-radius: 20px;
@@ -102,11 +59,9 @@
             border-left: 8px solid #818cf8;
             transition: background 0.4s ease, box-shadow 0.4s ease;
         }
-
         .filter-section:hover {
             box-shadow: 0 5px 15px rgba(129, 140, 248, 0.2);
         }
-
         .filter-title {
             font-size: 1.8rem;
             font-weight: 600;
@@ -116,18 +71,15 @@
             align-items: center;
             gap: 12px;
         }
-
         .filter-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 30px;
         }
-
         .form-group {
             display: flex;
             flex-direction: column;
         }
-
         label {
             font-size: 1rem;
             font-weight: 500;
@@ -136,7 +88,6 @@
             letter-spacing: 0.01em;
             transition: color 0.3s ease;
         }
-
         input, select {
             padding: 16px;
             border: 1px solid #e2e8f0;
@@ -145,14 +96,12 @@
             background: #ffffff;
             transition: all 0.4s ease;
         }
-
         input:focus, select:focus {
             outline: none;
             border-color: #818cf8;
             box-shadow: 0 0 0 5px rgba(129, 140, 248, 0.2);
             background: #fafcff;
         }
-
         .button-group {
             display: flex;
             justify-content: center;
@@ -160,7 +109,6 @@
             margin: 45px 0;
             flex-wrap: wrap;
         }
-
         button {
             padding: 18px 35px;
             border: none;
@@ -175,33 +123,27 @@
             min-width: 200px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-
         .btn-primary {
             background: linear-gradient(90deg, #818cf8, #6366f1);
             color: #ffffff;
         }
-
         .btn-secondary {
             background: linear-gradient(90deg, #34d399, #10b981);
             color: #ffffff;
         }
-
         .btn-tertiary {
             background: linear-gradient(90deg, #fbbf24, #f59e0b);
             color: #ffffff;
         }
-
         .btn-clear {
             background: linear-gradient(90deg, #f87171, #ef4444);
             color: #ffffff;
         }
-
         button:hover:not(:disabled) {
             transform: translateY(-5px);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
             filter: brightness(1.15);
         }
-
         button:disabled {
             background: #e5e7eb;
             color: #a0aec0;
@@ -209,7 +151,6 @@
             transform: none;
             box-shadow: none;
         }
-
         .status {
             margin: 30px 0;
             padding: 18px;
@@ -224,25 +165,21 @@
             animation: fadeIn 0.4s ease;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
-
         .status.loading {
             background: #e6f0fa;
             color: #2b6cb0;
             border: 1px solid #c3daf7;
         }
-
         .status.success {
             background: #d4f3e4;
             color: #065f46;
             border: 1px solid #a7f3d0;
         }
-
         .status.error {
             background: #fcefe9;
             color: #c53030;
             border: 1px solid #feb2b2;
         }
-
         .data-preview {
             margin-top: 45px;
             border-radius: 20px;
@@ -250,7 +187,6 @@
             background: #ffffff;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
-
         .preview-header {
             background: linear-gradient(90deg, #f9fafb, #eef2f7);
             padding: 25px;
@@ -261,58 +197,49 @@
             align-items: center;
             gap: 15px;
         }
-
         .search-container {
             padding: 20px;
             background: #f9fafb;
             border-bottom: 1px solid #edf2f7;
         }
-
         #searchInput {
             width: 100%;
             max-width: 400px;
             padding: 12px 16px;
             border: 1px solid #e2e8f0;
-            border-radius: 15px;
+            border-radius: 12px;
             font-size: 1rem;
             background: #ffffff;
             transition: all 0.4s ease;
         }
-
         #searchInput:focus {
             outline: none;
             border-color: #818cf8;
             box-shadow: 0 0 0 5px rgba(129, 140, 248, 0.2);
             background: #fafcff;
         }
-
         .preview-content {
             max-height: 600px;
             overflow: auto;
             scrollbar-width: thin;
             scrollbar-color: #d1d5db #f9fafb;
         }
-
         .preview-content::-webkit-scrollbar {
             width: 8px;
         }
-
         .preview-content::-webkit-scrollbar-track {
             background: #f9fafb;
         }
-
         .preview-content::-webkit-scrollbar-thumb {
             background: #d1d5db;
             border-radius: 6px;
         }
-
         table {
             width: 100%;
             border-collapse: separate;
             border-spacing: 0;
             font-size: 0.95rem;
         }
-
         th, td {
             padding: 18px;
             text-align: left;
@@ -323,7 +250,6 @@
             max-width: 220px;
             transition: background 0.3s ease;
         }
-
         th {
             background: linear-gradient(90deg, #f9fafb, #eef2f7);
             font-weight: 600;
@@ -332,15 +258,12 @@
             top: 0;
             z-index: 10;
         }
-
         tr {
             transition: background 0.3s ease;
         }
-
         tr:hover {
             background: #f9fafb;
         }
-
         .record-count {
             margin: 30px 0;
             padding: 18px;
@@ -356,52 +279,42 @@
             gap: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
-
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(15px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
         @media (max-width: 1024px) {
             .filter-row {
                 grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             }
         }
-
         @media (max-width: 768px) {
             .container {
                 padding: 25px;
                 margin: 15px;
             }
-
             h1 {
                 font-size: 2.25rem;
             }
-
             .filter-row {
                 grid-template-columns: 1fr;
             }
-
             .button-group {
                 flex-direction: column;
                 align-items: center;
             }
-
             button {
                 width: 100%;
                 max-width: 400px;
             }
         }
-
         @media (max-width: 480px) {
             h1 {
                 font-size: 1.75rem;
             }
-
             .filter-title {
                 font-size: 1.25rem;
             }
-
             th, td {
                 font-size: 0.9rem;
                 padding: 14px;
@@ -412,58 +325,48 @@
 </head>
 <body>
     <div class="container">
-        <h1><span>Hàng Gia Công Kết Thúc</h1>
-
+        <h1><span>📦</span> Hàng Gia Công Kết Thúc</h1>
         <div class="filter-section">
             <div class="filter-title"><span>🔍</span> Bộ lọc dữ liệu</div>
-
             <div class="filter-row">
                 <div class="form-group">
                     <label for="fromDate">Từ ngày:</label>
                     <input type="date" id="fromDate">
                 </div>
-
                 <div class="form-group">
                     <label for="toDate">Đến ngày:</label>
                     <input type="date" id="toDate">
                 </div>
-
                 <div class="form-group">
                     <label for="fromTime">Từ giờ:</label>
                     <input type="time" id="fromTime">
                 </div>
-
                 <div class="form-group">
                     <label for="toTime">Đến giờ:</label>
                     <input type="time" id="toTime">
                 </div>
             </div>
-
             <div class="filter-row">
                 <div class="form-group">
-                    <label for="trangThai">Trạng thái giao:</label>
+                    <label for="trangThai">Trạng thái nhận:</label>
                     <select id="trangThai">
                         <option value="">Tất cả trạng thái</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label for="orderKd">Mã đơn hàng:</label>
                     <input type="text" id="orderKd" placeholder="Nhập mã đơn hàng...">
                 </div>
             </div>
         </div>
-
         <div class="button-group">
             <button class="btn-primary" onclick="loadData()"><span>📥</span> Tải dữ liệu</button>
             <button class="btn-secondary" onclick="previewData()" disabled><span>👁️</span> Xem trước</button>
             <button class="btn-tertiary" onclick="exportToExcel()" disabled><span>📊</span> Xuất Excel</button>
             <button class="btn-clear" onclick="clearFilters()"><span>🗑️</span> Xóa bộ lọc</button>
         </div>
-
         <div id="status" style="display: none;"></div>
         <div id="recordCount" class="record-count" style="display: none;"></div>
-
         <div id="dataPreview" class="data-preview" style="display: none;">
             <div class="preview-header"><span>📋</span> Xem trước dữ liệu</div>
             <div class="search-container">
@@ -483,7 +386,8 @@
                             <th>Giờ Giao</th>
                             <th>Ngày Nhận</th>
                             <th>Code</th>
-                            <th>Trạng Thái</th>
+                            <th>Trạng Thái Giao</th>
+                            <th>Trạng Thái Nhận</th>
                         </tr>
                     </thead>
                     <tbody id="previewTableBody"></tbody>
@@ -491,14 +395,49 @@
             </div>
         </div>
     </div>
+    <script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+            return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                        row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                        headerRowIndex = 0;
+                    }
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
+                }
+            }
+            return gk_fileData[filename] || "";
+        }
 
-    <script>
         var APP_ID = 'e1339939-5987-4d7a-8c73-436348abf6b7';
         var ACCESS_KEY = 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL';
         var TABLE_NAME = 'Giao_Hang_PSX';
 
         var rawData = [];
         var filteredData = [];
+
+        // Function to get virtual status directly from trang_thai column
+        function getVirtualStatus(trang_thai) {
+            return String(trang_thai || '').trim();
+        }
 
         window.onload = function() {
             document.getElementById('fromDate').value = '';
@@ -515,9 +454,9 @@
 
             if (!rawData || rawData.length === 0) return;
 
-            var uniqueStatuses = [...new Set(rawData
-                .map(row => String(row.trang_thai_giao).trim())
-                .filter(status => status))].sort();
+            // Get virtual statuses for all rows using trang_thai column directly
+            var virtualStatuses = rawData.map(row => getVirtualStatus(row.trang_thai));
+            var uniqueStatuses = [...new Set(virtualStatuses)].sort();
 
             statusSelect.innerHTML = '<option value="">Tất cả trạng thái</option>';
             uniqueStatuses.forEach(status => {
@@ -562,9 +501,7 @@
 
         function loadData() {
             showStatus('Đang tải dữ liệu từ AppSheet...', 'loading');
-
             var url = `https://api.appsheet.com/api/v2/apps/${APP_ID}/tables/${TABLE_NAME}/Action`;
-
             var requestBody = {
                 "Action": "Find",
                 "Properties": {},
@@ -645,7 +582,7 @@
 
                 if (include && fromTime && row.gio_giao && String(row.gio_giao) < fromTime) include = false;
                 if (include && toTime && row.gio_giao && String(row.gio_giao) > toTime) include = false;
-                if (include && trangThai && String(row.trang_thai_giao).trim() !== trangThai) include = false;
+                if (include && trangThai && getVirtualStatus(row.trang_thai) !== trangThai) include = false;
                 if (include && orderKd && !String(row.order_kd).toLowerCase().includes(orderKd)) include = false;
 
                 return include;
@@ -681,16 +618,14 @@
                     return Object.values(row).some(value => {
                         const strValue = String(value || '').trim().toLowerCase();
                         return strValue.includes(searchText);
-                    });
+                    }) || getVirtualStatus(row.trang_thai).toLowerCase().includes(searchText);
                 });
-                console.log('Search Text:', searchText);
-                console.log('Filtered Results:', displayData);
             }
 
             tableBody.innerHTML = '';
 
             if (displayData.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: #6b7280; padding: 20px;">Không có dữ liệu để hiển thị</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #6b7280; padding: 20px;">Không có dữ liệu để hiển thị</td></tr>';
             } else {
                 displayData.forEach(row => {
                     var tr = document.createElement('tr');
@@ -705,7 +640,8 @@
                         <td>${row.gio_giao || ''}</td>
                         <td>${row.ngay_nhan || ''}</td>
                         <td>${row.code || ''}</td>
-                        <td>${row.trang_thai_giao || ''}</td>`;
+                        <td>${row.trang_thai_giao || ''}</td>
+                        <td>${getVirtualStatus(row.trang_thai)}</td>`;
                     tableBody.appendChild(tr);
                 });
             }
@@ -735,7 +671,8 @@
                     'Giờ Giao': row.gio_giao || '',
                     'Ngày Nhận': row.ngay_nhan || '',
                     'Code': String(row.code || ''),
-                    'Trạng Thái Giao': row.trang_thai_giao || ''
+                    'Trạng Thái Giao': row.trang_thai_giao || '',
+                    'Trạng Thái Nhận': getVirtualStatus(row.trang_thai)
                 }));
 
                 var ws = XLSX.utils.json_to_sheet(excelData);
@@ -743,7 +680,7 @@
                 XLSX.utils.book_append_sheet(wb, ws, "Giao Hang PSX");
 
                 var range = XLSX.utils.decode_range(ws['!ref']);
-                var headers = ['ID Giao Hàng', 'Mã Đơn KD', 'Tên Chi Tiết', 'SLL', 'Tính Chất', 'SLL Giao', 'Ngày Giao', 'Giờ Giao', 'Ngày Nhận', 'Code', 'Trạng Thái Giao'];
+                var headers = ['ID Giao Hàng', 'Mã Đơn KD', 'Tên Chi Tiết', 'SLL', 'Tính Chất', 'SLL Giao', 'Ngày Giao', 'Giờ Giao', 'Ngày Nhận', 'Code', 'Trạng Thái Giao', 'Trạng Thái'];
                 var orderKdCol = headers.indexOf('Mã Đơn KD');
                 var codeCol = headers.indexOf('Code');
 
