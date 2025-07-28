@@ -264,6 +264,24 @@
         tr:hover {
             background: #f9fafb;
         }
+        .status-cell {
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-align: center;
+            display: inline-block;
+            min-width: 80px;
+        }
+        .status-chua-nhan {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .status-da-nhan {
+            background-color: #fecaca;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+        }
         .record-count {
             margin: 30px 0;
             padding: 18px;
@@ -348,7 +366,7 @@
             </div>
             <div class="filter-row">
                 <div class="form-group">
-                    <label for="trangThai">Trạng thái Nhận:</label>
+                    <label for="trangThai">Trạng thái:</label>
                     <select id="trangThai">
                         <option value="">Tất cả trạng thái</option>
                     </select>
@@ -434,17 +452,23 @@
         var rawData = [];
         var filteredData = [];
 
-        // Function to compute virtual trang_thai, ensuring only "Đã nhận" or "Chưa nhận"
-        function computeVirtualStatus(trang_thai_giao, ngay_nhan) {
-            const status = String(trang_thai_giao || '').trim().toLowerCase();
-            const hasReceiveDate = ngay_nhan && String(ngay_nhan).trim() !== '';
+        // Function to get virtual status directly from trang_thai column
+        function getVirtualStatus(trang_thai) {
+            return String(trang_thai || '').trim();
+        }
 
-            // Check for keywords indicating receipt or presence of receive date
-            if (status.includes('nhận') || status.includes('đủ lô') || hasReceiveDate) {
-                return 'Đã nhận';
+        // Function to format status with color styling
+        function formatStatusCell(trang_thai) {
+            const status = getVirtualStatus(trang_thai);
+            const statusLower = status.toLowerCase();
+            
+            if (statusLower.includes('chưa nhận') || statusLower.includes('chua nhan')) {
+                return `<span class="status-cell status-chua-nhan">${status}</span>`;
+            } else if (statusLower.includes('đã nhận') || statusLower.includes('da nhan')) {
+                return `<span class="status-cell status-da-nhan">${status}</span>`;
+            } else {
+                return `<span class="status-cell">${status}</span>`;
             }
-            // Default to "Chưa nhận" for all other cases
-            return 'Chưa nhận';
         }
 
         window.onload = function() {
@@ -462,8 +486,8 @@
 
             if (!rawData || rawData.length === 0) return;
 
-            // Compute virtual statuses for all rows
-            var virtualStatuses = rawData.map(row => computeVirtualStatus(row.trang_thai_giao, row.ngay_nhan));
+            // Get virtual statuses for all rows using trang_thai column directly
+            var virtualStatuses = rawData.map(row => getVirtualStatus(row.trang_thai));
             var uniqueStatuses = [...new Set(virtualStatuses)].sort();
 
             statusSelect.innerHTML = '<option value="">Tất cả trạng thái</option>';
@@ -590,7 +614,7 @@
 
                 if (include && fromTime && row.gio_giao && String(row.gio_giao) < fromTime) include = false;
                 if (include && toTime && row.gio_giao && String(row.gio_giao) > toTime) include = false;
-                if (include && trangThai && computeVirtualStatus(row.trang_thai_giao, row.ngay_nhan) !== trangThai) include = false;
+                if (include && trangThai && getVirtualStatus(row.trang_thai) !== trangThai) include = false;
                 if (include && orderKd && !String(row.order_kd).toLowerCase().includes(orderKd)) include = false;
 
                 return include;
@@ -626,7 +650,7 @@
                     return Object.values(row).some(value => {
                         const strValue = String(value || '').trim().toLowerCase();
                         return strValue.includes(searchText);
-                    }) || computeVirtualStatus(row.trang_thai_giao, row.ngay_nhan).toLowerCase().includes(searchText);
+                    }) || getVirtualStatus(row.trang_thai).toLowerCase().includes(searchText);
                 });
             }
 
@@ -636,8 +660,6 @@
                 tableBody.innerHTML = '<tr><td colspan="12" style="text-align: center; color: #6b7280; padding: 20px;">Không có dữ liệu để hiển thị</td></tr>';
             } else {
                 displayData.forEach(row => {
-                    var trangThai = computeVirtualStatus(row.trang_thai_giao, row.ngay_nhan);
-                    var colorStyle = trangThai === 'Chưa nhận' ? 'color: green;' : 'color: red;';
                     var tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td>${row.ID_Giao_hang || ''}</td>
@@ -651,7 +673,7 @@
                         <td>${row.ngay_nhan || ''}</td>
                         <td>${row.code || ''}</td>
                         <td>${row.trang_thai_giao || ''}</td>
-                        <td style="${colorStyle}">${trangThai}</td>`;
+                        <td>${formatStatusCell(row.trang_thai)}</td>`;
                     tableBody.appendChild(tr);
                 });
             }
@@ -682,7 +704,7 @@
                     'Ngày Nhận': row.ngay_nhan || '',
                     'Code': String(row.code || ''),
                     'Trạng Thái Giao': row.trang_thai_giao || '',
-                    'Trạng Thái Nhận': computeVirtualStatus(row.trang_thai_giao, row.ngay_nhan)
+                    'Trạng Thái Nhận': getVirtualStatus(row.trang_thai)
                 }));
 
                 var ws = XLSX.utils.json_to_sheet(excelData);
