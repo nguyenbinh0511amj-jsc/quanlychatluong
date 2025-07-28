@@ -348,7 +348,7 @@
             </div>
             <div class="filter-row">
                 <div class="form-group">
-                    <label for="trangThai">Trạng thái:</label>
+                    <label for="trangThai">Trạng thái Nhận:</label>
                     <select id="trangThai">
                         <option value="">Tất cả trạng thái</option>
                     </select>
@@ -387,7 +387,7 @@
                             <th>Ngày Nhận</th>
                             <th>Code</th>
                             <th>Trạng Thái Giao</th>
-                            <th>Trạng Thái</th>
+                            <th>Trạng Thái Nhận</th>
                         </tr>
                     </thead>
                     <tbody id="previewTableBody"></tbody>
@@ -682,7 +682,7 @@
                     'Ngày Nhận': row.ngay_nhan || '',
                     'Code': String(row.code || ''),
                     'Trạng Thái Giao': row.trang_thai_giao || '',
-                    'Trạng Thái': computeVirtualStatus(row.trang_thai_giao, row.ngay_nhan)
+                    'Trạng Thái Nhận': computeVirtualStatus(row.trang_thai_giao, row.ngay_nhan)
                 }));
 
                 var ws = XLSX.utils.json_to_sheet(excelData);
@@ -690,7 +690,7 @@
                 XLSX.utils.book_append_sheet(wb, ws, "Giao Hang PSX");
 
                 var range = XLSX.utils.decode_range(ws['!ref']);
-                var headers = ['ID Giao Hàng', 'Mã Đơn KD', 'Tên Chi Tiết', 'SLL', 'Tính Chất', 'SLL Giao', 'Ngày Giao', 'Giờ Giao', 'Ngày Nhận', 'Code', 'Trạng Thái Giao', 'Trạng Thái'];
+                var headers = ['ID Giao Hàng', 'Mã Đơn KD', 'Tên Chi Tiết', 'SLL', 'Tính Chất', 'SLL Giao', 'Ngày Giao', 'Giờ Giao', 'Ngày Nhận', 'Code', 'Trạng Thái Giao', 'Trạng Thái Nhận'];
                 var orderKdCol = headers.indexOf('Mã Đơn KD');
                 var codeCol = headers.indexOf('Code');
 
