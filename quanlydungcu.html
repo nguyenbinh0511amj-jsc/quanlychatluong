@@ -734,7 +734,7 @@
                 const now = new Date('2025-07-28T12:49:00+07:00');
                 const dateStr = now.toLocaleDateString('vi-VN').replace(/\//g, '-');
                 const timeStr = now.toLocaleTimeString('vi-VN', {hour12: false}).replace(/:/g, '-');
-                const filename = `BaoCao_DungCu_${dateStr}_${timeStr}.xlsx`;
+                const filename = `Báo cáo dụng cụ ${dateStr}_${timeStr}.xlsx`;
                 
                 // Xuất file
                 XLSX.writeFile(wb, filename);
