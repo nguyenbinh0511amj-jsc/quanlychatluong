@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Export so_giao_nhan to Excel</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin: 5px;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #loading {
+            display: none;
+            margin: 20px 0;
+            color: #666;
+        }
+        #error {
+            color: red;
+            margin: 10px 0;
+            display: none;
+            padding: 10px;
+            background-color: #ffe6e6;
+            border: 1px solid #ff9999;
+            border-radius: 4px;
+        }
+        #success {
+            color: green;
+            margin: 10px 0;
+            display: none;
+            padding: 10px;
+            background-color: #e6ffe6;
+            border: 1px solid #99ff99;
+            border-radius: 4px;
+        }
+        .column-controls {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+        .column-controls h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+        }
+        .column-item {
+            display: inline-block;
+            margin: 5px 10px 5px 0;
+            white-space: nowrap;
+            padding: 5px 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: move;
+            user-select: none;
+        }
+        .column-item.dragging {
+            opacity: 0.5;
+            background-color: #e3f2fd;
+        }
+        .column-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        .column-item label {
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .controls-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .toggle-columns-icon {
+            font-size: 24px;
+            cursor: pointer;
+            color: #2196F3;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .toggle-columns-icon:hover {
+            background-color: #e3f2fd;
+            color: #1976D2;
+        }
+        #currentDateTime {
+            margin: 10px 0;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <h2>so_giao_nhan Table Data Export</h2>
+    
+    <div class="controls-header">
+        <button onclick="fetchData()" id="fetchBtn">Try All API Methods</button>
+        <button onclick="fetchDataWithProxy()" id="proxyBtn">Load Data (with Proxy)</button>
+        <button onclick="testAPI()" id="testBtn">Test API Connection</button>
+        <button onclick="exportToExcel()" id="exportBtn" disabled>Export to Excel</button>
+        <span onclick="toggleColumnControls()" id="toggleColumnsIcon" class="toggle-columns-icon" title="Toggle Column Visibility">⚙️</span>
+    </div>
+    
+    <div id="columnControls" class="column-controls">
+        <h3>Column Visibility and Order</h3>
+        <div id="columnList">
+            <div class="column-item" draggable="true" data-column="order_kd">
+                <input type="checkbox" id="col-order_kd" checked onchange="toggleColumn('order_kd', this.checked)">
+                <label for="col-order_kd">Order KD</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="ten_chi_tiet">
+                <input type="checkbox" id="col-ten_chi_tiet" checked onchange="toggleColumn('ten_chi_tiet', this.checked)">
+                <label for="col-ten_chi_tiet">Tên chi tiết</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="so_file">
+                <input type="checkbox" id="col-so_file" checked onchange="toggleColumn('so_file', this.checked)">
+                <label for="col-so_file">Số file</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="sll">
+                <input type="checkbox" id="col-sll" checked onchange="toggleColumn('sll', this.checked)">
+                <label for="col-sll">SLL</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="tinh_chat">
+                <input type="checkbox" id="col-tinh_chat" checked onchange="toggleColumn('tinh_chat', this.checked)">
+                <label for="col-tinh_chat">Tính chất</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="ghi_chu">
+                <input type="checkbox" id="col-ghi_chu" checked onchange="toggleColumn('ghi_chu', this.checked)">
+                <label for="col-ghi_chu">Ghi chú</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="noi_gia_cong">
+                <input type="checkbox" id="col-noi_gia_cong" checked onchange="toggleColumn('noi_gia_cong', this.checked)">
+                <label for="col-noi_gia_cong">Nơi gia công</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="thoi_han">
+                <input type="checkbox" id="col-thoi_han" checked onchange="toggleColumn('thoi_han', this.checked)">
+                <label for="col-thoi_han">Thời hạn</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="ngay_nhan">
+                <input type="checkbox" id="col-ngay_nhan" checked onchange="toggleColumn('ngay_nhan', this.checked)">
+                <label for="col-ngay_nhan">Ngày nhận</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="gio_nhan">
+                <input type="checkbox" id="col-gio_nhan" checked onchange="toggleColumn('gio_nhan', this.checked)">
+                <label for="col-gio_nhan">Giờ nhận</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="tap_tho">
+                <input type="checkbox" id="col-tap_tho" checked onchange="toggleColumn('tap_tho', this.checked)">
+                <label for="col-tap_tho">Tập thợ</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="sl_nhan">
+                <input type="checkbox" id="col-sl_nhan" checked onchange="toggleColumn('sl_nhan', this.checked)">
+                <label for="col-sl_nhan">SL nhận</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="code">
+                <input type="checkbox" id="col-code" checked onchange="toggleColumn('code', this.checked)">
+                <label for="col-code">Code</label>
+            </div>
+            <div class="column-item" draggable="true" data-column="ho_va_ten">
+                <input type="checkbox" id="col-ho_va_ten" checked onchange="toggleColumn('ho_va_ten', this.checked)">
+                <label for="col-ho_va_ten">Họ và tên</label>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loading">Loading data...</div>
+    <div id="error"></div>
+    <div id="success"></div>
+    <div id="currentDateTime"></div>
+    
+    <table id="dataTable">
+        <thead>
+            <tr id="tableHeader">
+                <th data-column="order_kd">order_kd</th>
+                <th data-column="ten_chi_tiet">ten_chi_tiet</th>
+                <th data-column="so_file">so_file</th>
+                <th data-column="sll">sll</th>
+                <th data-column="tinh_chat">tinh_chat</th>
+                <th data-column="ghi_chu">ghi_chu</th>
+                <th data-column="noi_gia_cong">noi_gia_cong</th>
+                <th data-column="thoi_han">thoi_han</th>
+                <th data-column="ngay_nhan">ngay_nhan</th>
+                <th data-column="gio_nhan">gio_nhan</th>
+                <th data-column="tap_tho">tap_tho</th>
+                <th data-column="sl_nhan">sl_nhan</th>
+                <th data-column="code">code</th>
+                <th data-column="ho_va_ten">ho_va_ten</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <script>
+        let currentData = [];
+
+        // Hardcoded configuration
+        const CONFIG = {
+            appId: "e1339939-5987-4d7a-8c73-436348abf6b7",
+            accessKey: "V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL",
+            tableName: "so_giao_nhan"
+        };
+
+        // Initialize drag and drop for column items
+        function initializeDragAndDrop() {
+            const columnItems = document.querySelectorAll('.column-item');
+            columnItems.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+        }
+
+        function handleDragStart(e) {
+            e.target.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', e.target.dataset.column);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const draggedColumn = e.dataTransfer.getData('text/plain');
+            const targetColumn = e.target.closest('.column-item').dataset.column;
+            reorderColumns(draggedColumn, targetColumn);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        // Reorder columns in both controls and table
+        function reorderColumns(draggedColumn, targetColumn) {
+            const columnList = document.getElementById('columnList');
+            const columns = Array.from(columnList.children);
+            const draggedItem = columns.find(item => item.dataset.column === draggedColumn);
+            const targetItem = columns.find(item => item.dataset.column === targetColumn);
+
+            if (draggedItem && targetItem) {
+                const draggedIndex = columns.indexOf(draggedItem);
+                const targetIndex = columns.indexOf(targetItem);
+
+                if (draggedIndex < targetIndex) {
+                    columnList.insertBefore(draggedItem, targetItem.nextSibling);
+                } else {
+                    columnList.insertBefore(draggedItem, targetItem);
+                }
+
+                const headerRow = document.getElementById('tableHeader');
+                const headers = Array.from(headerRow.children);
+                const draggedHeader = headers.find(header => header.dataset.column === draggedColumn);
+                const targetHeader = headers.find(header => header.dataset.column === targetColumn);
+
+                if (draggedHeader && targetHeader) {
+                    if (draggedIndex < targetIndex) {
+                        headerRow.insertBefore(draggedHeader, targetHeader.nextSibling);
+                    } else {
+                        headerRow.insertBefore(draggedHeader, targetHeader);
+                    }
+                }
+
+                const rows = document.querySelectorAll('#tableBody tr');
+                rows.forEach(row => {
+                    const cells = Array.from(row.children);
+                    const draggedCell = cells.find(cell => cell.dataset.column === draggedColumn);
+                    const targetCell = cells.find(cell => cell.dataset.column === targetColumn);
+
+                    if (draggedCell && targetCell) {
+                        if (draggedIndex < targetIndex) {
+                            row.insertBefore(draggedCell, targetCell.nextSibling);
+                        } else {
+                            row.insertBefore(draggedCell, targetCell);
+                        }
+                    }
+                });
+            }
+        }
+
+        // Show/hide loading indicator
+        function setLoading(isLoading) {
+            document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
+            document.getElementById('fetchBtn').disabled = isLoading;
+            document.getElementById('proxyBtn').disabled = isLoading;
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            const successDiv = document.getElementById('success');
+            errorDiv.style.display = 'block';
+            successDiv.style.display = 'none';
+            errorDiv.innerHTML = message;
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            const errorDiv = document.getElementById('error');
+            const successDiv = document.getElementById('success');
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'block';
+            successDiv.innerHTML = message;
+        }
+
+        // Clear messages
+        function clearMessages() {
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('success').style.display = 'none';
+        }
+
+        // Fetch data directly from AppSheet API
+        async function fetchData() {
+            const urls = [
+                `https://api.appsheet.com/api/v2/apps/${encodeURIComponent(CONFIG.appId)}/tables/${encodeURIComponent(CONFIG.tableName)}/Action`,
+                `https://www.appsheet.com/api/v2/apps/${encodeURIComponent(CONFIG.appId)}/tables/${encodeURIComponent(CONFIG.tableName)}/Records`,
+                `https://api.appsheet.com/api/v2/apps/${encodeURIComponent(CONFIG.appId)}/tables/${encodeURIComponent(CONFIG.tableName)}/Records`
+            ];
+            
+            clearMessages();
+            setLoading(true);
+            
+            for (let i = 0; i < urls.length; i++) {
+                const url = urls[i];
+                console.log(`Trying URL ${i + 1}:`, url);
+                
+                try {
+                    const methods = ['GET', 'POST'];
+                    
+                    for (const method of methods) {
+                        console.log(`Trying ${method} method for URL ${i + 1}`);
+                        
+                        let requestOptions = {
+                            method: method,
+                            headers: {
+                                'ApplicationAccessKey': CONFIG.accessKey,
+                                'Content-Type': 'application/json'
+                            }
+                        };
+
+                        if (method === 'POST') {
+                            requestOptions.body = JSON.stringify({
+                                "Action": "Find",
+                                "Properties": {},
+                                "Rows": []
+                            });
+                        }
+
+                        const response = await fetch(url, requestOptions);
+                        
+                        console.log(`${method} Response status:`, response.status);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log('API Response:', data);
+
+                            let records = data;
+                            if (data && data.Records) {
+                                records = data.Records;
+                            } else if (data && data.rows) {
+                                records = data.rows;
+                            } else if (data && data.data) {
+                                records = data.data;
+                            }
+
+                            if (Array.isArray(records)) {
+                                currentData = records;
+                                populateTable(records);
+                                showSuccess(`Successfully loaded ${records.length} records using ${method} method!`);
+                                document.getElementById('exportBtn').disabled = false;
+                                setLoading(false);
+                                return;
+                            }
+                        } else {
+                            const errorText = await response.text();
+                            console.log(`${method} Error response:`, errorText);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error with URL ${i + 1}:`, error);
+                }
+            }
+            
+            showError(`All API attempts failed. Common issues:<br>
+                1. Invalid App ID or Access Key<br>
+                2. Table name "${CONFIG.tableName}" doesn't exist<br>
+                3. API permissions not enabled<br>
+                4. AppSheet app not deployed<br><br>
+                Please check your AppSheet app settings and ensure the API is properly configured.`);
+            setLoading(false);
+        }
+
+        // Fetch data using CORS proxy
+        async function fetchDataWithProxy() {
+            const originalUrl = `https://api.appsheet.com/api/v2/apps/${encodeURIComponent(CONFIG.appId)}/tables/${encodeURIComponent(CONFIG.tableName)}/Records`;
+            const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
+            
+            clearMessages();
+            setLoading(true);
+            
+            try {
+                console.log('Proxy API Request to:', proxyUrl);
+                
+                const response = await fetch(proxyUrl, {
+                    method: 'GET',
+                    headers: {
+                        'ApplicationAccessKey': CONFIG.accessKey,
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                console.log('Proxy response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('Proxy API Response:', data);
+
+                if (data && Array.isArray(data)) {
+                    currentData = data;
+                    populateTable(data);
+                    showSuccess(`Successfully loaded ${data.length} records via proxy!`);
+                    document.getElementById('exportBtn').disabled = false;
+                } else {
+                    showError('Unexpected API response format. Data is not an array.');
+                }
+            } catch (error) {
+                console.error('Proxy fetch error:', error);
+                showError(`Proxy request failed: ${error.message}. You may need to enable the CORS proxy at https://cors-anywhere.herokuapp.com/corsdemo first.`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Test API connection with detailed logging
+        async function testAPI() {
+            clearMessages();
+            setLoading(true);
+            
+            const testUrl = `https://api.appsheet.com/api/v2/apps/${encodeURIComponent(CONFIG.appId)}/tables`;
+            
+            try {
+                console.log('Testing API connection to:', testUrl);
+                
+                const response = await fetch(testUrl, {
+                    method: 'GET',
+                    headers: {
+                        'ApplicationAccessKey': CONFIG.accessKey,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                console.log('Test response status:', response.status);
+                const responseText = await response.text();
+                console.log('Test response body:', responseText);
+
+                if (response.ok) {
+                    showSuccess(`API connection successful! Status: ${response.status}`);
+                } else {
+                    showError(`API test failed. Status: ${response.status}<br>Response: ${responseText}`);
+                }
+            } catch (error) {
+                console.error('API test error:', error);
+                showError(`API test failed: ${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        // Populate table with data and add current date/time
+        function populateTable(data) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td data-column="order_kd">${row.order_kd || ''}</td>
+                    <td data-column="ten_chi_tiet">${row.ten_chi_tiet || ''}</td>
+                    <td data-column="so_file">${row.so_file || ''}</td>
+                    <td data-column="sll">${row.sll || ''}</td>
+                    <td data-column="tinh_chat">${row.tinh_chat || ''}</td>
+                    <td data-column="ghi_chu">${row.ghi_chu || ''}</td>
+                    <td data-column="noi_gia_cong">${row.noi_gia_cong || ''}</td>
+                    <td data-column="thoi_han">${row.thoi_han || ''}</td>
+                    <td data-column="ngay_nhan">${row.ngay_nhan || ''}</td>
+                    <td data-column="gio_nhan">${row.gio_nhan || ''}</td>
+                    <td data-column="tap_tho">${row.tap_tho || ''}</td>
+                    <td data-column="sl_nhan">${row.sl_nhan || ''}</td>
+                    <td data-column="code">${row.code || ''}</td>
+                    <td data-column="ho_va_ten">${row.ho_va_ten || ''}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // Apply current column visibility and order
+            const columnItems = document.querySelectorAll('.column-item');
+            columnItems.forEach(item => {
+                const columnName = item.dataset.column;
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                toggleColumn(columnName, checkbox.checked);
+            });
+
+            // Initialize drag and drop after table is populated
+            initializeDragAndDrop();
+
+            // Display current date and time
+            const currentDateTime = document.getElementById('currentDateTime');
+            currentDateTime.textContent = 'Current Date and Time: 07:10 PM +07, Tuesday, July 29, 2025';
+        }
+
+        // Toggle column controls panel
+        function toggleColumnControls() {
+            const controls = document.getElementById('columnControls');
+            controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // Toggle column visibility
+        function toggleColumn(columnName, isVisible) {
+            const headers = document.querySelectorAll(`th[data-column="${columnName}"]`);
+            const cells = document.querySelectorAll(`td[data-column="${columnName}"]`);
+            
+            headers.forEach(header => {
+                header.style.display = isVisible ? '' : 'none';
+            });
+            
+            cells.forEach(cell => {
+                cell.style.display = isVisible ? '' : 'none';
+            });
+        }
+
+        // Export table to Excel with current date/time
+        function exportToExcel() {
+            if (currentData.length === 0) {
+                showError('No data to export. Please load data first.');
+                return;
+            }
+            
+            try {
+                const table = document.getElementById('dataTable');
+                const wb = XLSX.utils.table_to_book(table, { sheet: "so_giao_nhan" });
+
+                // Add current date and time to a new row in the worksheet
+                const ws = wb.Sheets["so_giao_nhan"];
+                const dateTimeRow = [
+                    { v: 'Export Date and Time', t: 's' },
+                    { v: '07:10 PM +07, Tuesday, July 29, 2025', t: 's' }
+                ];
+                XLSX.utils.sheet_add_aoa(ws, [dateTimeRow], { origin: -1 });
+
+                XLSX.writeFile(wb, 'so_giao_nhan.xlsx');
+                showSuccess('Excel file exported successfully!');
+            } catch (error) {
+                showError(`Export failed: ${error.message}`);
+            }
+        }
+
+        // Initialize drag and drop when the page loads
+        document.addEventListener('DOMContentLoaded', initializeDragAndDrop);
+    </script>
+</body>
+</html>
