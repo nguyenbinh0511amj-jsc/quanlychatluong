@@ -1,593 +1,1210 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Export so_giao_nhan to Excel</title>
+    <title>Quản lý Sổ Giao Nhận</title>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    <link rel="dns-prefetch" href="https://code.jquery.com">
+    <link rel="dns-prefetch" href="https://unpkg.com">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" as="style">
+    <link rel="preload" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" as="style">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
     <style>
-        table {
-            border-collapse: collapse;
-            width: 100%;
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+        }
+        .table-responsive {
             margin-top: 20px;
         }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
+        th.ui-sortable-handle {
+            cursor: grab;
         }
-        th {
-            background-color: #f2f2f2;
+        #columnSelection {
+            margin-bottom: 15px;
         }
-        button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin: 5px;
-            border-radius: 4px;
+        #messageArea {
+            margin-top: 15px;
         }
-        button:hover {
-            background-color: #45a049;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        #loading {
-            display: none;
-            margin: 20px 0;
-            color: #666;
-        }
-        #error {
-            color: red;
-            margin: 10px 0;
-            display: none;
-            padding: 10px;
-            background-color: #ffe6e6;
-            border: 1px solid #ff9999;
-            border-radius: 4px;
-        }
-        #success {
-            color: green;
-            margin: 10px 0;
-            display: none;
-            padding: 10px;
-            background-color: #e6ffe6;
-            border: 1px solid #99ff99;
-            border-radius: 4px;
-        }
-        .column-controls {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 20px 0;
-            display: none;
-        }
-        .column-controls h3 {
-            margin: 0 0 15px 0;
-            color: #333;
-        }
-        .column-item {
-            display: inline-block;
-            margin: 5px 10px 5px 0;
-            white-space: nowrap;
-            padding: 5px 10px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            cursor: move;
-            user-select: none;
-        }
-        .column-item.dragging {
-            opacity: 0.5;
-            background-color: #e3f2fd;
-        }
-        .column-item input[type="checkbox"] {
-            margin-right: 8px;
-        }
-        .column-item label {
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .controls-header {
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
             display: flex;
+            justify-content: center;
             align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
+            z-index: 1050;
         }
-        .toggle-columns-icon {
-            font-size: 24px;
-            cursor: pointer;
-            color: #2196F3;
-            padding: 8px;
-            border-radius: 4px;
-            transition: background-color 0.2s, color 0.2s;
+        .loading-overlay p {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #007bff;
         }
-        .toggle-columns-icon:hover {
-            background-color: #e3f2fd;
-            color: #1976D2;
-        }
-        #currentDateTime {
-            margin: 10px 0;
-            font-style: italic;
-            color: #666;
+        .pagination {
+            margin-top: 20px;
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-    <h2>so_giao_nhan Table Data Export</h2>
-    
-    <div class="controls-header">
-        <button onclick="fetchData()" id="fetchBtn">Try All API Methods</button>
-        <button onclick="fetchDataWithProxy()" id="proxyBtn">Load Data (with Proxy)</button>
-        <button onclick="testAPI()" id="testBtn">Test API Connection</button>
-        <button onclick="exportToExcel()" id="exportBtn" disabled>Export to Excel</button>
-        <span onclick="toggleColumnControls()" id="toggleColumnsIcon" class="toggle-columns-icon" title="Toggle Column Visibility">⚙️</span>
+
+    <div id="loginScreen" class="login-container">
+        <h2 class="text-center mb-4">Đăng nhập</h2>
+        <div id="loginMessage" class="alert d-none" role="alert"></div>
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="username" class="form-label">Tên đăng nhập:</label>
+                <input type="text" class="form-control" id="username" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Mật khẩu:</label>
+                <input type="password" class="form-control" id="password" required>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="rememberMe">
+                <label class="form-check-label" for="rememberMe">Ghi nhớ đăng nhập</label>
+            </div>
+            <button type="submit" class="btn btn-primary w-100" id="loginButton">Đăng nhập</button>
+        </form>
     </div>
-    
-    <div id="columnControls" class="column-controls">
-        <h3>Column Visibility and Order</h3>
-        <div id="columnList">
-            <div class="column-item" draggable="true" data-column="order_kd">
-                <input type="checkbox" id="col-order_kd" checked onchange="toggleColumn('order_kd', this.checked)">
-                <label for="col-order_kd">Order KD</label>
+
+    <div id="mainApp" class="container d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="mb-0">Quản lý Sổ Giao Nhận</h1>
+                <p class="mb-0">Chào mừng, <span id="loggedInUserName" class="fw-bold"></span>!</p>
             </div>
-            <div class="column-item" draggable="true" data-column="ten_chi_tiet">
-                <input type="checkbox" id="col-ten_chi_tiet" checked onchange="toggleColumn('ten_chi_tiet', this.checked)">
-                <label for="col-ten_chi_tiet">Tên chi tiết</label>
+            <div>
+                <p class="mb-0">Ngày: <span id="currentDate"></span></p>
+                <p class="mb-0">Giờ: <span id="currentTime"></span></p>
+                <button id="logoutButton" class="btn btn-warning btn-sm mt-2">Đăng xuất</button>
             </div>
-            <div class="column-item" draggable="true" data-column="so_file">
-                <input type="checkbox" id="col-so_file" checked onchange="toggleColumn('so_file', this.checked)">
-                <label for="col-so_file">Số file</label>
+        </div>
+
+        <div id="messageArea" class="alert d-none" role="alert"></div>
+
+        <div class="mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm theo Order KD, Tên chi tiết, Code, Họ và tên...">
+        </div>
+
+        <div id="columnSelection">
+            <label class="form-label">Hiển thị cột:</label>
+            <div id="columnCheckboxes" class="d-flex flex-wrap gap-3">
             </div>
-            <div class="column-item" draggable="true" data-column="sll">
-                <input type="checkbox" id="col-sll" checked onchange="toggleColumn('sll', this.checked)">
-                <label for="col-sll">SLL</label>
-            </div>
-            <div class="column-item" draggable="true" data-column="tinh_chat">
-                <input type="checkbox" id="col-tinh_chat" checked onchange="toggleColumn('tinh_chat', this.checked)">
-                <label for="col-tinh_chat">Tính chất</label>
-            </div>
-            <div class="column-item" draggable="true" data-column="ghi_chu">
-                <input type="checkbox" id="col-ghi_chu" checked onchange="toggleColumn('ghi_chu', this.checked)">
-                <label for="col-ghi_chu">Ghi chú</label>
-            </div>
-            <div class="column-item" draggable="true" data-column="noi_gia_cong">
-                <input type="checkbox" id="col-noi_gia_cong" checked onchange="toggleColumn('noi_gia_cong', this.checked)">
-                <label for="col-noi_gia_cong">Nơi gia công</label>
-            </div>
-            <div class="column-item" draggable="true" data-column="thoi_han">
-                <input type="checkbox" id="col-thoi_han" checked onchange="toggleColumn('thoi_han', this.checked)">
-                <label for="col-thoi_han">Thời hạn</label>
-            </div>
-            <div class="column-item" draggable="true" data-column="ngay_nhan">
-                <input type="checkbox" id="col-ngay_nhan" checked onchange="toggleColumn('ngay_nhan', this.checked)">
-                <label for="col-ngay_nhan">Ngày nhận</label>
-            </div>
-            <div class="column-item" draggable="true" data-column="gio_nhan">
-                <input type="checkbox" id="col-gio_nhan" checked onchange="toggleColumn('gio_nhan', this.checked)">
-                <label for="col-gio_nhan">Giờ nhận</label>
-            </div>
-            <div class="column-item" draggable="true" data-column="tap_tho">
-                <input type="checkbox" id="col-tap_tho" checked onchange="toggleColumn('tap_tho', this.checked)">
-                <label for="col-tap_tho">Tập thợ</label>
-            </div>
-            <div class="column-item" draggable="true" data-column="sl_nhan">
-                <input type="checkbox" id="col-sl_nhan" checked onchange="toggleColumn('sl_nhan', this.checked)">
-                <label for="col-sl_nhan">SL nhận</label>
-            </div>
-            <div class="column-item" draggable="true" data-column="code">
-                <input type="checkbox" id="col-code" checked onchange="toggleColumn('code', this.checked)">
-                <label for="col-code">Code</label>
-            </div>
-            <div class="column-item" draggable="true" data-column="ho_va_ten">
-                <input type="checkbox" id="col-ho_va_ten" checked onchange="toggleColumn('ho_va_ten', this.checked)">
-                <label for="col-ho_va_ten">Họ và tên</label>
+        </div>
+
+        <div class="d-flex justify-content-between mb-3">
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">
+                <i class="bi bi-plus-circle"></i> Thêm mới
+            </button>
+            <button class="btn btn-info" id="exportExcelButton">
+                <i class="bi bi-file-earmark-excel"></i> Xuất Excel
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped" id="dataTable">
+                <thead>
+                    <tr id="tableHeaders">
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                </tbody>
+            </table>
+        </div>
+
+        <nav class="pagination">
+            <ul class="pagination justify-content-center">
+                <li class="page-item"><a class="page-link" href="#" id="prevPage">Trước</a></li>
+                <li class="page-item"><span class="page-link" id="pageInfo"></span></li>
+                <li class="page-item"><a class="page-link" href="#" id="nextPage">Sau</a></li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addModalLabel">Thêm mới Sổ Giao Nhận</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="addFormMessage" class="alert d-none" role="alert"></div>
+                    <form id="addForm">
+                        <div class="mb-3">
+                            <label for="add_order_kd" class="form-label">Order KD <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="add_order_kd" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_ten_chi_tiet" class="form-label">Tên chi tiết <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="add_ten_chi_tiet" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_so_file" class="form-label">Số file</label>
+                            <input type="text" class="form-control" id="add_so_file">
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_sll" class="form-label">SLL</label>
+                            <input type="number" class="form-control" id="add_sll">
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_tinh_chat" class="form-label">Tính chất</label>
+                            <input type="text" class="form-control" id="add_tinh_chat">
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_ghi_chu" class="form-label">Ghi chú</label>
+                            <textarea class="form-control" id="add_ghi_chu" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_noi_gia_cong" class="form-label">Nơi gia công</label>
+                            <input type="text" class="form-control" id="add_noi_gia_cong">
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_thoi_han" class="form-label">Thời hạn</label>
+                            <input type="date" class="form-control" id="add_thoi_han">
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_ngay_nhan" class="form-label">Ngày nhận</label>
+                            <input type="date" class="form-control" id="add_ngay_nhan" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_gio_nhan" class="form-label">Giờ nhận</label>
+                            <input type="time" class="form-control" id="add_gio_nhan" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_tap_tho" class="form-label">Tập thợ</label>
+                            <input type="text" class="form-control" id="add_tap_tho">
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_sl_nhan" class="form-label">SL nhận</label>
+                            <input type="number" class="form-control" id="add_sl_nhan">
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_code" class="form-label">Code</label>
+                            <input type="text" class="form-control" id="add_code">
+                        </div>
+                        <div class="mb-3">
+                            <label for="add_ho_va_ten" class="form-label">Họ và tên</label>
+                            <input type="text" class="form-control" id="add_ho_va_ten" readonly>
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="saveNewRecordButton">Lưu</button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div id="loading">Loading data...</div>
-    <div id="error"></div>
-    <div id="success"></div>
-    <div id="currentDateTime"></div>
-    
-    <table id="dataTable">
-        <thead>
-            <tr id="tableHeader">
-                <th data-column="order_kd">order_kd</th>
-                <th data-column="ten_chi_tiet">ten_chi_tiet</th>
-                <th data-column="so_file">so_file</th>
-                <th data-column="sll">sll</th>
-                <th data-column="tinh_chat">tinh_chat</th>
-                <th data-column="ghi_chu">ghi_chu</th>
-                <th data-column="noi_gia_cong">noi_gia_cong</th>
-                <th data-column="thoi_han">thoi_han</th>
-                <th data-column="ngay_nhan">ngay_nhan</th>
-                <th data-column="gio_nhan">gio_nhan</th>
-                <th data-column="tap_tho">tap_tho</th>
-                <th data-column="sl_nhan">sl_nhan</th>
-                <th data-column="code">code</th>
-                <th data-column="ho_va_ten">ho_va_ten</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editModalLabel">Sửa Sổ Giao Nhận</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="editFormMessage" class="alert d-none" role="alert"></div>
+                    <form id="editForm">
+                        <input type="hidden" id="edit_row_number">
+                        <div class="mb-3">
+                            <label for="edit_order_kd" class="form-label">Order KD <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_order_kd" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_ten_chi_tiet" class="form-label">Tên chi tiết <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit_ten_chi_tiet" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_so_file" class="form-label">Số file</label>
+                            <input type="text" class="form-control" id="edit_so_file">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_sll" class="form-label">SLL</label>
+                            <input type="number" class="form-control" id="edit_sll">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_tinh_chat" class="form-label">Tính chất</label>
+                            <input type="text" class="form-control" id="edit_tinh_chat">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_ghi_chu" class="form-label">Ghi chú</label>
+                            <textarea class="form-control" id="edit_ghi_chu" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_noi_gia_cong" class="form-label">Nơi gia công</label>
+                            <input type="text" class="form-control" id="edit_noi_gia_cong">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_thoi_han" class="form-label">Thời hạn</label>
+                            <input type="date" class="form-control" id="edit_thoi_han">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_ngay_nhan" class="form-label">Ngày nhận</label>
+                            <input type="date" class="form-control" id="edit_ngay_nhan">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_gio_nhan" class="form-label">Giờ nhận</label>
+                            <input type="time" class="form-control" id="edit_gio_nhan">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_tap_tho" class="form-label">Tập thợ</label>
+                            <input type="text" class="form-control" id="edit_tap_tho">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_sl_nhan" class="form-label">SL nhận</label>
+                            <input type="number" class="form-control" id="edit_sl_nhan">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_code" class="form-label">Code</label>
+                            <input type="text" class="form-control" id="edit_code">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_ho_va_ten" class="form-label">Họ và tên</label>
+                            <input type="text" class="form-control" id="edit_ho_va_ten">
+                        </div>
+                        <button type="submit" class="btn btn-primary" id="saveEditRecordButton">Lưu thay đổi</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">Xác nhận xóa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Bạn có chắc chắn muốn xóa bản ghi này không?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteButton">Xóa</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loadingOverlay" class="loading-overlay d-none">
+        <p id="loadingMessage">Đang tải...</p>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
 
     <script>
-        let currentData = [];
-
-        // Hardcoded configuration
+        // CONFIGURATION
         const CONFIG = {
-            appId: "e1339939-5987-4d7a-8c73-436348abf6b7",
-            accessKey: "V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL",
-            tableName: "so_giao_nhan"
+            appId: 'e1339939-5987-4d7a-8c73-436348abf6b7', // Make sure this is YOUR AppSheet App ID
+            accessKey: 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL', // Make sure this is YOUR AppSheet API Key
+            tableName: 'so_giao_nhan', // Make sure this is the EXACT name of your table in AppSheet
+            employeeTableName: 'nhan_vien', // Make sure this is the EXACT name of your employee table in AppSheet
+            maxRetries: 3,
+            retryDelay: 1000,
+            pageSize: 10
         };
 
-        // Initialize drag and drop for column items
-        function initializeDragAndDrop() {
-            const columnItems = document.querySelectorAll('.column-item');
-            columnItems.forEach(item => {
-                item.addEventListener('dragstart', handleDragStart);
-                item.addEventListener('dragover', handleDragOver);
-                item.addEventListener('drop', handleDrop);
-                item.addEventListener('dragend', handleDragEnd);
-            });
+        const BASE_URL = `https://api.appsheet.com/api/v2/apps/${CONFIG.appId}/tables/`;
+
+        let originalData = [];
+        let currentData = [];
+        let columnOrder = ['order_kd', 'ten_chi_tiet', 'so_file', 'sll', 'tinh_chat', 'ghi_chu', 'noi_gia_cong', 'thoi_han', 'ngay_nhan', 'gio_nhan', 'tap_tho', 'sl_nhan', 'code', 'ho_va_ten', 'Actions'];
+        let columnVisibility = {
+            'order_kd': true,
+            'ten_chi_tiet': true,
+            'so_file': true,
+            'sll': true,
+            'tinh_chat': true,
+            'ghi_chu': true,
+            'noi_gia_cong': true,
+            'thoi_han': true,
+            'ngay_nhan': true,
+            'gio_nhan': true,
+            'tap_tho': true,
+            'sl_nhan': true,
+            'code': false,
+            'ho_va_ten': true,
+            'Actions': true
+        };
+        let loggedInUser = null;
+        let currentPage = 1;
+        let clockInterval; // Declare clockInterval globally or manage its lifecycle
+
+        // --- Utility Functions ---
+        function showLoading(message = 'Đang tải...') {
+            $('#loadingMessage').text(message);
+            $('#loadingOverlay').removeClass('d-none');
         }
 
-        function handleDragStart(e) {
-            e.target.classList.add('dragging');
-            e.dataTransfer.setData('text/plain', e.target.dataset.column);
+        function hideLoading() {
+            $('#loadingOverlay').addClass('d-none');
         }
 
-        function handleDragOver(e) {
-            e.preventDefault();
-        }
-
-        function handleDrop(e) {
-            e.preventDefault();
-            const draggedColumn = e.dataTransfer.getData('text/plain');
-            const targetColumn = e.target.closest('.column-item').dataset.column;
-            reorderColumns(draggedColumn, targetColumn);
-        }
-
-        function handleDragEnd(e) {
-            e.target.classList.remove('dragging');
-        }
-
-        // Reorder columns in both controls and table
-        function reorderColumns(draggedColumn, targetColumn) {
-            const columnList = document.getElementById('columnList');
-            const columns = Array.from(columnList.children);
-            const draggedItem = columns.find(item => item.dataset.column === draggedColumn);
-            const targetItem = columns.find(item => item.dataset.column === targetColumn);
-
-            if (draggedItem && targetItem) {
-                const draggedIndex = columns.indexOf(draggedItem);
-                const targetIndex = columns.indexOf(targetItem);
-
-                if (draggedIndex < targetIndex) {
-                    columnList.insertBefore(draggedItem, targetItem.nextSibling);
-                } else {
-                    columnList.insertBefore(draggedItem, targetItem);
-                }
-
-                const headerRow = document.getElementById('tableHeader');
-                const headers = Array.from(headerRow.children);
-                const draggedHeader = headers.find(header => header.dataset.column === draggedColumn);
-                const targetHeader = headers.find(header => header.dataset.column === targetColumn);
-
-                if (draggedHeader && targetHeader) {
-                    if (draggedIndex < targetIndex) {
-                        headerRow.insertBefore(draggedHeader, targetHeader.nextSibling);
-                    } else {
-                        headerRow.insertBefore(draggedHeader, targetHeader);
-                    }
-                }
-
-                const rows = document.querySelectorAll('#tableBody tr');
-                rows.forEach(row => {
-                    const cells = Array.from(row.children);
-                    const draggedCell = cells.find(cell => cell.dataset.column === draggedColumn);
-                    const targetCell = cells.find(cell => cell.dataset.column === targetColumn);
-
-                    if (draggedCell && targetCell) {
-                        if (draggedIndex < targetIndex) {
-                            row.insertBefore(draggedCell, targetCell.nextSibling);
-                        } else {
-                            row.insertBefore(draggedCell, targetCell);
-                        }
-                    }
-                });
+        function showAlert(message, type = 'danger', target = '#messageArea') {
+            const alertDiv = $(target);
+            alertDiv.text(message).removeClass('d-none alert-success alert-danger alert-info alert-warning').addClass(`alert-${type}`);
+            if (target === '#messageArea') {
+                setTimeout(() => alertDiv.addClass('d-none'), 5000);
             }
         }
 
-        // Show/hide loading indicator
-        function setLoading(isLoading) {
-            document.getElementById('loading').style.display = isLoading ? 'block' : 'none';
-            document.getElementById('fetchBtn').disabled = isLoading;
-            document.getElementById('proxyBtn').disabled = isLoading;
+        function clearAlert(target = '#messageArea') {
+            $(target).addClass('d-none').text('');
         }
 
-        // Show error message
-        function showError(message) {
-            const errorDiv = document.getElementById('error');
-            const successDiv = document.getElementById('success');
-            errorDiv.style.display = 'block';
-            successDiv.style.display = 'none';
-            errorDiv.innerHTML = message;
-        }
-
-        // Show success message
-        function showSuccess(message) {
-            const errorDiv = document.getElementById('error');
-            const successDiv = document.getElementById('success');
-            errorDiv.style.display = 'none';
-            successDiv.style.display = 'block';
-            successDiv.innerHTML = message;
-        }
-
-        // Clear messages
-        function clearMessages() {
-            document.getElementById('error').style.display = 'none';
-            document.getElementById('success').style.display = 'none';
-        }
-
-        // Fetch data directly from AppSheet API
-        async function fetchData() {
-            const urls = [
-                `https://api.appsheet.com/api/v2/apps/${encodeURIComponent(CONFIG.appId)}/tables/${encodeURIComponent(CONFIG.tableName)}/Action`,
-                `https://www.appsheet.com/api/v2/apps/${encodeURIComponent(CONFIG.appId)}/tables/${encodeURIComponent(CONFIG.tableName)}/Records`,
-                `https://api.appsheet.com/api/v2/apps/${encodeURIComponent(CONFIG.appId)}/tables/${encodeURIComponent(CONFIG.tableName)}/Records`
-            ];
-            
-            clearMessages();
-            setLoading(true);
-            
-            for (let i = 0; i < urls.length; i++) {
-                const url = urls[i];
-                console.log(`Trying URL ${i + 1}:`, url);
-                
-                try {
-                    const methods = ['GET', 'POST'];
-                    
-                    for (const method of methods) {
-                        console.log(`Trying ${method} method for URL ${i + 1}`);
-                        
-                        let requestOptions = {
-                            method: method,
-                            headers: {
-                                'ApplicationAccessKey': CONFIG.accessKey,
-                                'Content-Type': 'application/json'
-                            }
-                        };
-
-                        if (method === 'POST') {
-                            requestOptions.body = JSON.stringify({
-                                "Action": "Find",
-                                "Properties": {},
-                                "Rows": []
-                            });
-                        }
-
-                        const response = await fetch(url, requestOptions);
-                        
-                        console.log(`${method} Response status:`, response.status);
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            console.log('API Response:', data);
-
-                            let records = data;
-                            if (data && data.Records) {
-                                records = data.Records;
-                            } else if (data && data.rows) {
-                                records = data.rows;
-                            } else if (data && data.data) {
-                                records = data.data;
-                            }
-
-                            if (Array.isArray(records)) {
-                                currentData = records;
-                                populateTable(records);
-                                showSuccess(`Successfully loaded ${records.length} records using ${method} method!`);
-                                document.getElementById('exportBtn').disabled = false;
-                                setLoading(false);
-                                return;
-                            }
-                        } else {
-                            const errorText = await response.text();
-                            console.log(`${method} Error response:`, errorText);
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Error with URL ${i + 1}:`, error);
-                }
-            }
-            
-            showError(`All API attempts failed. Common issues:<br>
-                1. Invalid App ID or Access Key<br>
-                2. Table name "${CONFIG.tableName}" doesn't exist<br>
-                3. API permissions not enabled<br>
-                4. AppSheet app not deployed<br><br>
-                Please check your AppSheet app settings and ensure the API is properly configured.`);
-            setLoading(false);
-        }
-
-        // Fetch data using CORS proxy
-        async function fetchDataWithProxy() {
-            const originalUrl = `https://api.appsheet.com/api/v2/apps/${encodeURIComponent(CONFIG.appId)}/tables/${encodeURIComponent(CONFIG.tableName)}/Records`;
-            const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
-            
-            clearMessages();
-            setLoading(true);
-            
+        // Helper to format date to YYYY-MM-DD string
+        function formatDateToISO(dateString) {
+            if (!dateString) return null;
             try {
-                console.log('Proxy API Request to:', proxyUrl);
-                
-                const response = await fetch(proxyUrl, {
-                    method: 'GET',
-                    headers: {
-                        'ApplicationAccessKey': CONFIG.accessKey,
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) { // Check for invalid date
+                    return null;
+                }
+                return date.toISOString().split('T')[0];
+            } catch (e) {
+                console.error("Error formatting date:", e);
+                return null;
+            }
+        }
 
-                console.log('Proxy response status:', response.status);
+        // Helper to format time to HH:MM:SS (AppSheet prefers this for Time columns)
+        function formatTimeToHHMMSS(timeString) {
+            if (!timeString) return null;
+            // Assuming timeString is HH:MM or HH:MM:SS
+            const parts = timeString.split(':');
+            if (parts.length === 2) {
+                return `${parts[0]}:${parts[1]}:00`; // Add seconds if missing
+            }
+            return timeString;
+        }
+
+        // --- AppSheet API Request Function ---
+        async function makeAppSheetRequest(url, method, data, retries = 0) {
+            try {
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ApplicationAccessKey': CONFIG.accessKey
+                    },
+                    body: data ? JSON.stringify(data) : null
+                };
+
+                console.log(`Sending request to ${url}:`, options);
+
+                const response = await fetch(url, options);
+                let responseData;
+                let rawText = '';
+
+                try {
+                    // Try to parse JSON first
+                    rawText = await response.text();
+                    responseData = JSON.parse(rawText);
+                } catch (jsonError) {
+                    console.error('Lỗi phân tích JSON:', jsonError);
+                    console.error('Phản hồi API thô:', rawText);
+                    // If it's not valid JSON, but the status is OK, it might be an empty success response
+                    if (response.ok && rawText.trim() === '') {
+                        return { success: true, message: "Empty successful response" };
+                    }
+                    throw new Error(`Định dạng phản hồi API không hợp lệ. Raw: "${rawText.substring(0, 100)}..."`);
+                }
+
+                console.log('API response:', responseData);
 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-                }
-
-                const data = await response.json();
-                console.log('Proxy API Response:', data);
-
-                if (data && Array.isArray(data)) {
-                    currentData = data;
-                    populateTable(data);
-                    showSuccess(`Successfully loaded ${data.length} records via proxy!`);
-                    document.getElementById('exportBtn').disabled = false;
-                } else {
-                    showError('Unexpected API response format. Data is not an array.');
-                }
-            } catch (error) {
-                console.error('Proxy fetch error:', error);
-                showError(`Proxy request failed: ${error.message}. You may need to enable the CORS proxy at https://cors-anywhere.herokuapp.com/corsdemo first.`);
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        // Test API connection with detailed logging
-        async function testAPI() {
-            clearMessages();
-            setLoading(true);
-            
-            const testUrl = `https://api.appsheet.com/api/v2/apps/${encodeURIComponent(CONFIG.appId)}/tables`;
-            
-            try {
-                console.log('Testing API connection to:', testUrl);
-                
-                const response = await fetch(testUrl, {
-                    method: 'GET',
-                    headers: {
-                        'ApplicationAccessKey': CONFIG.accessKey,
-                        'Content-Type': 'application/json'
+                    if (retries < CONFIG.maxRetries) {
+                        console.warn(`Yêu cầu thất bại (${response.status}). Thử lại... (${retries + 1}/${CONFIG.maxRetries})`);
+                        await new Promise(resolve => setTimeout(resolve, CONFIG.retryDelay));
+                        return makeAppSheetRequest(url, method, data, retries + 1);
                     }
-                });
-
-                console.log('Test response status:', response.status);
-                const responseText = await response.text();
-                console.log('Test response body:', responseText);
-
-                if (response.ok) {
-                    showSuccess(`API connection successful! Status: ${response.status}`);
-                } else {
-                    showError(`API test failed. Status: ${response.status}<br>Response: ${responseText}`);
+                    console.error('Lỗi API AppSheet:', responseData);
+                    let errorMessage = 'Lỗi không xác định khi giao tiếp với AppSheet.';
+                    if (responseData && responseData.Message) {
+                        errorMessage = responseData.Message;
+                    } else if (responseData && responseData.error && responseData.error.message) {
+                        errorMessage = responseData.error.message;
+                    } else if (response.status === 401) {
+                        errorMessage = 'Lỗi xác thực: Khóa truy cập không hợp lệ hoặc thiếu. Vui lòng kiểm tra "ApplicationAccessKey".';
+                    } else if (response.status === 404) {
+                        errorMessage = 'Không tìm thấy bảng hoặc ứng dụng. Vui lòng kiểm tra App ID và tên bảng.';
+                    } else if (responseData && responseData.Code === 'BadData') {
+                        errorMessage = `Lỗi dữ liệu: ${responseData.Message || 'Dữ liệu không hợp lệ.'}`;
+                    } else {
+                        errorMessage = `Lỗi API AppSheet (${response.status}): ${JSON.stringify(responseData)}`;
+                    }
+                    throw new Error(errorMessage);
                 }
+                return responseData;
             } catch (error) {
-                console.error('API test error:', error);
-                showError(`API test failed: ${error.message}`);
-            } finally {
-                setLoading(false);
+                console.error('Lỗi Fetch:', error);
+                throw error;
             }
         }
 
-        // Populate table with data and add current date/time
-        function populateTable(data) {
-            const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = '';
-            
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td data-column="order_kd">${row.order_kd || ''}</td>
-                    <td data-column="ten_chi_tiet">${row.ten_chi_tiet || ''}</td>
-                    <td data-column="so_file">${row.so_file || ''}</td>
-                    <td data-column="sll">${row.sll || ''}</td>
-                    <td data-column="tinh_chat">${row.tinh_chat || ''}</td>
-                    <td data-column="ghi_chu">${row.ghi_chu || ''}</td>
-                    <td data-column="noi_gia_cong">${row.noi_gia_cong || ''}</td>
-                    <td data-column="thoi_han">${row.thoi_han || ''}</td>
-                    <td data-column="ngay_nhan">${row.ngay_nhan || ''}</td>
-                    <td data-column="gio_nhan">${row.gio_nhan || ''}</td>
-                    <td data-column="tap_tho">${row.tap_tho || ''}</td>
-                    <td data-column="sl_nhan">${row.sl_nhan || ''}</td>
-                    <td data-column="code">${row.code || ''}</td>
-                    <td data-column="ho_va_ten">${row.ho_va_ten || ''}</td>
-                `;
-                tableBody.appendChild(tr);
-            });
+        // --- Authentication ---
+        async function authenticateUser(username, password) {
+            showLoading('Đang xác thực...');
+            clearAlert('#loginMessage');
 
-            // Apply current column visibility and order
-            const columnItems = document.querySelectorAll('.column-item');
-            columnItems.forEach(item => {
-                const columnName = item.dataset.column;
-                const checkbox = item.querySelector('input[type="checkbox"]');
-                toggleColumn(columnName, checkbox.checked);
-            });
-
-            // Initialize drag and drop after table is populated
-            initializeDragAndDrop();
-
-            // Display current date and time
-            const currentDateTime = document.getElementById('currentDateTime');
-            currentDateTime.textContent = 'Current Date and Time: 07:10 PM +07, Tuesday, July 29, 2025';
-        }
-
-        // Toggle column controls panel
-        function toggleColumnControls() {
-            const controls = document.getElementById('columnControls');
-            controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
-        }
-
-        // Toggle column visibility
-        function toggleColumn(columnName, isVisible) {
-            const headers = document.querySelectorAll(`th[data-column="${columnName}"]`);
-            const cells = document.querySelectorAll(`td[data-column="${columnName}"]`);
-            
-            headers.forEach(header => {
-                header.style.display = isVisible ? '' : 'none';
-            });
-            
-            cells.forEach(cell => {
-                cell.style.display = isVisible ? '' : 'none';
-            });
-        }
-
-        // Export table to Excel with current date/time
-        function exportToExcel() {
-            if (currentData.length === 0) {
-                showError('No data to export. Please load data first.');
+            if (!username || !password) {
+                showAlert('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu.', 'danger', '#loginMessage');
+                hideLoading();
                 return;
             }
-            
+
             try {
-                const table = document.getElementById('dataTable');
-                const wb = XLSX.utils.table_to_book(table, { sheet: "so_giao_nhan" });
+                // IMPORTANT: AppSheet API 'Find' action expects the column names as they are in the table.
+                // If your 'nhan_vien' table has columns named 'Ho Va Ten' and 'Code', the API will
+                // expect 'Ho Va Ten' and 'Code' in the JSON, not 'ho_va_ten' and 'code'.
+                // If AppSheet automatically converts "Ho Va Ten" to "ho_va_ten" for API, then this is fine.
+                // Otherwise, you need to use the exact column names from AppSheet.
+                const requestBody = {
+                    "Action": "Find",
+                    "Properties": {
+                        "Locale": "en-US",
+                        "Location": "47.620921, -122.347276",
+                        "Timezone": "Pacific Standard Time"
+                    },
+                    "Rows": [
+                        // Adjust these keys if your AppSheet table column names are different (e.g., "Họ và tên", "Code")
+                        { "ho_va_ten": username, "code": password }
+                    ]
+                };
 
-                // Add current date and time to a new row in the worksheet
-                const ws = wb.Sheets["so_giao_nhan"];
-                const dateTimeRow = [
-                    { v: 'Export Date and Time', t: 's' },
-                    { v: '07:10 PM +07, Tuesday, July 29, 2025', t: 's' }
-                ];
-                XLSX.utils.sheet_add_aoa(ws, [dateTimeRow], { origin: -1 });
+                console.log('Sending authentication request to AppSheet:', requestBody);
 
-                XLSX.writeFile(wb, 'so_giao_nhan.xlsx');
-                showSuccess('Excel file exported successfully!');
+                const employees = await makeAppSheetRequest(`${BASE_URL}${CONFIG.employeeTableName}/Action`, 'POST', requestBody);
+
+                console.log('Authentication response:', employees);
+
+                if (employees && Array.isArray(employees) && employees.length > 0) {
+                    loggedInUser = employees[0];
+                    $('#loggedInUserName').text(loggedInUser.ho_va_ten || 'Người dùng');
+                    $('#loginScreen').addClass('d-none');
+                    $('#mainApp').removeClass('d-none');
+                    if ($('#rememberMe').is(':checked')) {
+                        localStorage.setItem('loggedInUser', JSON.stringify(loggedInUser));
+                    } else {
+                        localStorage.removeItem('loggedInUser');
+                    }
+                    startClock();
+                    await fetchData(); // Fetch data after successful login
+                } else {
+                    showAlert('Sai tên đăng nhập hoặc mật khẩu. Vui lòng kiểm tra lại thông tin.', 'danger', '#loginMessage');
+                    loggedInUser = null;
+                }
             } catch (error) {
-                showError(`Export failed: ${error.message}`);
+                console.error('Authentication error details:', error);
+                let errorMessage = `Lỗi đăng nhập: ${error.message}`;
+                if (error.message.includes('404')) {
+                    errorMessage = 'Không tìm thấy bảng "nhan_vien". Vui lòng kiểm tra tên bảng trong AppSheet.';
+                } else if (error.message.includes('401')) {
+                    errorMessage = 'Lỗi xác thực: App ID hoặc Access Key không hợp lệ. Vui lòng kiểm tra cấu hình.';
+                } else if (error.message.includes('BadData')) {
+                    errorMessage = 'Dữ liệu không hợp lệ. Vui lòng kiểm tra cột "ho_va_ten" và "code" trong bảng nhan_vien.';
+                }
+                showAlert(errorMessage, 'danger', '#loginMessage');
+            } finally {
+                hideLoading();
             }
         }
 
-        // Initialize drag and drop when the page loads
-        document.addEventListener('DOMContentLoaded', initializeDragAndDrop);
+        function logout() {
+            loggedInUser = null;
+            localStorage.removeItem('loggedInUser');
+            localStorage.removeItem('so_giao_nhan_cache');
+            $('#mainApp').addClass('d-none');
+            $('#loginScreen').removeClass('d-none');
+            $('#password').val('');
+            clearAlert();
+            clearAlert('#loginMessage');
+            if (clockInterval) { // Clear interval if it exists
+                clearInterval(clockInterval);
+            }
+        }
+
+        // --- Data Fetching ---
+        async function fetchData() {
+            showLoading('Đang tải dữ liệu...');
+            clearAlert();
+
+            const cachedData = localStorage.getItem('so_giao_nhan_cache');
+            if (cachedData) {
+                try {
+                    const parsedData = JSON.parse(cachedData);
+                    if (Array.isArray(parsedData) && parsedData.length > 0) {
+                        originalData = parsedData;
+                        currentData = originalData;
+                        currentPage = 1;
+                        initializeColumns();
+                        renderTableWithPagination(currentData);
+                        showAlert('Tải dữ liệu từ bộ nhớ đệm.', 'info');
+                        // Fetch fresh data in background to ensure up-to-date data for next session
+                        fetchFreshData();
+                        return;
+                    } else {
+                        console.warn('Dữ liệu bộ nhớ đệm không hợp lệ hoặc trống, xóa và tải mới.');
+                        localStorage.removeItem('so_giao_nhan_cache');
+                    }
+                } catch (e) {
+                    console.error('Lỗi phân tích dữ liệu bộ nhớ đệm:', e);
+                    localStorage.removeItem('so_giao_nhan_cache');
+                }
+            }
+
+            await fetchFreshData();
+        }
+
+        async function fetchFreshData() {
+            try {
+                const actionRequestBody = {
+                    "Action": "Find",
+                    "Properties": {
+                        "Locale": "en-US",
+                        "Location": "47.620921, -122.347276",
+                        "Timezone": "Pacific Standard Time"
+                    }
+                };
+                console.log('Fetching data from so_giao_nhan:', actionRequestBody);
+                const data = await makeAppSheetRequest(`${BASE_URL}${CONFIG.tableName}/Action`, 'POST', actionRequestBody);
+
+                if (data && Array.isArray(data)) {
+                    if (data.length > 0) {
+                        originalData = data;
+                        currentData = data;
+                        currentPage = 1;
+                        localStorage.setItem('so_giao_nhan_cache', JSON.stringify(data));
+                        initializeColumns();
+                        renderTableWithPagination(currentData);
+                        showAlert('Tải dữ liệu thành công!', 'success');
+                    } else {
+                        originalData = [];
+                        currentData = [];
+                        renderTableWithPagination([]);
+                        initializeColumns();
+                        showAlert('Bảng so_giao_nhan không có dữ liệu.', 'info');
+                    }
+                } else {
+                    throw new Error('Phản hồi API không phải là mảng dữ liệu hoặc trống rỗng.');
+                }
+            } catch (error) {
+                console.error('Lỗi tải dữ liệu:', error);
+                let errorMessage = `Lỗi khi tải dữ liệu: ${error.message}`;
+                if (error.message.includes('404')) {
+                    errorMessage = 'Không tìm thấy bảng "so_giao_nhan". Vui lòng kiểm tra tên bảng trong AppSheet.';
+                } else if (error.message.includes('401')) {
+                    errorMessage = 'Lỗi xác thực: App ID hoặc Access Key không hợp lệ. Vui lòng kiểm tra cấu hình.';
+                } else if (error.message.includes('BadData')) {
+                    errorMessage = 'Dữ liệu không hợp lệ. Vui lòng kiểm tra cấu trúc bảng so_giao_nhan.';
+                }
+                showAlert(errorMessage, 'danger');
+                localStorage.removeItem('so_giao_nhan_cache');
+                originalData = [];
+                currentData = [];
+                renderTableWithPagination([]);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // --- Column Management ---
+        function initializeColumns() {
+            renderColumnCheckboxes();
+            renderTableHeaders();
+        }
+
+        function renderColumnCheckboxes() {
+            const $checkboxes = $('#columnCheckboxes');
+            $checkboxes.empty();
+            columnOrder.forEach(col => {
+                const displayName = getColumnDisplayName(col);
+                const isChecked = columnVisibility[col] ? 'checked' : '';
+                $checkboxes.append(`
+                    <div class="form-check">
+                        <input class="form-check-input column-toggle" type="checkbox" id="toggle_${col}" data-column="${col}" ${isChecked}>
+                        <label class="form-check-label" for="toggle_${col}">${displayName}</label>
+                    </div>
+                `);
+            });
+
+            $('.column-toggle').off('change').on('change', function() {
+                const column = $(this).data('column');
+                columnVisibility[column] = $(this).is(':checked');
+                renderTableHeaders();
+                renderTableWithPagination(currentData);
+            });
+        }
+
+        function renderTableHeaders() {
+            const $headers = $('#tableHeaders');
+            $headers.empty();
+            const visibleColumns = columnOrder.filter(col => columnVisibility[col]);
+            visibleColumns.forEach(col => {
+                const displayName = getColumnDisplayName(col);
+                // Ensure 'Actions' column is not sortable
+                if (col === 'Actions') {
+                    $headers.append(`<th data-column="${col}">${displayName}</th>`);
+                } else {
+                    $headers.append(`<th data-column="${col}" class="ui-sortable-handle">${displayName}</th>`);
+                }
+            });
+
+            // Make headers sortable except for the 'Actions' column
+            $headers.sortable({
+                items: 'th:not(:last-child)', // Exclude the last child (Actions column)
+                axis: 'x',
+                update: function(event, ui) {
+                    const newOrder = [];
+                    $('#tableHeaders th').each(function() {
+                        newOrder.push($(this).data('column'));
+                    });
+                    // Ensure 'Actions' always stays at the end if it was there and visible
+                    if (columnVisibility['Actions'] && newOrder[newOrder.length - 1] !== 'Actions') {
+                         const actionsIndex = newOrder.indexOf('Actions');
+                         if (actionsIndex > -1) {
+                             newOrder.splice(actionsIndex, 1); // Remove from its current position
+                         }
+                         newOrder.push('Actions'); // Add it to the end
+                    }
+                    columnOrder = newOrder;
+                    renderColumnCheckboxes(); // Re-render checkboxes to reflect new order
+                    renderTableWithPagination(currentData);
+                }
+            });
+            $headers.disableSelection();
+        }
+
+
+        function getColumnDisplayName(columnName) {
+            const displayNames = {
+                'order_kd': 'Order KD',
+                'ten_chi_tiet': 'Tên chi tiết',
+                'so_file': 'Số file',
+                'sll': 'SLL',
+                'tinh_chat': 'Tính chất',
+                'ghi_chu': 'Ghi chú',
+                'noi_gia_cong': 'Nơi gia công',
+                'thoi_han': 'Thời hạn',
+                'ngay_nhan': 'Ngày nhận',
+                'gio_nhan': 'Giờ nhận',
+                'tap_tho': 'Tập thợ',
+                'sl_nhan': 'SL nhận',
+                'code': 'Code',
+                'ho_va_ten': 'Họ và tên',
+                'Actions': 'Thao tác'
+            };
+            return displayNames[columnName] || columnName.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+        }
+
+        // --- Table Rendering with Pagination ---
+        function renderTableWithPagination(data) {
+            const $tbody = $('#tableBody');
+            $tbody.empty();
+
+            const start = (currentPage - 1) * CONFIG.pageSize;
+            const end = start + CONFIG.pageSize;
+            const paginatedData = data.slice(start, end);
+
+            if (paginatedData.length === 0) {
+                const colspan = columnOrder.filter(col => columnVisibility[col]).length;
+                $tbody.append(`<tr><td colspan="${colspan}" class="text-center">Không tìm thấy dữ liệu phù hợp.</td></tr>`);
+            } else {
+                const fragment = document.createDocumentFragment();
+                paginatedData.forEach(row => {
+                    const tr = document.createElement('tr');
+                    columnOrder.forEach(col => {
+                        if (columnVisibility[col]) {
+                            const td = document.createElement('td');
+                            if (col === 'Actions') {
+                                td.innerHTML = `
+                                    <button class="btn btn-primary btn-sm edit-btn" data-id="${row._RowNumber}">Sửa</button>
+                                    <button class="btn btn-danger btn-sm delete-btn" data-id="${row._RowNumber}">Xóa</button>
+                                `;
+                            } else {
+                                let cellValue = row[col] !== undefined && row[col] !== null ? row[col] : '';
+                                if (col === 'ngay_nhan' || col === 'thoi_han') {
+                                    // AppSheet typically returns dates in ISO format (e.g., "2023-01-15T00:00:00Z")
+                                    // Or just "2023-01-15". Parse and display as local date.
+                                    try {
+                                        const date = new Date(cellValue);
+                                        if (!isNaN(date.getTime())) { // Check for valid date
+                                            cellValue = date.toLocaleDateString('vi-VN');
+                                        } else {
+                                            cellValue = row[col]; // Keep original if invalid date
+                                        }
+                                    } catch (e) {
+                                        cellValue = row[col]; // Fallback to original
+                                    }
+                                } else if (col === 'gio_nhan') {
+                                    // AppSheet might return time as "HH:MM:SS" or "HH:MM". Display as HH:MM.
+                                    if (typeof cellValue === 'string' && cellValue.length >= 5) {
+                                        cellValue = cellValue.substring(0, 5);
+                                    }
+                                }
+                                td.textContent = cellValue;
+                            }
+                            tr.appendChild(td);
+                        }
+                    });
+                    fragment.appendChild(tr);
+                });
+                $tbody[0].appendChild(fragment);
+            }
+
+            // Update pagination controls
+            const totalPages = Math.ceil(data.length / CONFIG.pageSize);
+            $('#pageInfo').text(`Trang ${currentPage} / ${totalPages}`);
+            $('#prevPage').parent().toggleClass('disabled', currentPage === 1);
+            $('#nextPage').parent().toggleClass('disabled', currentPage === totalPages || totalPages === 0); // Disable next if no data or last page
+
+            $('.edit-btn').off('click').on('click', function() {
+                const rowId = $(this).data('id');
+                populateEditModal(rowId);
+            });
+
+            $('.delete-btn').off('click').on('click', function() {
+                const rowId = $(this).data('id');
+                $('#confirmDeleteButton').data('id', rowId);
+                const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+                deleteModal.show();
+            });
+        }
+
+        // --- Pagination Controls ---
+        $('#prevPage').on('click', function(e) {
+            e.preventDefault();
+            if (currentPage > 1) {
+                currentPage--;
+                renderTableWithPagination(currentData);
+            }
+        });
+
+        $('#nextPage').on('click', function(e) {
+            e.preventDefault();
+            if (currentPage < Math.ceil(currentData.length / CONFIG.pageSize)) {
+                currentPage++;
+                renderTableWithPagination(currentData);
+            }
+        });
+
+        // --- Search Functionality ---
+        $('#searchInput').on('input', function() {
+            const searchTerm = $(this).val().toLowerCase().trim();
+            if (searchTerm === '') {
+                currentData = originalData;
+            } else {
+                currentData = originalData.filter(row =>
+                    (row['order_kd'] && String(row['order_kd']).toLowerCase().includes(searchTerm)) ||
+                    (row.ten_chi_tiet && String(row.ten_chi_tiet).toLowerCase().includes(searchTerm)) ||
+                    (row.code && String(row.code).toLowerCase().includes(searchTerm)) ||
+                    (row.ho_va_ten && String(row.ho_va_ten).toLowerCase().includes(searchTerm))
+                );
+            }
+            currentPage = 1; // Reset to first page after search
+            renderTableWithPagination(currentData);
+        });
+
+        // --- Add Record ---
+        $('#addModal').on('show.bs.modal', function() {
+            clearAlert('#addFormMessage');
+            $('#addForm')[0].reset();
+            const now = new Date();
+            const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
+            const currentTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+
+            $('#add_ngay_nhan').val(today);
+            $('#add_gio_nhan').val(currentTime);
+            if (loggedInUser) {
+                $('#add_ho_va_ten').val(loggedInUser.ho_va_ten || '');
+                $('#add_code').val(loggedInUser.code || ''); // Populate code as well if available in employee record
+            }
+        });
+
+        $('#addForm').on('submit', async function(e) {
+            e.preventDefault();
+            showLoading('Đang thêm dữ liệu...');
+            clearAlert('#addFormMessage');
+
+            const orderKd = $('#add_order_kd').val().trim();
+            const tenChiTiet = $('#add_ten_chi_tiet').val().trim();
+
+            if (!orderKd || !tenChiTiet) {
+                showAlert('Vui lòng điền đầy đủ các trường bắt buộc (Order KD, Tên chi tiết).', 'danger', '#addFormMessage');
+                hideLoading();
+                return;
+            }
+
+            // Client-side check for duplicate Order KD
+            if (originalData.some(record => record['order_kd'] === orderKd)) {
+                showAlert('Order KD này đã tồn tại. Vui lòng nhập Order KD khác.', 'danger', '#addFormMessage');
+                hideLoading();
+                return;
+            }
+
+            const newRecord = {
+                // Ensure keys match AppSheet column names exactly (case-sensitive if AppSheet is strict)
+                // Use || null to send null for empty optional fields
+                "order_kd": orderKd,
+                "ten_chi_tiet": tenChiTiet,
+                "so_file": $('#add_so_file').val().trim() || null,
+                "sll": $('#add_sll').val() !== '' ? parseInt($('#add_sll').val()) : null,
+                "tinh_chat": $('#add_tinh_chat').val().trim() || null,
+                "ghi_chu": $('#add_ghi_chu').val().trim() || null,
+                "noi_gia_cong": $('#add_noi_gia_cong').val().trim() || null,
+                // Format dates to YYYY-MM-DD. AppSheet's date columns expect this.
+                "thoi_han": formatDateToISO($('#add_thoi_han').val()),
+                "ngay_nhan": formatDateToISO($('#add_ngay_nhan').val()),
+                // Format time to HH:MM:SS (even if input is HH:MM)
+                "gio_nhan": formatTimeToHHMMSS($('#add_gio_nhan').val()),
+                "tap_tho": $('#add_tap_tho').val().trim() || null,
+                "sl_nhan": $('#add_sl_nhan').val() !== '' ? parseInt($('#add_sl_nhan').val()) : null,
+                "code": $('#add_code').val().trim() || null,
+                "ho_va_ten": $('#add_ho_va_ten').val().trim() || null
+            };
+
+            // Remove properties with null values if AppSheet prefers fields to be absent rather than null
+            // For AppSheet, sending `null` is generally fine for non-required fields.
+            // But if you encounter issues, uncomment the following:
+            /*
+            Object.keys(newRecord).forEach(key => {
+                if (newRecord[key] === null) {
+                    delete newRecord[key];
+                }
+            });
+            */
+
+            try {
+                const response = await makeAppSheetRequest(`${BASE_URL}${CONFIG.tableName}/Action`, 'POST', {
+                    "Action": "Add",
+                    "Properties": {
+                        "Locale": "vi-VN", // Changed to vi-VN for better localization if needed by AppSheet
+                        "Location": "47.620921, -122.347276", // Keep consistent
+                        "Timezone": "Asia/Ho_Chi_Minh" // More accurate timezone for Vietnam
+                    },
+                    "Rows": [newRecord]
+                });
+
+                if (response && response.Rows && response.Rows.length > 0) {
+                    showAlert('Thêm mới bản ghi thành công!', 'success');
+                    const addModal = bootstrap.Modal.getInstance(document.getElementById('addModal'));
+                    if (addModal) addModal.hide();
+                    localStorage.removeItem('so_giao_nhan_cache'); // Invalidate cache
+                    await fetchData(); // Re-fetch all data to update the table
+                } else {
+                    // AppSheet might return an empty 'Rows' array even on success for Add.
+                    // Check for general success if no error was thrown.
+                    if (response && response.success) { // Custom success flag from makeAppSheetRequest if raw text was empty
+                        showAlert('Thêm mới bản ghi thành công (không có phản hồi dữ liệu chi tiết).', 'success');
+                        const addModal = bootstrap.Modal.getInstance(document.getElementById('addModal'));
+                        if (addModal) addModal.hide();
+                        localStorage.removeItem('so_giao_nhan_cache');
+                        await fetchData();
+                    } else {
+                        throw new Error("Phản hồi không chứa bản ghi đã thêm.");
+                    }
+                }
+            } catch (error) {
+                showAlert(`Lỗi khi thêm mới: ${error.message}`, 'danger', '#addFormMessage');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // --- Edit Record ---
+        function populateEditModal(rowNumber) {
+            clearAlert('#editFormMessage');
+            const recordToEdit = originalData.find(record => record._RowNumber === rowNumber);
+            if (recordToEdit) {
+                $('#edit_row_number').val(recordToEdit._RowNumber);
+                $('#edit_order_kd').val(recordToEdit['order_kd'] || '');
+                $('#edit_ten_chi_tiet').val(recordToEdit.ten_chi_tiet || '');
+                $('#edit_so_file').val(recordToEdit.so_file || '');
+                $('#edit_sll').val(recordToEdit.sll || '');
+                $('#edit_tinh_chat').val(recordToEdit.tinh_chat || '');
+                $('#edit_ghi_chu').val(recordToEdit.ghi_chu || '');
+                $('#edit_noi_gia_cong').val(recordToEdit.noi_gia_cong || '');
+                // For date inputs, ensure YYYY-MM-DD format
+                $('#edit_thoi_han').val(formatDateToISO(recordToEdit.thoi_han));
+                $('#edit_ngay_nhan').val(formatDateToISO(recordToEdit.ngay_nhan));
+                // For time inputs, ensure HH:MM format for display
+                $('#edit_gio_nhan').val(recordToEdit.gio_nhan ? recordToEdit.gio_nhan.substring(0, 5) : '');
+                $('#edit_tap_tho').val(recordToEdit.tap_tho || '');
+                $('#edit_sl_nhan').val(recordToEdit.sl_nhan || '');
+                $('#edit_code').val(recordToEdit.code || '');
+                $('#edit_ho_va_ten').val(recordToEdit.ho_va_ten || '');
+
+                const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+                editModal.show();
+            } else {
+                showAlert('Không tìm thấy bản ghi để sửa.', 'danger');
+            }
+        }
+
+        $('#editForm').on('submit', async function(e) {
+            e.preventDefault();
+            showLoading('Đang lưu thay đổi...');
+            clearAlert('#editFormMessage');
+
+            const rowNumber = parseInt($('#edit_row_number').val());
+            const originalRecord = originalData.find(r => r._RowNumber === rowNumber);
+            const originalOrderKd = originalRecord ? originalRecord['order_kd'] : null;
+
+            const updatedOrderKd = $('#edit_order_kd').val().trim();
+            const updatedTenChiTiet = $('#edit_ten_chi_tiet').val().trim();
+
+            if (!updatedOrderKd || !updatedTenChiTiet) {
+                showAlert('Vui lòng điền đầy đủ các trường bắt buộc (Order KD, Tên chi tiết).', 'danger', '#editFormMessage');
+                hideLoading();
+                return;
+            }
+
+            // Client-side check for duplicate Order KD if it's being changed
+            if (updatedOrderKd !== originalOrderKd &&
+                originalData.some(record => record._RowNumber !== rowNumber && record['order_kd'] === updatedOrderKd)) {
+                showAlert('Order KD này đã tồn tại cho một bản ghi khác. Vui lòng nhập Order KD khác.', 'danger', '#editFormMessage');
+                hideLoading();
+                return;
+            }
+
+            const updatedRecord = {
+                "_RowNumber": rowNumber, // Essential for Edit action
+                "order_kd": updatedOrderKd,
+                "ten_chi_tiet": updatedTenChiTiet,
+                "so_file": $('#edit_so_file').val().trim() || null,
+                "sll": $('#edit_sll').val() !== '' ? parseInt($('#edit_sll').val()) : null,
+                "tinh_chat": $('#edit_tinh_chat').val().trim() || null,
+                "ghi_chu": $('#edit_ghi_chu').val().trim() || null,
+                "noi_gia_cong": $('#edit_noi_gia_cong').val().trim() || null,
+                "thoi_han": formatDateToISO($('#edit_thoi_han').val()),
+                "ngay_nhan": formatDateToISO($('#edit_ngay_nhan').val()),
+                "gio_nhan": formatTimeToHHMMSS($('#edit_gio_nhan').val()),
+                "tap_tho": $('#edit_tap_tho').val().trim() || null,
+                "sl_nhan": $('#edit_sl_nhan').val() !== '' ? parseInt($('#edit_sl_nhan').val()) : null,
+                "code": $('#edit_code').val().trim() || null,
+                "ho_va_ten": $('#edit_ho_va_ten').val().trim() || null
+            };
+
+            // Remove properties with null values if AppSheet prefers fields to be absent rather than null for updates
+            /*
+            Object.keys(updatedRecord).forEach(key => {
+                if (updatedRecord[key] === null) {
+                    delete updatedRecord[key];
+                }
+            });
+            */
+
+            try {
+                const response = await makeAppSheetRequest(`${BASE_URL}${CONFIG.tableName}/Action`, 'POST', {
+                    "Action": "Edit",
+                    "Properties": {
+                        "Locale": "vi-VN",
+                        "Location": "47.620921, -122.347276",
+                        "Timezone": "Asia/Ho_Chi_Minh"
+                    },
+                    "Rows": [updatedRecord]
+                });
+
+                if (response && response.Rows && response.Rows.length > 0) { // AppSheet returns updated row on success
+                    showAlert('Cập nhật bản ghi thành công!', 'success');
+                    const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                    if (editModal) editModal.hide();
+                    localStorage.removeItem('so_giao_nhan_cache'); // Invalidate cache
+                    await fetchData(); // Re-fetch all data to update the table
+                } else {
+                     // Similar to Add, if no Rows are returned but no error thrown
+                    if (response && response.success) {
+                        showAlert('Cập nhật bản ghi thành công (không có phản hồi dữ liệu chi tiết).', 'success');
+                        const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                        if (editModal) editModal.hide();
+                        localStorage.removeItem('so_giao_nhan_cache');
+                        await fetchData();
+                    } else {
+                        throw new Error("Phản hồi không chứa bản ghi đã cập nhật.");
+                    }
+                }
+            } catch (error) {
+                showAlert(`Lỗi khi cập nhật: ${error.message}`, 'danger', '#editFormMessage');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // --- Delete Record ---
+        $('#confirmDeleteButton').on('click', async function() {
+            showLoading('Đang xóa dữ liệu...');
+            clearAlert();
+            const rowId = parseInt($(this).data('id')); // Ensure it's parsed as an integer
+            const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
+            if (deleteModal) deleteModal.hide();
+
+            try {
+                const response = await makeAppSheetRequest(`${BASE_URL}${CONFIG.tableName}/Action`, 'POST', {
+                    "Action": "Delete",
+                    "Properties": {
+                        "Locale": "vi-VN",
+                        "Location": "47.620921, -122.347276",
+                        "Timezone": "Asia/Ho_Chi_Minh"
+                    },
+                    "Rows": [{ "_RowNumber": rowId }] // _RowNumber is crucial for delete
+                });
+
+                // AppSheet Delete action typically returns an empty array or success message if successful
+                if (response) {
+                    showAlert('Xóa bản ghi thành công!', 'success');
+                    localStorage.removeItem('so_giao_nhan_cache'); // Invalidate cache
+                    await fetchData(); // Re-fetch data
+                } else {
+                    throw new Error("Không nhận được phản hồi xác nhận xóa.");
+                }
+            } catch (error) {
+                showAlert(`Lỗi khi xóa: ${error.message}`, 'danger');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // --- Excel Export ---
+        $('#exportExcelButton').on('click', function() {
+            showLoading('Đang xuất Excel...');
+            try {
+                if (currentData.length === 0) {
+                    showAlert('Không có dữ liệu để xuất.', 'info');
+                    hideLoading();
+                    return;
+                }
+
+                const visibleColumns = columnOrder.filter(col => columnVisibility[col] && col !== 'Actions');
+                const exportData = currentData.map(row => {
+                    const obj = {};
+                    visibleColumns.forEach(col => {
+                        let cellValue = row[col] !== undefined && row[col] !== null ? row[col] : '';
+                        if (col === 'ngay_nhan' || col === 'thoi_han') {
+                            try {
+                                const date = new Date(cellValue);
+                                if (!isNaN(date.getTime())) {
+                                    cellValue = date.toLocaleDateString('vi-VN');
+                                } else {
+                                     cellValue = row[col]; // Keep original if invalid
+                                }
+                            } catch (e) {
+                                cellValue = row[col];
+                            }
+                        } else if (col === 'gio_nhan') {
+                             if (typeof cellValue === 'string' && cellValue.length >= 5) {
+                                cellValue = cellValue.substring(0, 5);
+                            }
+                        }
+                        obj[getColumnDisplayName(col)] = cellValue;
+                    });
+                    return obj;
+                });
+
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Sổ Giao Nhận");
+
+                const now = new Date();
+                const exportDateTime = now.toLocaleString('vi-VN');
+                const exporter = loggedInUser ? loggedInUser.ho_va_ten : 'Unknown';
+
+                const footerData = [
+                    [''],
+                    ['Thông tin xuất:'],
+                    ['Ngày xuất:', exportDateTime],
+                    ['Người xuất:', exporter]
+                ];
+
+                const currentRow = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']).e.r + 2 : 0;
+                XLSX.utils.sheet_add_aoa(ws, footerData, { origin: currentRow });
+
+                XLSX.writeFile(wb, `So_Giao_Nhan_Export_${new Date().toJSON().slice(0,10)}.xlsx`); // Dynamic filename
+                showAlert('Xuất Excel thành công!', 'success');
+            } catch (error) {
+                showAlert(`Lỗi khi xuất Excel: ${error.message}`, 'danger');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // --- Clock and Date ---
+        function updateClock() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            $('#currentDate').text(now.toLocaleDateString('vi-VN', dateOptions));
+            $('#currentTime').text(now.toLocaleTimeString('vi-VN', timeOptions));
+        }
+
+        function startClock() {
+            if (clockInterval) { // Clear any existing interval to prevent duplicates
+                clearInterval(clockInterval);
+            }
+            updateClock();
+            clockInterval = setInterval(updateClock, 1000);
+        }
+
+        // --- Event Listeners and Initial Load ---
+        $(document).ready(function() {
+            const rememberedUser = localStorage.getItem('loggedInUser');
+            if (rememberedUser) {
+                try {
+                    loggedInUser = JSON.parse(rememberedUser);
+                    $('#username').val(loggedInUser.ho_va_ten || '');
+                    // Automatically attempt login if remembered user exists
+                    // This is a design choice. For security, you might still want password re-entry.
+                    // If auto-logging in, ensure it calls authenticateUser directly.
+                    // authenticateUser(loggedInUser.ho_va_ten, loggedInUser.code); // This would require saving password too (NOT recommended)
+                    // Better: Just pre-fill username and let user enter password.
+                    $('#loginScreen').removeClass('d-none');
+                    $('#mainApp').addClass('d-none');
+                    $('#password').focus();
+                } catch (e) {
+                    console.error("Error parsing remembered user from localStorage:", e);
+                    localStorage.removeItem('loggedInUser'); // Clear corrupt data
+                    $('#loginScreen').removeClass('d-none');
+                    $('#mainApp').addClass('d-none');
+                }
+            } else {
+                $('#loginScreen').removeClass('d-none');
+                $('#mainApp').addClass('d-none');
+            }
+
+
+            $('#loginForm').on('submit', function(e) {
+                e.preventDefault();
+                authenticateUser($('#username').val(), $('#password').val());
+            });
+
+            $('#logoutButton').on('click', logout);
+
+            // Hide main app initially until login
+            $('#mainApp').addClass('d-none');
+        });
     </script>
 </body>
 </html>
