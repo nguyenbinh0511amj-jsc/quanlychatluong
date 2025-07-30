@@ -64,6 +64,9 @@
         .pagination {
             margin-top: 20px;
         }
+        .page-size-selection {
+            max-width: 150px;
+        }
     </style>
 </head>
 <body>
@@ -103,8 +106,19 @@
 
         <div id="messageArea" class="alert d-none" role="alert"></div>
 
-        <div class="mb-3">
-            <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm theo Order KD, Tên chi tiết, Code, Họ và tên...">
+        <div class="mb-3 d-flex gap-3">
+            <div class="flex-grow-1">
+                <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm theo Order KD, Tên chi tiết, Code, Họ và tên...">
+            </div>
+            <div class="page-size-selection">
+                <label for="pageSizeSelect" class="form-label">Số dòng mỗi trang:</label>
+                <select id="pageSizeSelect" class="form-select">
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                    <option value="500">500</option>
+                </select>
+            </div>
         </div>
 
         <div id="columnSelection">
@@ -319,13 +333,14 @@
     <script>
         // CONFIGURATION
         const CONFIG = {
-            appId: 'e1339939-5987-4d7a-8c73-436348abf6b7', // Make sure this is YOUR AppSheet App ID
-            accessKey: 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL', // Make sure this is YOUR AppSheet API Key
-            tableName: 'so_giao_nhan', // Make sure this is the EXACT name of your table in AppSheet
-            employeeTableName: 'nhan_vien', // Make sure this is the EXACT name of your employee table in AppSheet
+            appId: 'e1339939-5987-4d7a-8c73-436348abf6b7',
+            accessKey: 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL',
+            tableName: 'so_giao_nhan',
+            employeeTableName: 'nhan_vien',
             maxRetries: 3,
             retryDelay: 1000,
-            pageSize: 10
+            pageSizeOptions: [50, 100, 200, 500],
+            defaultPageSize: 50
         };
 
         const BASE_URL = `https://api.appsheet.com/api/v2/apps/${CONFIG.appId}/tables/`;
@@ -352,7 +367,7 @@
         };
         let loggedInUser = null;
         let currentPage = 1;
-        let clockInterval; // Declare clockInterval globally or manage its lifecycle
+        let pageSize = parseInt(localStorage.getItem('pageSize')) || CONFIG.defaultPageSize;
 
         // --- Utility Functions ---
         function showLoading(message = 'Đang tải...') {
@@ -366,7 +381,7 @@
 
         function showAlert(message, type = 'danger', target = '#messageArea') {
             const alertDiv = $(target);
-            alertDiv.text(message).removeClass('d-none alert-success alert-danger alert-info alert-warning').addClass(`alert-${type}`);
+            alertDiv.text(message).removeClass('d-none alert-success alert-danger alert-info').addClass(`alert-${type}`);
             if (target === '#messageArea') {
                 setTimeout(() => alertDiv.addClass('d-none'), 5000);
             }
@@ -376,33 +391,6 @@
             $(target).addClass('d-none').text('');
         }
 
-        // Helper to format date to YYYY-MM-DD string
-        function formatDateToISO(dateString) {
-            if (!dateString) return null;
-            try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) { // Check for invalid date
-                    return null;
-                }
-                return date.toISOString().split('T')[0];
-            } catch (e) {
-                console.error("Error formatting date:", e);
-                return null;
-            }
-        }
-
-        // Helper to format time to HH:MM:SS (AppSheet prefers this for Time columns)
-        function formatTimeToHHMMSS(timeString) {
-            if (!timeString) return null;
-            // Assuming timeString is HH:MM or HH:MM:SS
-            const parts = timeString.split(':');
-            if (parts.length === 2) {
-                return `${parts[0]}:${parts[1]}:00`; // Add seconds if missing
-            }
-            return timeString;
-        }
-
-        // --- AppSheet API Request Function ---
         async function makeAppSheetRequest(url, method, data, retries = 0) {
             try {
                 const options = {
@@ -418,19 +406,12 @@
 
                 const response = await fetch(url, options);
                 let responseData;
-                let rawText = '';
-
                 try {
-                    // Try to parse JSON first
-                    rawText = await response.text();
-                    responseData = JSON.parse(rawText);
+                    responseData = await response.json();
                 } catch (jsonError) {
+                    const rawText = await response.text();
                     console.error('Lỗi phân tích JSON:', jsonError);
                     console.error('Phản hồi API thô:', rawText);
-                    // If it's not valid JSON, but the status is OK, it might be an empty success response
-                    if (response.ok && rawText.trim() === '') {
-                        return { success: true, message: "Empty successful response" };
-                    }
                     throw new Error(`Định dạng phản hồi API không hợp lệ. Raw: "${rawText.substring(0, 100)}..."`);
                 }
 
@@ -438,7 +419,7 @@
 
                 if (!response.ok) {
                     if (retries < CONFIG.maxRetries) {
-                        console.warn(`Yêu cầu thất bại (${response.status}). Thử lại... (${retries + 1}/${CONFIG.maxRetries})`);
+                        console.warn(`Yêu cầu thất bại. Thử lại... (${retries + 1}/${CONFIG.maxRetries})`);
                         await new Promise(resolve => setTimeout(resolve, CONFIG.retryDelay));
                         return makeAppSheetRequest(url, method, data, retries + 1);
                     }
@@ -446,10 +427,8 @@
                     let errorMessage = 'Lỗi không xác định khi giao tiếp với AppSheet.';
                     if (responseData && responseData.Message) {
                         errorMessage = responseData.Message;
-                    } else if (responseData && responseData.error && responseData.error.message) {
-                        errorMessage = responseData.error.message;
                     } else if (response.status === 401) {
-                        errorMessage = 'Lỗi xác thực: Khóa truy cập không hợp lệ hoặc thiếu. Vui lòng kiểm tra "ApplicationAccessKey".';
+                        errorMessage = 'Lỗi xác thực: Khóa truy cập không hợp lệ hoặc thiếu.';
                     } else if (response.status === 404) {
                         errorMessage = 'Không tìm thấy bảng hoặc ứng dụng. Vui lòng kiểm tra App ID và tên bảng.';
                     } else if (responseData && responseData.Code === 'BadData') {
@@ -478,11 +457,6 @@
             }
 
             try {
-                // IMPORTANT: AppSheet API 'Find' action expects the column names as they are in the table.
-                // If your 'nhan_vien' table has columns named 'Ho Va Ten' and 'Code', the API will
-                // expect 'Ho Va Ten' and 'Code' in the JSON, not 'ho_va_ten' and 'code'.
-                // If AppSheet automatically converts "Ho Va Ten" to "ho_va_ten" for API, then this is fine.
-                // Otherwise, you need to use the exact column names from AppSheet.
                 const requestBody = {
                     "Action": "Find",
                     "Properties": {
@@ -491,7 +465,6 @@
                         "Timezone": "Pacific Standard Time"
                     },
                     "Rows": [
-                        // Adjust these keys if your AppSheet table column names are different (e.g., "Họ và tên", "Code")
                         { "ho_va_ten": username, "code": password }
                     ]
                 };
@@ -513,7 +486,7 @@
                         localStorage.removeItem('loggedInUser');
                     }
                     startClock();
-                    await fetchData(); // Fetch data after successful login
+                    await fetchData();
                 } else {
                     showAlert('Sai tên đăng nhập hoặc mật khẩu. Vui lòng kiểm tra lại thông tin.', 'danger', '#loginMessage');
                     loggedInUser = null;
@@ -538,14 +511,13 @@
             loggedInUser = null;
             localStorage.removeItem('loggedInUser');
             localStorage.removeItem('so_giao_nhan_cache');
+            localStorage.removeItem('pageSize');
             $('#mainApp').addClass('d-none');
             $('#loginScreen').removeClass('d-none');
             $('#password').val('');
             clearAlert();
             clearAlert('#loginMessage');
-            if (clockInterval) { // Clear interval if it exists
-                clearInterval(clockInterval);
-            }
+            clearInterval(clockInterval);
         }
 
         // --- Data Fetching ---
@@ -553,6 +525,7 @@
             showLoading('Đang tải dữ liệu...');
             clearAlert();
 
+            // Check localStorage for cached data
             const cachedData = localStorage.getItem('so_giao_nhan_cache');
             if (cachedData) {
                 try {
@@ -564,11 +537,11 @@
                         initializeColumns();
                         renderTableWithPagination(currentData);
                         showAlert('Tải dữ liệu từ bộ nhớ đệm.', 'info');
-                        // Fetch fresh data in background to ensure up-to-date data for next session
+                        // Fetch fresh data in background
                         fetchFreshData();
                         return;
                     } else {
-                        console.warn('Dữ liệu bộ nhớ đệm không hợp lệ hoặc trống, xóa và tải mới.');
+                        console.warn('Dữ liệu bộ nhớ đệm không hợp lệ, xóa và tải mới.');
                         localStorage.removeItem('so_giao_nhan_cache');
                     }
                 } catch (e) {
@@ -610,7 +583,7 @@
                         showAlert('Bảng so_giao_nhan không có dữ liệu.', 'info');
                     }
                 } else {
-                    throw new Error('Phản hồi API không phải là mảng dữ liệu hoặc trống rỗng.');
+                    throw new Error('Phản hồi API không phải là mảng dữ liệu.');
                 }
             } catch (error) {
                 console.error('Lỗi tải dữ liệu:', error);
@@ -634,6 +607,8 @@
 
         // --- Column Management ---
         function initializeColumns() {
+            // Set default page size from localStorage or CONFIG
+            $('#pageSizeSelect').val(pageSize);
             renderColumnCheckboxes();
             renderTableHeaders();
         }
@@ -646,7 +621,7 @@
                 const isChecked = columnVisibility[col] ? 'checked' : '';
                 $checkboxes.append(`
                     <div class="form-check">
-                        <input class="form-check-input column-toggle" type="checkbox" id="toggle_${col}" data-column="${col}" ${isChecked}>
+                        <input class="form-check-input column-toggle" type="checkbox" id="toggle_${col}" data Automotive-column="${col}" ${isChecked}>
                         <label class="form-check-label" for="toggle_${col}">${displayName}</label>
                     </div>
                 `);
@@ -666,39 +641,24 @@
             const visibleColumns = columnOrder.filter(col => columnVisibility[col]);
             visibleColumns.forEach(col => {
                 const displayName = getColumnDisplayName(col);
-                // Ensure 'Actions' column is not sortable
-                if (col === 'Actions') {
-                    $headers.append(`<th data-column="${col}">${displayName}</th>`);
-                } else {
-                    $headers.append(`<th data-column="${col}" class="ui-sortable-handle">${displayName}</th>`);
-                }
+                $headers.append(`<th data-column="${col}">${displayName}</th>`);
             });
 
-            // Make headers sortable except for the 'Actions' column
             $headers.sortable({
-                items: 'th:not(:last-child)', // Exclude the last child (Actions column)
+                items: 'th:not(:last-child)',
                 axis: 'x',
                 update: function(event, ui) {
                     const newOrder = [];
                     $('#tableHeaders th').each(function() {
                         newOrder.push($(this).data('column'));
                     });
-                    // Ensure 'Actions' always stays at the end if it was there and visible
-                    if (columnVisibility['Actions'] && newOrder[newOrder.length - 1] !== 'Actions') {
-                         const actionsIndex = newOrder.indexOf('Actions');
-                         if (actionsIndex > -1) {
-                             newOrder.splice(actionsIndex, 1); // Remove from its current position
-                         }
-                         newOrder.push('Actions'); // Add it to the end
-                    }
                     columnOrder = newOrder;
-                    renderColumnCheckboxes(); // Re-render checkboxes to reflect new order
+                    renderColumnCheckboxes();
                     renderTableWithPagination(currentData);
                 }
             });
             $headers.disableSelection();
         }
-
 
         function getColumnDisplayName(columnName) {
             const displayNames = {
@@ -726,13 +686,12 @@
             const $tbody = $('#tableBody');
             $tbody.empty();
 
-            const start = (currentPage - 1) * CONFIG.pageSize;
-            const end = start + CONFIG.pageSize;
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
             const paginatedData = data.slice(start, end);
 
             if (paginatedData.length === 0) {
-                const colspan = columnOrder.filter(col => columnVisibility[col]).length;
-                $tbody.append(`<tr><td colspan="${colspan}" class="text-center">Không tìm thấy dữ liệu phù hợp.</td></tr>`);
+                $tbody.append(`<tr><td colspan="${columnOrder.filter(col => columnVisibility[col]).length}" class="text-center">Không tìm thấy dữ liệu phù hợp.</td></tr>`);
             } else {
                 const fragment = document.createDocumentFragment();
                 paginatedData.forEach(row => {
@@ -748,22 +707,13 @@
                             } else {
                                 let cellValue = row[col] !== undefined && row[col] !== null ? row[col] : '';
                                 if (col === 'ngay_nhan' || col === 'thoi_han') {
-                                    // AppSheet typically returns dates in ISO format (e.g., "2023-01-15T00:00:00Z")
-                                    // Or just "2023-01-15". Parse and display as local date.
                                     try {
                                         const date = new Date(cellValue);
-                                        if (!isNaN(date.getTime())) { // Check for valid date
+                                        if (!isNaN(date)) {
                                             cellValue = date.toLocaleDateString('vi-VN');
-                                        } else {
-                                            cellValue = row[col]; // Keep original if invalid date
                                         }
                                     } catch (e) {
-                                        cellValue = row[col]; // Fallback to original
-                                    }
-                                } else if (col === 'gio_nhan') {
-                                    // AppSheet might return time as "HH:MM:SS" or "HH:MM". Display as HH:MM.
-                                    if (typeof cellValue === 'string' && cellValue.length >= 5) {
-                                        cellValue = cellValue.substring(0, 5);
+                                        // Keep original value if date parsing fails
                                     }
                                 }
                                 td.textContent = cellValue;
@@ -777,10 +727,10 @@
             }
 
             // Update pagination controls
-            const totalPages = Math.ceil(data.length / CONFIG.pageSize);
+            const totalPages = Math.ceil(data.length / pageSize);
             $('#pageInfo').text(`Trang ${currentPage} / ${totalPages}`);
             $('#prevPage').parent().toggleClass('disabled', currentPage === 1);
-            $('#nextPage').parent().toggleClass('disabled', currentPage === totalPages || totalPages === 0); // Disable next if no data or last page
+            $('#nextPage').parent().toggleClass('disabled', currentPage === totalPages);
 
             $('.edit-btn').off('click').on('click', function() {
                 const rowId = $(this).data('id');
@@ -806,26 +756,34 @@
 
         $('#nextPage').on('click', function(e) {
             e.preventDefault();
-            if (currentPage < Math.ceil(currentData.length / CONFIG.pageSize)) {
+            if (currentPage < Math.ceil(currentData.length / pageSize)) {
                 currentPage++;
                 renderTableWithPagination(currentData);
             }
         });
 
+        // --- Page Size Selection ---
+        $('#pageSizeSelect').on('change', function() {
+            pageSize = parseInt($(this).val());
+            localStorage.setItem('pageSize', pageSize);
+            currentPage = 1;
+            renderTableWithPagination(currentData);
+        });
+
         // --- Search Functionality ---
         $('#searchInput').on('input', function() {
-            const searchTerm = $(this).val().toLowerCase().trim();
+            const searchTerm = $(this).val().toLowerCase();
             if (searchTerm === '') {
                 currentData = originalData;
             } else {
                 currentData = originalData.filter(row =>
-                    (row['order_kd'] && String(row['order_kd']).toLowerCase().includes(searchTerm)) ||
-                    (row.ten_chi_tiet && String(row.ten_chi_tiet).toLowerCase().includes(searchTerm)) ||
-                    (row.code && String(row.code).toLowerCase().includes(searchTerm)) ||
-                    (row.ho_va_ten && String(row.ho_va_ten).toLowerCase().includes(searchTerm))
+                    (row['order_kd'] && row['order_kd'].toLowerCase().includes(searchTerm)) ||
+                    (row.ten_chi_tiet && row.ten_chi_tiet.toLowerCase().includes(searchTerm)) ||
+                    (row.code && row.code.toLowerCase().includes(searchTerm)) ||
+                    (row.ho_va_ten && row.ho_va_ten.toLowerCase().includes(searchTerm))
                 );
             }
-            currentPage = 1; // Reset to first page after search
+            currentPage = 1;
             renderTableWithPagination(currentData);
         });
 
@@ -834,14 +792,13 @@
             clearAlert('#addFormMessage');
             $('#addForm')[0].reset();
             const now = new Date();
-            const today = now.toISOString().split('T')[0]; // YYYY-MM-DD
-            const currentTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+            const today = now.toISOString().split('T')[0];
+            const currentTime = now.toTimeString().split(' ')[0].substring(0, 5);
 
             $('#add_ngay_nhan').val(today);
             $('#add_gio_nhan').val(currentTime);
             if (loggedInUser) {
                 $('#add_ho_va_ten').val(loggedInUser.ho_va_ten || '');
-                $('#add_code').val(loggedInUser.code || ''); // Populate code as well if available in employee record
             }
         });
 
@@ -850,84 +807,50 @@
             showLoading('Đang thêm dữ liệu...');
             clearAlert('#addFormMessage');
 
-            const orderKd = $('#add_order_kd').val().trim();
-            const tenChiTiet = $('#add_ten_chi_tiet').val().trim();
+            const newRecord = {
+                "order_kd": $('#add_order_kd').val(),
+                "ten_chi_tiet": $('#add_ten_chi_tiet').val(),
+                "so_file": $('#add_so_file').val(),
+                "sll": parseInt($('#add_sll').val()) || null,
+                "tinh_chat": $('#add_tinh_chat').val(),
+                "ghi_chu": $('#add_ghi_chu').val(),
+                "noi_gia_cong": $('#add_noi_gia_cong').val(),
+                "thoi_han": $('#add_thoi_han').val(),
+                "ngay_nhan": $('#add_ngay_nhan').val(),
+                "gio_nhan": $('#add_gio_nhan').val(),
+                "tap_tho": $('#add_tap_tho').val(),
+                "sl_nhan": parseInt($('#add_sl_nhan').val()) || null,
+                "code": $('#add_code').val(),
+                "ho_va_ten": $('#add_ho_va_ten').val()
+            };
 
-            if (!orderKd || !tenChiTiet) {
+            if (!newRecord["order_kd"] || !newRecord.ten_chi_tiet) {
                 showAlert('Vui lòng điền đầy đủ các trường bắt buộc (Order KD, Tên chi tiết).', 'danger', '#addFormMessage');
                 hideLoading();
                 return;
             }
 
-            // Client-side check for duplicate Order KD
-            if (originalData.some(record => record['order_kd'] === orderKd)) {
+            if (originalData.some(record => record['order_kd'] === newRecord['order_kd'])) {
                 showAlert('Order KD này đã tồn tại. Vui lòng nhập Order KD khác.', 'danger', '#addFormMessage');
                 hideLoading();
                 return;
             }
 
-            const newRecord = {
-                // Ensure keys match AppSheet column names exactly (case-sensitive if AppSheet is strict)
-                // Use || null to send null for empty optional fields
-                "order_kd": orderKd,
-                "ten_chi_tiet": tenChiTiet,
-                "so_file": $('#add_so_file').val().trim() || null,
-                "sll": $('#add_sll').val() !== '' ? parseInt($('#add_sll').val()) : null,
-                "tinh_chat": $('#add_tinh_chat').val().trim() || null,
-                "ghi_chu": $('#add_ghi_chu').val().trim() || null,
-                "noi_gia_cong": $('#add_noi_gia_cong').val().trim() || null,
-                // Format dates to YYYY-MM-DD. AppSheet's date columns expect this.
-                "thoi_han": formatDateToISO($('#add_thoi_han').val()),
-                "ngay_nhan": formatDateToISO($('#add_ngay_nhan').val()),
-                // Format time to HH:MM:SS (even if input is HH:MM)
-                "gio_nhan": formatTimeToHHMMSS($('#add_gio_nhan').val()),
-                "tap_tho": $('#add_tap_tho').val().trim() || null,
-                "sl_nhan": $('#add_sl_nhan').val() !== '' ? parseInt($('#add_sl_nhan').val()) : null,
-                "code": $('#add_code').val().trim() || null,
-                "ho_va_ten": $('#add_ho_va_ten').val().trim() || null
-            };
-
-            // Remove properties with null values if AppSheet prefers fields to be absent rather than null
-            // For AppSheet, sending `null` is generally fine for non-required fields.
-            // But if you encounter issues, uncomment the following:
-            /*
-            Object.keys(newRecord).forEach(key => {
-                if (newRecord[key] === null) {
-                    delete newRecord[key];
-                }
-            });
-            */
-
             try {
-                const response = await makeAppSheetRequest(`${BASE_URL}${CONFIG.tableName}/Action`, 'POST', {
+                await makeAppSheetRequest(`${BASE_URL}${CONFIG.tableName}/Action`, 'POST', {
                     "Action": "Add",
                     "Properties": {
-                        "Locale": "vi-VN", // Changed to vi-VN for better localization if needed by AppSheet
-                        "Location": "47.620921, -122.347276", // Keep consistent
-                        "Timezone": "Asia/Ho_Chi_Minh" // More accurate timezone for Vietnam
+                        "Locale": "en-US",
+                        "Location": "47.620921, -122.347276",
+                        "Timezone": "Pacific Standard Time"
                     },
                     "Rows": [newRecord]
                 });
-
-                if (response && response.Rows && response.Rows.length > 0) {
-                    showAlert('Thêm mới bản ghi thành công!', 'success');
-                    const addModal = bootstrap.Modal.getInstance(document.getElementById('addModal'));
-                    if (addModal) addModal.hide();
-                    localStorage.removeItem('so_giao_nhan_cache'); // Invalidate cache
-                    await fetchData(); // Re-fetch all data to update the table
-                } else {
-                    // AppSheet might return an empty 'Rows' array even on success for Add.
-                    // Check for general success if no error was thrown.
-                    if (response && response.success) { // Custom success flag from makeAppSheetRequest if raw text was empty
-                        showAlert('Thêm mới bản ghi thành công (không có phản hồi dữ liệu chi tiết).', 'success');
-                        const addModal = bootstrap.Modal.getInstance(document.getElementById('addModal'));
-                        if (addModal) addModal.hide();
-                        localStorage.removeItem('so_giao_nhan_cache');
-                        await fetchData();
-                    } else {
-                        throw new Error("Phản hồi không chứa bản ghi đã thêm.");
-                    }
-                }
+                showAlert('Thêm mới bản ghi thành công!', 'success');
+                const addModal = bootstrap.Modal.getInstance(document.getElementById('addModal'));
+                if (addModal) addModal.hide();
+                localStorage.removeItem('so_giao_nhan_cache');
+                await fetchData();
             } catch (error) {
                 showAlert(`Lỗi khi thêm mới: ${error.message}`, 'danger', '#addFormMessage');
             } finally {
@@ -948,11 +871,9 @@
                 $('#edit_tinh_chat').val(recordToEdit.tinh_chat || '');
                 $('#edit_ghi_chu').val(recordToEdit.ghi_chu || '');
                 $('#edit_noi_gia_cong').val(recordToEdit.noi_gia_cong || '');
-                // For date inputs, ensure YYYY-MM-DD format
-                $('#edit_thoi_han').val(formatDateToISO(recordToEdit.thoi_han));
-                $('#edit_ngay_nhan').val(formatDateToISO(recordToEdit.ngay_nhan));
-                // For time inputs, ensure HH:MM format for display
-                $('#edit_gio_nhan').val(recordToEdit.gio_nhan ? recordToEdit.gio_nhan.substring(0, 5) : '');
+                $('#edit_thoi_han').val(recordToEdit.thoi_han ? new Date(recordToEdit.thoi_han).toISOString().split('T')[0] : '');
+                $('#edit_ngay_nhan').val(recordToEdit.ngay_nhan ? new Date(recordToEdit.ngay_nhan).toISOString().split('T')[0] : '');
+                $('#edit_gio_nhan').val(recordToEdit.gio_nhan || '');
                 $('#edit_tap_tho').val(recordToEdit.tap_tho || '');
                 $('#edit_sl_nhan').val(recordToEdit.sl_nhan || '');
                 $('#edit_code').val(recordToEdit.code || '');
@@ -970,83 +891,56 @@
             showLoading('Đang lưu thay đổi...');
             clearAlert('#editFormMessage');
 
-            const rowNumber = parseInt($('#edit_row_number').val());
-            const originalRecord = originalData.find(r => r._RowNumber === rowNumber);
+            const rowNumber = $('#edit_row_number').val();
+            const originalRecord = originalData.find(r => r._RowNumber == rowNumber);
             const originalOrderKd = originalRecord ? originalRecord['order_kd'] : null;
 
-            const updatedOrderKd = $('#edit_order_kd').val().trim();
-            const updatedTenChiTiet = $('#edit_ten_chi_tiet').val().trim();
+            const updatedRecord = {
+                "_RowNumber": parseInt(rowNumber),
+                "order_kd": $('#edit_order_kd').val(),
+                "ten_chi_tiet": $('#edit_ten_chi_tiet').val(),
+                "so_file": $('#edit_so_file').val(),
+                "sll": parseInt($('#edit_sll').val()) || null,
+                "tinh_chat": $('#edit_tinh_chat').val(),
+                "ghi_chu": $('#edit_ghi_chu').val(),
+                "noi_gia_cong": $('#edit_noi_gia_cong').val(),
+                "thoi_han": $('#edit_thoi_han').val(),
+                "ngay_nhan": $('#edit_ngay_nhan').val(),
+                "gio_nhan": $('#edit_gio_nhan').val(),
+                "tap_tho": $('#edit_tap_tho').val(),
+                "sl_nhan": parseInt($('#edit_sl_nhan').val()) || null,
+                "code": $('#edit_code').val(),
+                "ho_va_ten": $('#edit_ho_va_ten').val()
+            };
 
-            if (!updatedOrderKd || !updatedTenChiTiet) {
+            if (!updatedRecord["order_kd"] || !updatedRecord.ten_chi_tiet) {
                 showAlert('Vui lòng điền đầy đủ các trường bắt buộc (Order KD, Tên chi tiết).', 'danger', '#editFormMessage');
                 hideLoading();
                 return;
             }
 
-            // Client-side check for duplicate Order KD if it's being changed
-            if (updatedOrderKd !== originalOrderKd &&
-                originalData.some(record => record._RowNumber !== rowNumber && record['order_kd'] === updatedOrderKd)) {
+            if (updatedRecord['order_kd'] !== originalOrderKd &&
+                originalData.some(record => record['order_kd'] === updatedRecord['order_kd'])) {
                 showAlert('Order KD này đã tồn tại cho một bản ghi khác. Vui lòng nhập Order KD khác.', 'danger', '#editFormMessage');
                 hideLoading();
                 return;
             }
 
-            const updatedRecord = {
-                "_RowNumber": rowNumber, // Essential for Edit action
-                "order_kd": updatedOrderKd,
-                "ten_chi_tiet": updatedTenChiTiet,
-                "so_file": $('#edit_so_file').val().trim() || null,
-                "sll": $('#edit_sll').val() !== '' ? parseInt($('#edit_sll').val()) : null,
-                "tinh_chat": $('#edit_tinh_chat').val().trim() || null,
-                "ghi_chu": $('#edit_ghi_chu').val().trim() || null,
-                "noi_gia_cong": $('#edit_noi_gia_cong').val().trim() || null,
-                "thoi_han": formatDateToISO($('#edit_thoi_han').val()),
-                "ngay_nhan": formatDateToISO($('#edit_ngay_nhan').val()),
-                "gio_nhan": formatTimeToHHMMSS($('#edit_gio_nhan').val()),
-                "tap_tho": $('#edit_tap_tho').val().trim() || null,
-                "sl_nhan": $('#edit_sl_nhan').val() !== '' ? parseInt($('#edit_sl_nhan').val()) : null,
-                "code": $('#edit_code').val().trim() || null,
-                "ho_va_ten": $('#edit_ho_va_ten').val().trim() || null
-            };
-
-            // Remove properties with null values if AppSheet prefers fields to be absent rather than null for updates
-            /*
-            Object.keys(updatedRecord).forEach(key => {
-                if (updatedRecord[key] === null) {
-                    delete updatedRecord[key];
-                }
-            });
-            */
-
             try {
-                const response = await makeAppSheetRequest(`${BASE_URL}${CONFIG.tableName}/Action`, 'POST', {
+                await makeAppSheetRequest(`${BASE_URL}${CONFIG.tableName}/Action`, 'POST', {
                     "Action": "Edit",
                     "Properties": {
-                        "Locale": "vi-VN",
+                        "Locale": "en-US",
                         "Location": "47.620921, -122.347276",
-                        "Timezone": "Asia/Ho_Chi_Minh"
+                        "Timezone": "Pacific Standard Time"
                     },
                     "Rows": [updatedRecord]
                 });
-
-                if (response && response.Rows && response.Rows.length > 0) { // AppSheet returns updated row on success
-                    showAlert('Cập nhật bản ghi thành công!', 'success');
-                    const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
-                    if (editModal) editModal.hide();
-                    localStorage.removeItem('so_giao_nhan_cache'); // Invalidate cache
-                    await fetchData(); // Re-fetch all data to update the table
-                } else {
-                     // Similar to Add, if no Rows are returned but no error thrown
-                    if (response && response.success) {
-                        showAlert('Cập nhật bản ghi thành công (không có phản hồi dữ liệu chi tiết).', 'success');
-                        const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
-                        if (editModal) editModal.hide();
-                        localStorage.removeItem('so_giao_nhan_cache');
-                        await fetchData();
-                    } else {
-                        throw new Error("Phản hồi không chứa bản ghi đã cập nhật.");
-                    }
-                }
+                showAlert('Cập nhật bản ghi thành công!', 'success');
+                const editModal = bootstrap.Modal.getInstance(document.getElementById('editModal'));
+                if (editModal) editModal.hide();
+                localStorage.removeItem('so_giao_nhan_cache');
+                await fetchData();
             } catch (error) {
                 showAlert(`Lỗi khi cập nhật: ${error.message}`, 'danger', '#editFormMessage');
             } finally {
@@ -1058,29 +952,23 @@
         $('#confirmDeleteButton').on('click', async function() {
             showLoading('Đang xóa dữ liệu...');
             clearAlert();
-            const rowId = parseInt($(this).data('id')); // Ensure it's parsed as an integer
+            const rowId = $(this).data('id');
             const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal'));
             if (deleteModal) deleteModal.hide();
 
             try {
-                const response = await makeAppSheetRequest(`${BASE_URL}${CONFIG.tableName}/Action`, 'POST', {
+                await makeAppSheetRequest(`${BASE_URL}${CONFIG.tableName}/Action`, 'POST', {
                     "Action": "Delete",
                     "Properties": {
-                        "Locale": "vi-VN",
+                        "Locale": "en-US",
                         "Location": "47.620921, -122.347276",
-                        "Timezone": "Asia/Ho_Chi_Minh"
+                        "Timezone": "Pacific Standard Time"
                     },
-                    "Rows": [{ "_RowNumber": rowId }] // _RowNumber is crucial for delete
+                    "Rows": [{ "_RowNumber": rowId }]
                 });
-
-                // AppSheet Delete action typically returns an empty array or success message if successful
-                if (response) {
-                    showAlert('Xóa bản ghi thành công!', 'success');
-                    localStorage.removeItem('so_giao_nhan_cache'); // Invalidate cache
-                    await fetchData(); // Re-fetch data
-                } else {
-                    throw new Error("Không nhận được phản hồi xác nhận xóa.");
-                }
+                showAlert('Xóa bản ghi thành công!', 'success');
+                localStorage.removeItem('so_giao_nhan_cache');
+                await fetchData();
             } catch (error) {
                 showAlert(`Lỗi khi xóa: ${error.message}`, 'danger');
             } finally {
@@ -1106,17 +994,11 @@
                         if (col === 'ngay_nhan' || col === 'thoi_han') {
                             try {
                                 const date = new Date(cellValue);
-                                if (!isNaN(date.getTime())) {
+                                if (!isNaN(date)) {
                                     cellValue = date.toLocaleDateString('vi-VN');
-                                } else {
-                                     cellValue = row[col]; // Keep original if invalid
                                 }
                             } catch (e) {
-                                cellValue = row[col];
-                            }
-                        } else if (col === 'gio_nhan') {
-                             if (typeof cellValue === 'string' && cellValue.length >= 5) {
-                                cellValue = cellValue.substring(0, 5);
+                                // Keep original value if date parsing fails
                             }
                         }
                         obj[getColumnDisplayName(col)] = cellValue;
@@ -1142,7 +1024,7 @@
                 const currentRow = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']).e.r + 2 : 0;
                 XLSX.utils.sheet_add_aoa(ws, footerData, { origin: currentRow });
 
-                XLSX.writeFile(wb, `So_Giao_Nhan_Export_${new Date().toJSON().slice(0,10)}.xlsx`); // Dynamic filename
+                XLSX.writeFile(wb, "So_Giao_Nhan_Export.xlsx");
                 showAlert('Xuất Excel thành công!', 'success');
             } catch (error) {
                 showAlert(`Lỗi khi xuất Excel: ${error.message}`, 'danger');
@@ -1152,6 +1034,7 @@
         });
 
         // --- Clock and Date ---
+        let clockInterval;
         function updateClock() {
             const now = new Date();
             const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
@@ -1161,9 +1044,6 @@
         }
 
         function startClock() {
-            if (clockInterval) { // Clear any existing interval to prevent duplicates
-                clearInterval(clockInterval);
-            }
             updateClock();
             clockInterval = setInterval(updateClock, 1000);
         }
@@ -1172,28 +1052,9 @@
         $(document).ready(function() {
             const rememberedUser = localStorage.getItem('loggedInUser');
             if (rememberedUser) {
-                try {
-                    loggedInUser = JSON.parse(rememberedUser);
-                    $('#username').val(loggedInUser.ho_va_ten || '');
-                    // Automatically attempt login if remembered user exists
-                    // This is a design choice. For security, you might still want password re-entry.
-                    // If auto-logging in, ensure it calls authenticateUser directly.
-                    // authenticateUser(loggedInUser.ho_va_ten, loggedInUser.code); // This would require saving password too (NOT recommended)
-                    // Better: Just pre-fill username and let user enter password.
-                    $('#loginScreen').removeClass('d-none');
-                    $('#mainApp').addClass('d-none');
-                    $('#password').focus();
-                } catch (e) {
-                    console.error("Error parsing remembered user from localStorage:", e);
-                    localStorage.removeItem('loggedInUser'); // Clear corrupt data
-                    $('#loginScreen').removeClass('d-none');
-                    $('#mainApp').addClass('d-none');
-                }
-            } else {
-                $('#loginScreen').removeClass('d-none');
-                $('#mainApp').addClass('d-none');
+                loggedInUser = JSON.parse(rememberedUser);
+                $('#username').val(loggedInUser.ho_va_ten || '');
             }
-
 
             $('#loginForm').on('submit', function(e) {
                 e.preventDefault();
@@ -1202,8 +1063,14 @@
 
             $('#logoutButton').on('click', logout);
 
-            // Hide main app initially until login
-            $('#mainApp').addClass('d-none');
+            if (!loggedInUser) {
+                $('#loginScreen').removeClass('d-none');
+                $('#mainApp').addClass('d-none');
+            } else {
+                $('#loginScreen').removeClass('d-none');
+                $('#mainApp').addClass('d-none');
+                $('#password').focus();
+            }
         });
     </script>
 </body>
