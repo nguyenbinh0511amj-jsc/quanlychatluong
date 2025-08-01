@@ -1845,8 +1845,7 @@
             generateExportTemplate(selectedItems);
         }
 
-        // Hàm tạo workbook Excel với định dạng
-        // Hàm tạo và xuất Excel với định dạng đầy đủ
+        // Thay thế hàm generateExcelExport hiện tại bằng phiên bản này:
         async function generateExcelExport() {
             const selectedItems = filteredData.filter(item => selectedRows.has(item._id));
 
@@ -1862,10 +1861,37 @@
                 exportBtn.innerHTML = '<div class="loading"></div> Đang xuất...';
                 exportBtn.disabled = true;
 
+                // SẮP XẾP DỮ LIỆU THEO CỘT AMJ XN TRƯỚC KHI XUẤT
+                const sortedItems = [...selectedItems].sort((a, b) => {
+                    const aValue = a.tt || '';
+                    const bValue = b.tt || '';
+
+                    // Nếu một trong hai là rỗng, đưa rỗng xuống cuối
+                    if (aValue === '' && bValue !== '') return 1;
+                    if (aValue !== '' && bValue === '') return -1;
+                    if (aValue === '' && bValue === '') return 0;
+
+                    // Cả hai đều có giá trị, so sánh số
+                    const aNum = parseFloat(aValue);
+                    const bNum = parseFloat(bValue);
+
+                    // Nếu cả hai đều là số
+                    if (!isNaN(aNum) && !isNaN(bNum)) {
+                        return aNum - bNum; // Số nhỏ lên trên
+                    }
+
+                    // Nếu chỉ có một là số, ưu tiên số lên trên
+                    if (!isNaN(aNum) && isNaN(bNum)) return -1;
+                    if (isNaN(aNum) && !isNaN(bNum)) return 1;
+
+                    // Cả hai đều không phải số, so sánh chuỗi
+                    return aValue.localeCompare(bValue);
+                });
+
                 const workbook = new ExcelJS.Workbook();
                 const worksheet = workbook.addWorksheet('Tổng hợp lỗi');
 
-                await createExcelWorksheetWithFormat(worksheet, selectedItems);
+                await createExcelWorksheetWithFormat(worksheet, sortedItems);
 
                 // Tạo tên file với ngày hiện tại
                 const today = new Date();
