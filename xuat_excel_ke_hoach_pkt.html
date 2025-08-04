@@ -87,6 +87,10 @@
             background: #e5e7eb;
             cursor: not-allowed;
         }
+        
+        .search-container {
+            margin-bottom: 20px;
+        }
 
         .button-group {
             display: flex;
@@ -234,6 +238,11 @@
             border-bottom: 1px solid #e5e7eb;
             white-space: nowrap;
         }
+        
+        td:first-child, th:first-child {
+             min-width: 50px; 
+             width: 50px;
+        }
 
         th {
             background: #f9fafb;
@@ -289,7 +298,8 @@
             <p>Tất cả đã được cấu hình sẵn. Bạn chỉ cần:</p>
             <ol>
                 <li>Nhấn nút <strong>"Tải dữ liệu"</strong> để tải dữ liệu từ Google Sheets</li>
-                <li>Xem trước dữ liệu trong bảng bên dưới (có thể chọn số dòng hiển thị và phân trang)</li>
+                <li>Sử dụng ô tìm kiếm để lọc dữ liệu</li>
+                <li>Tích chọn vào các dòng bạn muốn xuất</li>
                 <li>Nhấn <strong>"Xuất Excel"</strong> để tải file về máy</li>
             </ol>
             <p><strong>Lưu ý:</strong> Đảm bảo Google Sheet được chia sẻ công khai hoặc có quyền truy cập.</p>
@@ -298,19 +308,8 @@
         <form id="exportForm">
             <input type="hidden" id="apiKey" name="apiKey" value="AIzaSyCrC_DfD_DrpjzjO5ENvqTMHBA4FIDBiP0">
             <input type="hidden" id="spreadsheetId" name="spreadsheetId" value="1IlsQuuxQY4LasPQo2jdIxsEvyn6xzF5GfcGpQI2Tm24">
-
-            <div class="form-group">
-                <label for="sheetName">Tên Sheet:</label>
-                <input type="text" id="sheetName" name="sheetName" value="ke_hoach_pkt" readonly>
-            </div>
-
-            <div class="form-group">
-                <label for="fileName">Tên file Excel:</label>
-                <input type="text" id="fileName" name="fileName" value="ke_hoach_pkt" placeholder="Tên file (không cần .xlsx)">
-                <small style="color: #6b7280; font-size: 0.8rem; margin-top: 4px; display: block;">
-                    💡 File sẽ tự động thêm ngày giờ: tên_file_YYYYMMDD_HHMM.xlsx
-                </small>
-            </div>
+            <input type="hidden" id="sheetName" name="sheetName" value="ke_hoach_pkt">
+            <input type="hidden" id="fileName" name="fileName" value="ke_hoach_pkt">
         </form>
 
         <div class="button-group">
@@ -321,6 +320,10 @@
         <div id="status" class="status"></div>
 
         <div id="preview" class="preview-table" style="display: none;">
+            <div class="search-container">
+                <label for="searchBox">Tìm kiếm:</label>
+                <input type="text" id="searchBox" placeholder="Nhập từ khóa để tìm kiếm..." oninput="searchData()">
+            </div>
             <div class="preview-controls">
                 <div class="rows-per-page">
                     <label for="rowsPerPage">Hiển thị:</label>
@@ -340,7 +343,9 @@
 
     <script>
         let spreadsheetData = null;
+        let originalSpreadsheetData = null; 
         let filteredData = null;
+        let selectedRows = new Set(); // Lưu trữ chỉ mục của các dòng đã chọn trong filteredData
         let currentPage = 1;
         let rowsPerPage = 25;
 
@@ -380,18 +385,55 @@
                     return;
                 }
 
-                spreadsheetData = data.values;
-                processAndDisplayData();
+                originalSpreadsheetData = data.values;
+                spreadsheetData = data.values; 
+                
                 showStatus(`✅ Đã tải thành công ${data.values.length} dòng dữ liệu`, 'success');
                 document.getElementById('exportBtn').disabled = false;
+                document.getElementById('searchBox').value = ''; 
+                selectedRows.clear();
+                searchData(); 
             } catch (error) {
                 console.error('Error:', error);
                 showStatus(`❌ Lỗi khi tải dữ liệu: ${error.message}`, 'error');
             }
         }
 
+        function normalizeString(str) {
+            if (!str) return '';
+            return str.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+        
+        function searchData() {
+            const searchTerm = normalizeString(document.getElementById('searchBox').value);
+
+            if (!originalSpreadsheetData || originalSpreadsheetData.length === 0) {
+                spreadsheetData = [];
+            } else {
+                const headerRow = originalSpreadsheetData[0] || [];
+                const dataRows = originalSpreadsheetData.slice(1);
+
+                if (searchTerm === '') {
+                    spreadsheetData = originalSpreadsheetData;
+                } else {
+                    const matchingRows = dataRows.filter(row => {
+                        return row.some(cell => normalizeString(cell).includes(searchTerm));
+                    });
+                    spreadsheetData = [headerRow, ...matchingRows];
+                }
+            }
+            
+            processAndDisplayData();
+        }
+
         function processAndDisplayData() {
-            if (!spreadsheetData || spreadsheetData.length === 0) return;
+            if (!spreadsheetData || spreadsheetData.length === 1) { 
+                document.getElementById('tableContainer').innerHTML = 'Không tìm thấy dữ liệu phù hợp.';
+                document.getElementById('paginationInfo').textContent = 'Hiển thị 0-0 của 0 dòng';
+                document.getElementById('pagination').innerHTML = '';
+                document.getElementById('preview').style.display = 'block';
+                return;
+            }
 
             const headerRow = spreadsheetData[0] || [];
             const excludeColumns = ['id_kh_pkt', 'id_trien_khai_3d_laze', 'id_xu_ly_be_mat', 'sl_chuyen_xu_ly', 'sl_thuc_te', 'sl_ok', 'sl_ng', 'ngay_ket_thuc_trien_khai', 'tong_thoi_gian_trien_khai', 'ma_cv', 'code', 'nhom'];
@@ -402,7 +444,6 @@
                 return indexes;
             }, []);
 
-            // Mapping tên cột cho preview
             const columnNameMapping = {
                 'order_kd': 'Order KD',
                 'ten_chi_tiet': 'Tên Chi Tiết',
@@ -420,13 +461,11 @@
                 'da_goi': 'Đã Gói'
             };
 
-            // Lọc dữ liệu
             filteredData = spreadsheetData.map((row, rowIndex) => {
                 const filteredRow = [];
                 row.forEach((cell, colIndex) => {
                     if (!excludeIndexes.includes(colIndex)) {
                         if (rowIndex === 0) {
-                            // Xử lý hàng tiêu đề
                             const originalName = cell ? cell.toString().toLowerCase().trim() : '';
                             const displayName = columnNameMapping[originalName] || cell || '';
                             filteredRow.push(displayName);
@@ -443,22 +482,27 @@
         }
 
         function displayPaginatedData() {
-            if (!filteredData || filteredData.length === 0) return;
+            if (!filteredData || filteredData.length <= 1) { 
+                document.getElementById('tableContainer').innerHTML = 'Không tìm thấy dữ liệu phù hợp.';
+                document.getElementById('paginationInfo').textContent = 'Hiển thị 0-0 của 0 dòng';
+                document.getElementById('pagination').innerHTML = '';
+                document.getElementById('preview').style.display = 'block';
+                return;
+            }
 
             const headerRow = filteredData[0];
             const dataRows = filteredData.slice(1);
             const totalRows = dataRows.length;
             const totalPages = Math.ceil(totalRows / rowsPerPage);
             
-            // Tính toán dữ liệu cho trang hiện tại
             const startIndex = (currentPage - 1) * rowsPerPage;
             const endIndex = Math.min(startIndex + rowsPerPage, totalRows);
             const currentPageData = dataRows.slice(startIndex, endIndex);
 
-            // Hiển thị bảng
             let tableHtml = '<table>';
             if (headerRow.length > 0) {
                 tableHtml += '<thead><tr>';
+                tableHtml += `<th><input type="checkbox" id="selectAllCheckbox" onclick="toggleAllCheckboxes()"></th>`;
                 headerRow.forEach(cell => {
                     tableHtml += `<th>${cell}</th>`;
                 });
@@ -466,8 +510,10 @@
             }
 
             tableHtml += '<tbody>';
-            currentPageData.forEach(row => {
-                tableHtml += '<tr>';
+            currentPageData.forEach((row, rowIndex) => {
+                const originalIndex = startIndex + rowIndex + 1; // Chỉ mục trong spreadsheetData gốc
+                const isChecked = selectedRows.has(originalIndex);
+                tableHtml += `<tr><td><input type="checkbox" class="row-checkbox" data-index="${originalIndex}" ${isChecked ? 'checked' : ''} onchange="updateSelectedRows()"></td>`;
                 headerRow.forEach((_, colIndex) => {
                     tableHtml += `<td>${row[colIndex] || ''}</td>`;
                 });
@@ -477,24 +523,54 @@
 
             document.getElementById('tableContainer').innerHTML = tableHtml;
 
-            // Cập nhật thông tin phân trang
             const paginationInfo = document.getElementById('paginationInfo');
-            paginationInfo.textContent = `Hiển thị ${startIndex + 1}-${endIndex} của ${totalRows} dòng`;
-
-            // Cập nhật nút phân trang
+            if (totalRows > 0) {
+                 paginationInfo.textContent = `Hiển thị ${startIndex + 1}-${endIndex} của ${totalRows} dòng`;
+            } else {
+                 paginationInfo.textContent = 'Hiển thị 0-0 của 0 dòng';
+            }
+           
             updatePagination(totalPages);
-
             document.getElementById('preview').style.display = 'block';
+        }
+
+        function toggleAllCheckboxes() {
+            const allCheckbox = document.getElementById('selectAllCheckbox');
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = allCheckbox.checked;
+                const index = parseInt(cb.dataset.index);
+                if (allCheckbox.checked) {
+                    selectedRows.add(index);
+                } else {
+                    selectedRows.delete(index);
+                }
+            });
+        }
+        
+        function updateSelectedRows() {
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            checkboxes.forEach(cb => {
+                const index = parseInt(cb.dataset.index);
+                if (cb.checked) {
+                    selectedRows.add(index);
+                } else {
+                    selectedRows.delete(index);
+                }
+            });
+            
+            // Cập nhật trạng thái của checkbox "chọn tất cả"
+            const allCheckbox = document.getElementById('selectAllCheckbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            allCheckbox.checked = allChecked && checkboxes.length > 0;
         }
 
         function updatePagination(totalPages) {
             const paginationDiv = document.getElementById('pagination');
             let paginationHtml = '';
 
-            // Nút Previous
             paginationHtml += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹ Trước</button>`;
 
-            // Các nút trang
             const maxVisible = 5;
             let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
             let endPage = Math.min(totalPages, startPage + maxVisible - 1);
@@ -522,16 +598,35 @@
                 paginationHtml += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
             }
 
-            // Nút Next
             paginationHtml += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Sau ›</button>`;
 
             paginationDiv.innerHTML = paginationHtml;
+            // Cập nhật trạng thái của checkbox "chọn tất cả" khi chuyển trang
+            const allCheckbox = document.getElementById('selectAllCheckbox');
+            if (allCheckbox) {
+                allCheckbox.checked = areAllOnPageSelected();
+            }
+        }
+        
+        function areAllOnPageSelected() {
+            if (!filteredData || filteredData.length <= 1) return false;
+            const dataRows = filteredData.slice(1);
+            const totalRows = dataRows.length;
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, totalRows);
+            
+            for (let i = startIndex + 1; i <= endIndex; i++) {
+                if (!selectedRows.has(i)) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         function goToPage(page) {
             if (!filteredData) return;
             
-            const totalRows = filteredData.length - 1; // Trừ header
+            const totalRows = filteredData.length - 1; 
             const totalPages = Math.ceil(totalRows / rowsPerPage);
             
             if (page < 1 || page > totalPages) return;
@@ -542,7 +637,7 @@
 
         function changeRowsPerPage() {
             rowsPerPage = parseInt(document.getElementById('rowsPerPage').value);
-            currentPage = 1; // Reset về trang đầu
+            currentPage = 1; 
             displayPaginatedData();
         }
 
@@ -560,105 +655,61 @@
             showStatus('Đang xuất file Excel...', 'loading');
 
             try {
-                const headerRow = spreadsheetData[0] || [];
-                const excludeColumns = ['id_kh_pkt', 'id_trien_khai_3d_laze', 'id_xu_ly_be_mat', 'sl_chuyen_xu_ly', 'sl_thuc_te', 'sl_ok', 'sl_ng', 'ngay_ket_thuc_trien_khai', 'tong_thoi_gian_trien_khai', 'ma_cv', 'code', 'nhom'];
-                const excludeIndexes = headerRow.reduce((indexes, header, index) => {
-                    if (header && excludeColumns.includes(header.toLowerCase().trim())) {
-                        indexes.push(index);
-                    }
-                    return indexes;
-                }, []);
-
-                // Tìm chỉ số các cột cần định dạng số
-                const numericColumns = ['order_kd', 'sll', 'ton_tap', 'ton_via', 'ton_rua', 'ton_kiem_tra', 'ton_goi', 'da_goi', 'sl_nhan'];
-                const numericIndexes = {};
-                numericColumns.forEach(colName => {
-                    const index = headerRow.findIndex(header => header.toLowerCase().trim() === colName);
-                    if (index !== -1) {
-                        numericIndexes[colName] = index;
-                    }
-                });
-
-                // Mapping tên cột từ tiếng Anh sang tiếng Việt có dấu
-                const columnNameMapping = {
-                    'order_kd': 'Order KD',
-                    'ten_chi_tiet': 'Tên Chi Tiết',
-                    'so_file': 'Số File',
-                    'sll': 'SLL',
-                    'tinh_chat': 'Tính Chất',
-                    'ghi_trang_thai': 'Ghi Trạng Thái',
-                    'sl_nhan': 'SL Nhận',
-                    'ngay_trien_khai': 'Ngày Triển Khai',
-                    'ton_tap': 'Tồn Tap',
-                    'ton_via': 'Tồn Via',
-                    'ton_rua': 'Tồn Rửa',
-                    'ton_kiem_tra': 'Tồn Kiểm Tra',
-                    'ton_goi': 'Tồn Gói',
-                    'da_goi': 'Đã Gói'
-                };
-
-                // Lọc dữ liệu để loại bỏ các cột không mong muốn
-                const filteredDataForExport = spreadsheetData.map((row, rowIndex) => {
-                    return row.map((cell, colIndex) => {
-                        if (excludeIndexes.includes(colIndex)) return undefined; // Bỏ các cột không mong muốn
-
-                        // Xử lý hàng tiêu đề - thay thế tên cột
-                        if (rowIndex === 0) {
-                            const originalName = cell ? cell.toString().toLowerCase().trim() : '';
-                            return columnNameMapping[originalName] || cell;
+                let dataToExport = [];
+                const headerRow = filteredData[0];
+                
+                if (selectedRows.size > 0) {
+                    const sortedSelectedRows = Array.from(selectedRows).sort((a, b) => a - b);
+                    dataToExport.push(headerRow);
+                    sortedSelectedRows.forEach(index => {
+                        if (index > 0 && index < filteredData.length) {
+                             dataToExport.push(filteredData[index]);
                         }
+                    });
+                } else {
+                    dataToExport = filteredData.slice(0);
+                }
 
-                        // Xử lý các cột số
-                        const columnName = Object.keys(numericIndexes).find(name => numericIndexes[name] === colIndex);
-                        if (columnName && rowIndex > 0) { // Bỏ qua hàng tiêu đề
-                            const value = cell ? cell.toString().trim() : '';
-                            
-                            // Đối với cột order_kd, kiểm tra nếu giá trị là số hợp lệ
-                            if (columnName === 'order_kd') {
-                                if (/^\d+$/.test(value)) {
-                                    return Number(value); // Chuyển thành số
-                                }
-                                return value; // Giữ nguyên nếu có ký tự chữ
-                            }
-                            
-                            // Đối với các cột khác, chuyển thành số nếu là số hợp lệ
-                            return isNaN(Number(value)) || value === '' ? value : Number(value);
-                        }
-
-                        return cell; // Giữ nguyên các cột khác
-                    }).filter(cell => cell !== undefined); // Loại bỏ các cột undefined
-                });
+                if (dataToExport.length <= 1) { // Chỉ có hàng tiêu đề
+                    showStatus('Không có dữ liệu để xuất. Vui lòng chọn ít nhất một dòng.', 'warning');
+                    return;
+                }
 
                 const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet(filteredDataForExport);
+                const ws = XLSX.utils.aoa_to_sheet(dataToExport);
 
-                // Thiết lập định dạng số cho các cột
                 const range = XLSX.utils.decode_range(ws['!ref']);
-                for (let R = range.s.r + 1; R <= range.e.r; ++R) { // Bắt đầu từ hàng thứ 2 (bỏ tiêu đề)
-                    // Định dạng cho tất cả các cột số
+                for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                    const numericColumns = ['Order KD', 'SLL', 'SL Nhận', 'Tồn Tap', 'Tồn Via', 'Tồn Rửa', 'Tồn Kiểm Tra', 'Tồn Gói', 'Đã Gói'];
+                    const numericIndexes = {};
+                    numericColumns.forEach(colName => {
+                        const index = headerRow.indexOf(colName);
+                        if (index !== -1) {
+                            numericIndexes[colName] = index;
+                        }
+                    });
+
                     Object.keys(numericIndexes).forEach(columnName => {
-                        const originalIndex = numericIndexes[columnName];
-                        if (originalIndex !== -1) {
-                            // Tính chỉ số cột sau khi lọc
-                            const filteredIndex = headerRow.slice(0, originalIndex).filter((_, i) => !excludeIndexes.includes(i)).length;
-                            const cellAddress = XLSX.utils.encode_cell({ r: R, c: filteredIndex });
-                            if (ws[cellAddress] && typeof ws[cellAddress].v === 'number') {
-                                ws[cellAddress].t = 'n'; // Định dạng số
-                                ws[cellAddress].z = '0'; // Định dạng số nguyên
+                        const filteredIndex = numericIndexes[columnName] + 1; // +1 vì đã thêm cột checkbox
+                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: filteredIndex });
+                        if (ws[cellAddress] && ws[cellAddress].v !== undefined) {
+                            const cellValue = ws[cellAddress].v;
+                            if (typeof cellValue === 'number' || (typeof cellValue === 'string' && /^\d+$/.test(cellValue.trim()))) {
+                                ws[cellAddress].v = Number(cellValue);
+                                ws[cellAddress].t = 'n';
+                                ws[cellAddress].z = '#,##0'; 
                             }
                         }
                     });
                 }
 
-                // Thiết lập chiều rộng cột
-                const colWidths = [];
-                for (let C = range.s.c; C <= range.e.c; ++C) {
+                const colWidths = [{ width: 5 }]; // Chiều rộng cột checkbox
+                for (let C = 0; C < headerRow.length; ++C) {
                     let maxWidth = 0;
-                    for (let R = range.s.r; R <= range.e.r; ++R) {
-                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-                        const cell = ws[cellAddress];
-                        if (cell && cell.v) {
-                            const cellValue = cell.v.toString();
+                    for (let R = 0; R < dataToExport.length; ++R) {
+                        const cell = dataToExport[R][C];
+                        if (cell) {
+                            const cellValue = cell.toString();
                             maxWidth = Math.max(maxWidth, cellValue.length);
                         }
                     }
@@ -669,7 +720,6 @@
                 const sheetName = document.getElementById('sheetName').value || 'Sheet1';
                 XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-                // Tạo tên file với ngày giờ
                 const baseFileName = document.getElementById('fileName').value.replace('.xlsx', '') || 'data';
                 const now = new Date();
                 const dateTimeString = now.getFullYear() + 
