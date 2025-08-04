@@ -345,7 +345,7 @@
         let spreadsheetData = null;
         let originalSpreadsheetData = null; 
         let filteredData = null;
-        let selectedRows = new Set(); // Lưu trữ chỉ mục của các dòng đã chọn trong filteredData
+        let selectedRows = new Set(); 
         let currentPage = 1;
         let rowsPerPage = 25;
 
@@ -427,7 +427,7 @@
         }
 
         function processAndDisplayData() {
-            if (!spreadsheetData || spreadsheetData.length === 1) { 
+            if (!spreadsheetData || spreadsheetData.length <= 1) { 
                 document.getElementById('tableContainer').innerHTML = 'Không tìm thấy dữ liệu phù hợp.';
                 document.getElementById('paginationInfo').textContent = 'Hiển thị 0-0 của 0 dòng';
                 document.getElementById('pagination').innerHTML = '';
@@ -511,7 +511,7 @@
 
             tableHtml += '<tbody>';
             currentPageData.forEach((row, rowIndex) => {
-                const originalIndex = startIndex + rowIndex + 1; // Chỉ mục trong spreadsheetData gốc
+                const originalIndex = startIndex + rowIndex + 1; 
                 const isChecked = selectedRows.has(originalIndex);
                 tableHtml += `<tr><td><input type="checkbox" class="row-checkbox" data-index="${originalIndex}" ${isChecked ? 'checked' : ''} onchange="updateSelectedRows()"></td>`;
                 headerRow.forEach((_, colIndex) => {
@@ -559,10 +559,11 @@
                 }
             });
             
-            // Cập nhật trạng thái của checkbox "chọn tất cả"
             const allCheckbox = document.getElementById('selectAllCheckbox');
-            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-            allCheckbox.checked = allChecked && checkboxes.length > 0;
+            if (allCheckbox) {
+                const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+                allCheckbox.checked = allChecked && checkboxes.length > 0;
+            }
         }
 
         function updatePagination(totalPages) {
@@ -601,7 +602,6 @@
             paginationHtml += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Sau ›</button>`;
 
             paginationDiv.innerHTML = paginationHtml;
-            // Cập nhật trạng thái của checkbox "chọn tất cả" khi chuyển trang
             const allCheckbox = document.getElementById('selectAllCheckbox');
             if (allCheckbox) {
                 allCheckbox.checked = areAllOnPageSelected();
@@ -670,46 +670,74 @@
                     dataToExport = filteredData.slice(0);
                 }
 
-                if (dataToExport.length <= 1) { // Chỉ có hàng tiêu đề
+                if (dataToExport.length <= 1) {
                     showStatus('Không có dữ liệu để xuất. Vui lòng chọn ít nhất một dòng.', 'warning');
                     return;
                 }
-
+                
                 const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet(dataToExport);
 
                 const range = XLSX.utils.decode_range(ws['!ref']);
-                for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-                    const numericColumns = ['Order KD', 'SLL', 'SL Nhận', 'Tồn Tap', 'Tồn Via', 'Tồn Rửa', 'Tồn Kiểm Tra', 'Tồn Gói', 'Đã Gói'];
-                    const numericIndexes = {};
-                    numericColumns.forEach(colName => {
-                        const index = headerRow.indexOf(colName);
-                        if (index !== -1) {
-                            numericIndexes[colName] = index;
-                        }
-                    });
+                const numericColumns = ['SLL', 'SL Nhận', 'Tồn Tap', 'Tồn Via', 'Tồn Rửa', 'Tồn Kiểm Tra', 'Tồn Gói', 'Đã Gói'];
+                const orderKdIndex = headerRow.indexOf('Order KD');
 
-                    Object.keys(numericIndexes).forEach(columnName => {
-                        const filteredIndex = numericIndexes[columnName] + 1; // +1 vì đã thêm cột checkbox
-                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: filteredIndex });
-                        if (ws[cellAddress] && ws[cellAddress].v !== undefined) {
-                            const cellValue = ws[cellAddress].v;
-                            if (typeof cellValue === 'number' || (typeof cellValue === 'string' && /^\d+$/.test(cellValue.trim()))) {
-                                ws[cellAddress].v = Number(cellValue);
-                                ws[cellAddress].t = 'n';
-                                ws[cellAddress].z = '#,##0'; 
+                for (let R = range.s.r; R <= range.e.r; ++R) {
+                    for (let C = range.s.c; C <= range.e.c; ++C) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                        const cell = ws[cellAddress];
+
+                        if (cell) {
+                            if (R === 0) {
+                                if (!cell.s) cell.s = {};
+                                if (!cell.s.alignment) cell.s.alignment = {};
+                                cell.s.alignment.horizontal = 'center';
+                                if (!cell.s.font) cell.s.font = {};
+                                cell.s.font.bold = true;
+                            } else { // Xử lý các dòng dữ liệu
+                                // Xử lý cột Order KD
+                                if (C === orderKdIndex && cell.v) {
+                                    const valueAsString = String(cell.v);
+                                    const cleanedValue = valueAsString.replace(/\./g, '');
+                                    
+                                    if (/^\d+$/.test(cleanedValue)) {
+                                        cell.v = Number(cleanedValue);
+                                        cell.t = 'n';
+                                        if (!cell.s) cell.s = {};
+                                        if (!cell.s.alignment) cell.s.alignment = {};
+                                        cell.s.alignment.horizontal = 'center';
+                                    } else {
+                                        cell.v = valueAsString;
+                                        cell.t = 's';
+                                    }
+                                }
+
+                                // Xử lý các cột số khác
+                                const headerName = dataToExport[0][C];
+                                if (numericColumns.includes(headerName)) {
+                                    if (!cell.s) cell.s = {};
+                                    if (!cell.s.alignment) cell.s.alignment = {};
+                                    cell.s.alignment.horizontal = 'center';
+                                    
+                                    if (typeof cell.v === 'number' || (typeof cell.v === 'string' && /^\d+$/.test(cell.v.trim()))) {
+                                        cell.v = Number(cell.v);
+                                        cell.t = 'n';
+                                        cell.z = '#,##0'; 
+                                    }
+                                }
                             }
                         }
-                    });
+                    }
                 }
 
-                const colWidths = [{ width: 5 }]; // Chiều rộng cột checkbox
-                for (let C = 0; C < headerRow.length; ++C) {
+                const colWidths = [];
+                for (let C = range.s.c; C <= range.e.c; ++C) {
                     let maxWidth = 0;
-                    for (let R = 0; R < dataToExport.length; ++R) {
-                        const cell = dataToExport[R][C];
-                        if (cell) {
-                            const cellValue = cell.toString();
+                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                        const cell = ws[cellAddress];
+                        if (cell && cell.v) {
+                            const cellValue = cell.v.toString();
                             maxWidth = Math.max(maxWidth, cellValue.length);
                         }
                     }
