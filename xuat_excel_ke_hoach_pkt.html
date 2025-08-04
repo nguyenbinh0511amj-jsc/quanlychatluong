@@ -67,7 +67,7 @@
             font-size: 0.9rem;
         }
 
-        input[type="text"] {
+        input[type="text"], select {
             width: 100%;
             padding: 12px;
             border: 1px solid #d1d5db;
@@ -77,7 +77,7 @@
             background: #f9fafb;
         }
 
-        input[type="text"]:focus {
+        input[type="text"]:focus, select:focus {
             outline: none;
             border-color: var(--primary-color);
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
@@ -93,6 +93,7 @@
             gap: 16px;
             justify-content: center;
             margin: 24px 0;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -148,12 +149,75 @@
             border: 1px solid #d1d5db;
         }
 
+        .preview-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .rows-per-page {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rows-per-page select {
+            width: auto;
+            min-width: 80px;
+            padding: 8px;
+            font-size: 0.85rem;
+        }
+
+        .pagination-info {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #f3f4f6;
+            border-color: var(--primary-color);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+
         .preview-table {
             margin-top: 24px;
             border-radius: 8px;
             border: 1px solid #e5e7eb;
             overflow: hidden;
-            max-height: 500px;
+        }
+
+        .table-container {
+            max-height: 600px;
             overflow-x: auto;
         }
 
@@ -201,6 +265,21 @@
         .instructions p {
             font-size: 0.9rem;
         }
+
+        @media (max-width: 768px) {
+            .preview-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .pagination {
+                justify-content: center;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
     </style>
 </head>
 <body>
@@ -210,7 +289,7 @@
             <p>Tất cả đã được cấu hình sẵn. Bạn chỉ cần:</p>
             <ol>
                 <li>Nhấn nút <strong>"Tải dữ liệu"</strong> để tải dữ liệu từ Google Sheets</li>
-                <li>Xem trước dữ liệu trong bảng bên dưới</li>
+                <li>Xem trước dữ liệu trong bảng bên dưới (có thể chọn số dòng hiển thị và phân trang)</li>
                 <li>Nhấn <strong>"Xuất Excel"</strong> để tải file về máy</li>
             </ol>
             <p><strong>Lưu ý:</strong> Đảm bảo Google Sheet được chia sẻ công khai hoặc có quyền truy cập.</p>
@@ -227,7 +306,10 @@
 
             <div class="form-group">
                 <label for="fileName">Tên file Excel:</label>
-                <input type="text" id="fileName" name="fileName" value="ke_hoach_pkt.xlsx" placeholder="Tên file xuất ra">
+                <input type="text" id="fileName" name="fileName" value="ke_hoach_pkt" placeholder="Tên file (không cần .xlsx)">
+                <small style="color: #6b7280; font-size: 0.8rem; margin-top: 4px; display: block;">
+                    💡 File sẽ tự động thêm ngày giờ: tên_file_YYYYMMDD_HHMM.xlsx
+                </small>
             </div>
         </form>
 
@@ -238,11 +320,29 @@
 
         <div id="status" class="status"></div>
 
-        <div id="preview" class="preview-table" style="display: none;"></div>
+        <div id="preview" class="preview-table" style="display: none;">
+            <div class="preview-controls">
+                <div class="rows-per-page">
+                    <label for="rowsPerPage">Hiển thị:</label>
+                    <select id="rowsPerPage" onchange="changeRowsPerPage()">
+                        <option value="10">10 dòng</option>
+                        <option value="25" selected>25 dòng</option>
+                        <option value="50">50 dòng</option>
+                        <option value="100">100 dòng</option>
+                    </select>
+                </div>
+                <div class="pagination-info" id="paginationInfo"></div>
+                <div class="pagination" id="pagination"></div>
+            </div>
+            <div class="table-container" id="tableContainer"></div>
+        </div>
     </div>
 
     <script>
         let spreadsheetData = null;
+        let filteredData = null;
+        let currentPage = 1;
+        let rowsPerPage = 25;
 
         function showStatus(message, type) {
             const statusDiv = document.getElementById('status');
@@ -281,8 +381,8 @@
                 }
 
                 spreadsheetData = data.values;
+                processAndDisplayData();
                 showStatus(`✅ Đã tải thành công ${data.values.length} dòng dữ liệu`, 'success');
-                displayPreview(data.values);
                 document.getElementById('exportBtn').disabled = false;
             } catch (error) {
                 console.error('Error:', error);
@@ -290,14 +390,10 @@
             }
         }
 
-        function displayPreview(data) {
-            const previewDiv = document.getElementById('preview');
-            if (data.length === 0) {
-                previewDiv.style.display = 'none';
-                return;
-3600            }
+        function processAndDisplayData() {
+            if (!spreadsheetData || spreadsheetData.length === 0) return;
 
-            const headerRow = data[0] || [];
+            const headerRow = spreadsheetData[0] || [];
             const excludeColumns = ['id_kh_pkt', 'id_trien_khai_3d_laze', 'id_xu_ly_be_mat', 'sl_chuyen_xu_ly', 'sl_thuc_te', 'sl_ok', 'sl_ng', 'ngay_ket_thuc_trien_khai', 'tong_thoi_gian_trien_khai', 'ma_cv', 'code', 'nhom'];
             const excludeIndexes = headerRow.reduce((indexes, header, index) => {
                 if (header && excludeColumns.includes(header.toLowerCase().trim())) {
@@ -306,38 +402,148 @@
                 return indexes;
             }, []);
 
+            // Mapping tên cột cho preview
+            const columnNameMapping = {
+                'order_kd': 'Order KD',
+                'ten_chi_tiet': 'Tên Chi Tiết',
+                'so_file': 'Số File',
+                'sll': 'SLL',
+                'tinh_chat': 'Tính Chất',
+                'ghi_trang_thai': 'Ghi Trạng Thái',
+                'sl_nhan': 'SL Nhận',
+                'ngay_trien_khai': 'Ngày Triển Khai',
+                'ton_tap': 'Tồn Tap',
+                'ton_via': 'Tồn Via',
+                'ton_rua': 'Tồn Rửa',
+                'ton_kiem_tra': 'Tồn Kiểm Tra',
+                'ton_goi': 'Tồn Gói',
+                'da_goi': 'Đã Gói'
+            };
+
+            // Lọc dữ liệu
+            filteredData = spreadsheetData.map((row, rowIndex) => {
+                const filteredRow = [];
+                row.forEach((cell, colIndex) => {
+                    if (!excludeIndexes.includes(colIndex)) {
+                        if (rowIndex === 0) {
+                            // Xử lý hàng tiêu đề
+                            const originalName = cell ? cell.toString().toLowerCase().trim() : '';
+                            const displayName = columnNameMapping[originalName] || cell || '';
+                            filteredRow.push(displayName);
+                        } else {
+                            filteredRow.push(cell || '');
+                        }
+                    }
+                });
+                return filteredRow;
+            });
+
+            currentPage = 1;
+            displayPaginatedData();
+        }
+
+        function displayPaginatedData() {
+            if (!filteredData || filteredData.length === 0) return;
+
+            const headerRow = filteredData[0];
+            const dataRows = filteredData.slice(1);
+            const totalRows = dataRows.length;
+            const totalPages = Math.ceil(totalRows / rowsPerPage);
+            
+            // Tính toán dữ liệu cho trang hiện tại
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, totalRows);
+            const currentPageData = dataRows.slice(startIndex, endIndex);
+
+            // Hiển thị bảng
             let tableHtml = '<table>';
             if (headerRow.length > 0) {
                 tableHtml += '<thead><tr>';
-                headerRow.forEach((cell, index) => {
-                    if (!excludeIndexes.includes(index)) {
-                        tableHtml += `<th>${cell || ''}</th>`;
-                    }
+                headerRow.forEach(cell => {
+                    tableHtml += `<th>${cell}</th>`;
                 });
                 tableHtml += '</tr></thead>';
             }
 
             tableHtml += '<tbody>';
-            const maxRows = Math.min(data.length, 11);
-            for (let i = 1; i < maxRows; i++) {
-                if (data[i]) {
-                    tableHtml += '<tr>';
-                    headerRow.forEach((_, colIndex) => {
-                        if (!excludeIndexes.includes(colIndex)) {
-                            tableHtml += `<td>${data[i][colIndex] || ''}</td>`;
-                        }
-                    });
-                    tableHtml += '</tr>';
-                }
-            }
+            currentPageData.forEach(row => {
+                tableHtml += '<tr>';
+                headerRow.forEach((_, colIndex) => {
+                    tableHtml += `<td>${row[colIndex] || ''}</td>`;
+                });
+                tableHtml += '</tr>';
+            });
             tableHtml += '</tbody></table>';
 
-            if (data.length > 11) {
-                tableHtml += `<p style="text-align: center; padding: 12px; font-style: italic; color: #6b7280;">... và ${data.length - 11} dòng khác</p>`;
+            document.getElementById('tableContainer').innerHTML = tableHtml;
+
+            // Cập nhật thông tin phân trang
+            const paginationInfo = document.getElementById('paginationInfo');
+            paginationInfo.textContent = `Hiển thị ${startIndex + 1}-${endIndex} của ${totalRows} dòng`;
+
+            // Cập nhật nút phân trang
+            updatePagination(totalPages);
+
+            document.getElementById('preview').style.display = 'block';
+        }
+
+        function updatePagination(totalPages) {
+            const paginationDiv = document.getElementById('pagination');
+            let paginationHtml = '';
+
+            // Nút Previous
+            paginationHtml += `<button onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>‹ Trước</button>`;
+
+            // Các nút trang
+            const maxVisible = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
             }
 
-            previewDiv.innerHTML = tableHtml;
-            previewDiv.style.display = 'block';
+            if (startPage > 1) {
+                paginationHtml += `<button onclick="goToPage(1)">1</button>`;
+                if (startPage > 2) {
+                    paginationHtml += `<button disabled>...</button>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                const activeClass = i === currentPage ? 'active' : '';
+                paginationHtml += `<button class="${activeClass}" onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHtml += `<button disabled>...</button>`;
+                }
+                paginationHtml += `<button onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+
+            // Nút Next
+            paginationHtml += `<button onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Sau ›</button>`;
+
+            paginationDiv.innerHTML = paginationHtml;
+        }
+
+        function goToPage(page) {
+            if (!filteredData) return;
+            
+            const totalRows = filteredData.length - 1; // Trừ header
+            const totalPages = Math.ceil(totalRows / rowsPerPage);
+            
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage = page;
+            displayPaginatedData();
+        }
+
+        function changeRowsPerPage() {
+            rowsPerPage = parseInt(document.getElementById('rowsPerPage').value);
+            currentPage = 1; // Reset về trang đầu
+            displayPaginatedData();
         }
 
         function exportToExcel() {
@@ -363,30 +569,60 @@
                     return indexes;
                 }, []);
 
-                // Tìm chỉ số cột order_kd và sll
-                const orderKdIndex = headerRow.findIndex(header => header.toLowerCase().trim() === 'order_kd');
-                const sllIndex = headerRow.findIndex(header => header.toLowerCase().trim() === 'sll');
+                // Tìm chỉ số các cột cần định dạng số
+                const numericColumns = ['order_kd', 'sll', 'ton_tap', 'ton_via', 'ton_rua', 'ton_kiem_tra', 'ton_goi', 'da_goi', 'sl_nhan'];
+                const numericIndexes = {};
+                numericColumns.forEach(colName => {
+                    const index = headerRow.findIndex(header => header.toLowerCase().trim() === colName);
+                    if (index !== -1) {
+                        numericIndexes[colName] = index;
+                    }
+                });
+
+                // Mapping tên cột từ tiếng Anh sang tiếng Việt có dấu
+                const columnNameMapping = {
+                    'order_kd': 'Order KD',
+                    'ten_chi_tiet': 'Tên Chi Tiết',
+                    'so_file': 'Số File',
+                    'sll': 'SLL',
+                    'tinh_chat': 'Tính Chất',
+                    'ghi_trang_thai': 'Ghi Trạng Thái',
+                    'sl_nhan': 'SL Nhận',
+                    'ngay_trien_khai': 'Ngày Triển Khai',
+                    'ton_tap': 'Tồn Tap',
+                    'ton_via': 'Tồn Via',
+                    'ton_rua': 'Tồn Rửa',
+                    'ton_kiem_tra': 'Tồn Kiểm Tra',
+                    'ton_goi': 'Tồn Gói',
+                    'da_goi': 'Đã Gói'
+                };
 
                 // Lọc dữ liệu để loại bỏ các cột không mong muốn
-                const filteredData = spreadsheetData.map((row, rowIndex) => {
+                const filteredDataForExport = spreadsheetData.map((row, rowIndex) => {
                     return row.map((cell, colIndex) => {
                         if (excludeIndexes.includes(colIndex)) return undefined; // Bỏ các cột không mong muốn
 
-                        // Xử lý cột order_kd
-                        if (colIndex === orderKdIndex && rowIndex > 0) { // Bỏ qua hàng tiêu đề
-                            const value = cell ? cell.toString().trim() : '';
-                            // Kiểm tra nếu giá trị là số hợp lệ
-                            if (/^\d+$/.test(value)) {
-                                return Number(value); // Chuyển thành số
-                            }
-                            return value; // Giữ nguyên nếu có ký tự chữ
+                        // Xử lý hàng tiêu đề - thay thế tên cột
+                        if (rowIndex === 0) {
+                            const originalName = cell ? cell.toString().toLowerCase().trim() : '';
+                            return columnNameMapping[originalName] || cell;
                         }
 
-                        // Xử lý cột sll
-                        if (colIndex === sllIndex && rowIndex > 0) { // Bỏ qua hàng tiêu đề
+                        // Xử lý các cột số
+                        const columnName = Object.keys(numericIndexes).find(name => numericIndexes[name] === colIndex);
+                        if (columnName && rowIndex > 0) { // Bỏ qua hàng tiêu đề
                             const value = cell ? cell.toString().trim() : '';
-                            // Chuyển thành số nếu là số hợp lệ, nếu không thì giữ nguyên
-                            return isNaN(Number(value)) ? value : Number(value);
+                            
+                            // Đối với cột order_kd, kiểm tra nếu giá trị là số hợp lệ
+                            if (columnName === 'order_kd') {
+                                if (/^\d+$/.test(value)) {
+                                    return Number(value); // Chuyển thành số
+                                }
+                                return value; // Giữ nguyên nếu có ký tự chữ
+                            }
+                            
+                            // Đối với các cột khác, chuyển thành số nếu là số hợp lệ
+                            return isNaN(Number(value)) || value === '' ? value : Number(value);
                         }
 
                         return cell; // Giữ nguyên các cột khác
@@ -394,30 +630,24 @@
                 });
 
                 const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet(filteredData);
+                const ws = XLSX.utils.aoa_to_sheet(filteredDataForExport);
 
-                // Thiết lập định dạng số cho cột order_kd và sll
+                // Thiết lập định dạng số cho các cột
                 const range = XLSX.utils.decode_range(ws['!ref']);
                 for (let R = range.s.r + 1; R <= range.e.r; ++R) { // Bắt đầu từ hàng thứ 2 (bỏ tiêu đề)
-                    // Định dạng cột order_kd
-                    if (orderKdIndex !== -1) {
-                        const filteredOrderKdIndex = headerRow.slice(0, orderKdIndex).filter((_, i) => !excludeIndexes.includes(i)).length;
-                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: filteredOrderKdIndex });
-                        if (ws[cellAddress] && typeof ws[cellAddress].v === 'number') {
-                            ws[cellAddress].t = 'n'; // Định dạng số
-                            ws[cellAddress].z = '0'; // Định dạng số nguyên
+                    // Định dạng cho tất cả các cột số
+                    Object.keys(numericIndexes).forEach(columnName => {
+                        const originalIndex = numericIndexes[columnName];
+                        if (originalIndex !== -1) {
+                            // Tính chỉ số cột sau khi lọc
+                            const filteredIndex = headerRow.slice(0, originalIndex).filter((_, i) => !excludeIndexes.includes(i)).length;
+                            const cellAddress = XLSX.utils.encode_cell({ r: R, c: filteredIndex });
+                            if (ws[cellAddress] && typeof ws[cellAddress].v === 'number') {
+                                ws[cellAddress].t = 'n'; // Định dạng số
+                                ws[cellAddress].z = '0'; // Định dạng số nguyên
+                            }
                         }
-                    }
-
-                    // Định dạng cột sll
-                    if (sllIndex !== -1) {
-                        const filteredSllIndex = headerRow.slice(0, sllIndex).filter((_, i) => !excludeIndexes.includes(i)).length;
-                        const cellAddress = XLSX.utils.encode_cell({ r: R, c: filteredSllIndex });
-                        if (ws[cellAddress] && typeof ws[cellAddress].v === 'number') {
-                            ws[cellAddress].t = 'n'; // Định dạng số
-                            ws[cellAddress].z = '0'; // Định dạng số nguyên
-                        }
-                    }
+                    });
                 }
 
                 // Thiết lập chiều rộng cột
@@ -439,7 +669,16 @@
                 const sheetName = document.getElementById('sheetName').value || 'Sheet1';
                 XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-                const fileName = document.getElementById('fileName').value || 'data.xlsx';
+                // Tạo tên file với ngày giờ
+                const baseFileName = document.getElementById('fileName').value.replace('.xlsx', '') || 'data';
+                const now = new Date();
+                const dateTimeString = now.getFullYear() + 
+                    String(now.getMonth() + 1).padStart(2, '0') + 
+                    String(now.getDate()).padStart(2, '0') + '_' +
+                    String(now.getHours()).padStart(2, '0') + 
+                    String(now.getMinutes()).padStart(2, '0');
+                const fileName = `${baseFileName}_${dateTimeString}.xlsx`;
+
                 XLSX.writeFile(wb, fileName);
 
                 showStatus(`✅ Đã xuất thành công file: ${fileName}`, 'success');
