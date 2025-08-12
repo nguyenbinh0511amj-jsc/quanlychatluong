@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý dụng cụ PKT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+        .transition-all {
+            transition: all 0.2s ease-in-out;
+        }
+        /* Make table header sticky and expand display area */
+        .table-container {
+            max-height: 75vh;
+            overflow-y: auto;
+        }
+        thead {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            background-color: #2563EB;
+        }
+        thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .pagination-button {
+            transition: all 0.2s;
+        }
+        .pagination-button.active {
+            background-color: #2563EB;
+            color: white;
+            border-color: #2563EB;
+        }
+        .pagination-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        tbody tr:hover {
+            cursor: pointer;
+            background-color: #f3f4f6; /* Lighter background on hover */
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <main class="container mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-xl">
+        <div id="loading" class="flex flex-col items-center justify-center p-10">
+            <svg class="animate-spin h-10 w-10 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-4 text-lg text-gray-500">Đang tải dữ liệu...</p>
+        </div>
+
+        <div id="app" class="hidden">
+            <div class="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
+                <div class="relative w-full md:w-2/5">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                        <svg class="w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input type="text" id="search-input" placeholder="Tìm kiếm dụng cụ, series, người dùng..." class="w-full py-2 pl-10 pr-12 text-gray-700 bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+                    <button id="qr-scan-button" class="absolute inset-y-0 right-0 flex items-center pr-3 transition-all text-gray-400 hover:text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                    <button id="settings-button" class="transition-all w-full md:w-auto bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        Cài đặt cột
+                    </button>
+                    <button id="export-button" class="transition-all w-full md:w-auto bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        Xuất Excel
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 mb-6">
+                <button id="tab-dung_cu_lam_via" class="tab-button font-semibold py-2 px-5 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2">Dụng Cụ Làm Via</button>
+                <button id="tab-dung_cu_tap" class="tab-button font-semibold py-2 px-5 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2">Dụng Cụ Tap</button>
+            </div>
+            
+            <div id="pagination-controls" class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-700">Số dòng/trang:</span>
+                    <select id="rows-per-page" class="border border-gray-300 rounded-lg p-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="all">Hiện tất cả</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="first-page-button" class="pagination-button p-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-100">
+                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <button id="prev-page-button" class="pagination-button p-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-100">
+                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <span id="page-info" class="text-sm font-medium text-gray-700 w-20 text-center">Trang 1/1</span>
+                    <button id="next-page-button" class="pagination-button p-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-100">
+                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                    <button id="last-page-button" class="pagination-button p-2 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-100">
+                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <div id="table-container-dung_cu_lam_via">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Dữ liệu Dụng Cụ Làm Via</h2>
+                    <div id="table-dung_cu_lam_via" class="table-container border border-gray-200 rounded-lg"></div>
+                </div>
+                <div id="table-container-dung_cu_tap" class="hidden">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Dữ liệu Dụng Cụ Tap</h2>
+                    <div id="table-dung_cu_tap" class="table-container border border-gray-200 rounded-lg"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="settings-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
+            <div class="bg-white rounded-xl shadow-2xl p-6 md:p-8 w-full max-w-3xl transform transition-all">
+                <div class="flex justify-between items-start pb-4 border-b border-gray-200">
+                    <div><h3 class="text-xl font-bold text-gray-800">Tùy chỉnh cột hiển thị</h3><p class="text-sm text-gray-500 mt-1">Chọn để hiển thị/ẩn các cột.</p></div>
+                    <button id="close-settings-modal" class="text-gray-400 hover:text-gray-600 transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                </div>
+                <div class="flex justify-end gap-2 py-4">
+                    <button id="show-all-button" class="text-sm text-blue-600 font-medium px-3 py-1 rounded-md hover:bg-blue-50 transition-all">Hiện tất cả</button>
+                    <button id="hide-all-button" class="text-sm text-blue-600 font-medium px-3 py-1 rounded-md hover:bg-blue-50 transition-all">Ẩn tất cả</button>
+                    <button id="default-button" class="text-sm text-blue-600 font-medium px-3 py-1 rounded-md hover:bg-blue-50 transition-all">Mặc định</button>
+                </div>
+                <div id="column-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-h-96 overflow-y-auto pr-2"></div>
+                <div class="flex justify-end pt-6 border-t border-gray-200 mt-6">
+                    <button id="save-settings-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all">Lưu và Đóng</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="edit-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
+            <div class="bg-white rounded-xl shadow-2xl p-6 md:p-8 w-full max-w-md transform transition-all max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-start pb-4 border-b border-gray-200">
+                    <div><h3 class="text-xl font-bold text-gray-800">Chỉnh sửa dữ liệu</h3><p class="text-sm text-gray-500 mt-1">Thay đổi các thông tin bên dưới và lưu lại.</p></div>
+                    <button id="close-edit-modal" class="text-gray-400 hover:text-gray-600 transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                </div>
+                <form id="edit-form" class="mt-6 space-y-4">
+                    </form>
+                <div class="flex justify-end pt-6 border-t border-gray-200 mt-6 gap-4">
+                    <button id="cancel-edit-button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-6 rounded-lg transition-all">Hủy</button>
+                    <button id="save-edit-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg transition-all">Lưu</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="qr-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay hidden">
+            <div class="bg-white rounded-xl shadow-2xl p-6 md:p-8 w-full max-w-sm transform transition-all">
+                <div class="flex justify-between items-start pb-4 border-b border-gray-200">
+                    <h3 class="text-xl font-bold text-gray-800">Quét mã QR</h3>
+                    <button id="close-qr-modal" class="text-gray-400 hover:text-gray-600 transition-all"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                </div>
+                <div id="reader" class="mt-4 w-full"></div>
+                <div id="qr-result-text" class="text-center text-sm text-gray-600 mt-2">Đang tìm camera...</div>
+            </div>
+        </div>
+
+        <div id="message-box" class="fixed inset-0 z-50 modal-overlay hidden items-center justify-center p-4">
+            <div class="bg-white rounded-lg p-6 max-w-sm w-full shadow-xl text-center">
+                <h3 id="message-title" class="text-xl font-semibold mb-2 text-gray-800"></h3>
+                <p id="message-content" class="text-gray-600 mb-6"></p>
+                <button id="close-message" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all">Đóng</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script>
+        // --- Cấu hình API AppSheet ---
+        const appId = 'e1339939-5987-4d7a-8c73-436348abf6b7';
+        const accessKey = 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL';
+        const baseUrl = `https://api.appsheet.com/api/v2/apps/${appId}/tables/`;
+
+        const columns = {
+            'dung_cu_lam_via': [ 'id', 'ten_dung_cu', 'chung_loai', 'so_series', 'ngay_nhan', 'ngay_hong', 'tinh_trang_dung_cu', 'ghi_chu', 'noi_quan_ly', 'vi_tri', 'trang_thai', 'code', 'ho_va_ten', 'ngay_kiem_ke', 'nguoi_su_dung', 'update' ],
+            'dung_cu_tap': [ 'id', 'ten_dung_cu', 'chung_loai', 'so_series', 'ngay_nhan', 'ngay_hong', 'tinh_trang_dung_cu', 'dem_lo_tap', 'noi_quan_ly', 'vi_tri', 'trang_thai', 'code', 'ho_va_ten', 'ngay_kiem_ke', 'update' ]
+        };
+        const vietnameseHeaders = { 
+            'id': 'ID', 
+            'ten_dung_cu': 'Tên Dụng Cụ', 
+            'chung_loai': 'Chủng Loại', 
+            'so_series': 'Số Series', 
+            'ngay_nhan': 'Ngày Nhận', 
+            'ngay_hong': 'Ngày Hỏng', 
+            'tinh_trang_dung_cu': 'Tình Trạng', 
+            'ghi_chu': 'Ghi Chú',
+            'noi_quan_ly': 'Nơi Quản Lý',
+            'vi_tri': 'Vị Trí',
+            'trang_thai': 'Trạng Thái', 
+            'code': 'Mã Code', 
+            'ho_va_ten': 'Họ và Tên', 
+            'ngay_kiem_ke': 'Ngày Kiểm Kê', 
+            'nguoi_su_dung': 'Người Sử Dụng', 
+            'dem_lo_tap': 'Đếm Lỗ Tap',
+            'update': 'Cập nhật'
+        };
+        const keyColumns = { 'dung_cu_lam_via': 'id', 'dung_cu_tap': 'id' };
+        
+        let dataLamVia = [], dataTap = [];
+        let activeTab = 'dung_cu_lam_via';
+        let currentVisibleColumns = {};
+        let filteredData = []; 
+        let currentPage = 1;
+        let rowsPerPage = 10;
+        let selectedRowData = null; // Dữ liệu của dòng được chọn để chỉnh sửa
+        let html5QrCode = null;
+
+        const loadingDiv = document.getElementById('loading'), appDiv = document.getElementById('app');
+        const messageBox = document.getElementById('message-box'), messageTitle = document.getElementById('message-title'), messageContent = document.getElementById('message-content'), closeMessageButton = document.getElementById('close-message');
+        const searchInput = document.getElementById('search-input'), qrScanButton = document.getElementById('qr-scan-button');
+        const settingsButton = document.getElementById('settings-button'), settingsModal = document.getElementById('settings-modal'), closeSettingsModalButton = document.getElementById('close-settings-modal'), saveSettingsButton = document.getElementById('save-settings-button'), columnListContainer = document.getElementById('column-list'), showAllButton = document.getElementById('show-all-button'), hideAllButton = document.getElementById('hide-all-button'), defaultButton = document.getElementById('default-button');
+        const rowsPerPageSelect = document.getElementById('rows-per-page'), firstPageButton = document.getElementById('first-page-button'), prevPageButton = document.getElementById('prev-page-button'), nextPageButton = document.getElementById('next-page-button'), lastPageButton = document.getElementById('last-page-button'), pageInfoSpan = document.getElementById('page-info');
+        const editModal = document.getElementById('edit-modal'), closeEditModalButton = document.getElementById('close-edit-modal'), editForm = document.getElementById('edit-form'), saveEditButton = document.getElementById('save-edit-button'), cancelEditButton = document.getElementById('cancel-edit-button');
+        const qrModal = document.getElementById('qr-modal'), closeQrModalButton = document.getElementById('close-qr-modal'), qrResultText = document.getElementById('qr-result-text');
+
+
+        currentVisibleColumns['dung_cu_lam_via'] = new Set(columns['dung_cu_lam_via']);
+        currentVisibleColumns['dung_cu_tap'] = new Set(columns['dung_cu_tap']);
+
+        function showMessage(title, content) { messageTitle.textContent = title; messageContent.textContent = content; messageBox.classList.remove('hidden'); messageBox.classList.add('flex'); }
+        function hideMessage() { messageBox.classList.add('hidden'); messageBox.classList.remove('flex'); }
+        closeMessageButton.addEventListener('click', hideMessage);
+
+        async function fetchDataFromAppSheet(tableName) {
+            try {
+                const response = await fetch(`${baseUrl}${tableName}/Action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'ApplicationAccessKey': accessKey },
+                    body: JSON.stringify({ "Action": "Find", "Properties": { "Locale": "vi-VN", "Timezone": "Asia/Ho_Chi_Minh" } })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API AppSheet error: ${response.statusText}. Details: ${errorText}`);
+                }
+                return await response.json();
+            } catch (error) { 
+                console.error(`Error fetching from ${tableName}:`, error); 
+                throw error; 
+            }
+        }
+
+        async function updateData(tableName, updatedRow) {
+            try {
+                // Remove the 'update' column from the payload if it exists
+                if (updatedRow.hasOwnProperty('update')) {
+                    delete updatedRow.update;
+                }
+                const response = await fetch(`${baseUrl}${tableName}/Action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'ApplicationAccessKey': accessKey },
+                    body: JSON.stringify({ "Action": "Edit", "Properties": { "Locale": "vi-VN", "Timezone": "Asia/Ho_Chi_Minh" }, "Rows": [ updatedRow ] })
+                });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API AppSheet error: ${response.statusText}. Details: ${errorText}`);
+                }
+                const result = await response.json();
+                console.log('Update successful:', result);
+                showMessage('Thành công', 'Dữ liệu đã được cập nhật.');
+                await refreshData();
+            } catch (error) {
+                console.error('Error updating data:', error);
+                showMessage('Lỗi', `Không thể cập nhật dữ liệu: ${error.message}`);
+            }
+        }
+
+        async function refreshData() {
+            loadingDiv.classList.remove('hidden');
+            appDiv.classList.add('hidden');
+            const [resultLamVia, resultTap] = await Promise.all([
+                fetchDataFromAppSheet('dung_cu_lam_via'),
+                fetchDataFromAppSheet('dung_cu_tap')
+            ]);
+            dataLamVia = resultLamVia;
+            dataTap = resultTap;
+            filteredData = activeTab === 'dung_cu_lam_via' ? [...dataLamVia] : [...dataTap];
+            renderTable(filteredData, `table-${activeTab}`, currentVisibleColumns[activeTab]);
+            loadingDiv.classList.add('hidden');
+            appDiv.classList.remove('hidden');
+        }
+
+        function renderTable(data, tableId, columnsToDisplay) {
+            const container = document.getElementById(tableId);
+            container.innerHTML = '';
+            const visibleColumns = Array.from(columnsToDisplay);
+            if (!data || data.length === 0) {
+                container.innerHTML = `<div class="text-center text-gray-500 p-10 bg-gray-50 rounded-lg">Không có dữ liệu để hiển thị.</div>`;
+                return;
+            }
+            const table = document.createElement('table');
+            table.className = 'min-w-full divide-y divide-gray-200';
+            
+            const thead = table.createTHead();
+            thead.className = 'bg-blue-600'; 
+            const headerRow = thead.insertRow();
+            visibleColumns.forEach(col => {
+                const th = document.createElement('th');
+                th.scope = 'col';
+                th.textContent = vietnameseHeaders[col] || col;
+                th.className = 'px-6 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider';
+                headerRow.appendChild(th);
+            });
+
+            const tbody = table.createTBody();
+            tbody.className = 'bg-white divide-y divide-gray-200';
+
+            let paginatedData = data;
+            if (rowsPerPage !== 'all') {
+                const startIndex = (currentPage - 1) * rowsPerPage;
+                const endIndex = startIndex + rowsPerPage;
+                paginatedData = data.slice(startIndex, endIndex);
+            }
+
+            paginatedData.forEach(item => {
+                const tr = tbody.insertRow();
+                tr.className = 'hover:bg-gray-50 transition-all';
+                tr.onclick = () => openEditModal(item);
+                visibleColumns.forEach(col => {
+                    const td = tr.insertCell();
+                    td.textContent = item[col] || '-';
+                    td.className = 'px-6 py-4 whitespace-nowrap text-sm text-gray-600';
+                    if (col === 'tinh_trang_dung_cu') {
+                        const status = item[col];
+                        if (status === 'Bình thường') td.classList.add('text-green-700', 'font-semibold');
+                        else if (status === 'NG - Báo lỗi') td.classList.add('text-red-700', 'font-semibold');
+                    }
+                });
+            });
+            container.appendChild(table);
+            renderPagination(data.length);
+        }
+
+        function renderPagination(totalRows) {
+            const totalPages = Math.ceil(totalRows / (rowsPerPage === 'all' ? totalRows : rowsPerPage));
+            
+            const disableControls = rowsPerPage === 'all' || totalRows === 0;
+
+            firstPageButton.disabled = disableControls || currentPage === 1;
+            prevPageButton.disabled = disableControls || currentPage === 1;
+            nextPageButton.disabled = disableControls || currentPage >= totalPages;
+            lastPageButton.disabled = disableControls || currentPage >= totalPages;
+            
+            if (disableControls) {
+                pageInfoSpan.textContent = `Tổng: ${totalRows}`;
+            } else {
+                pageInfoSpan.textContent = `Trang ${currentPage}/${totalPages === 0 ? 1 : totalPages}`;
+            }
+        }
+        
+        function handleSearch() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const dataToFilter = activeTab === 'dung_cu_lam_via' ? dataLamVia : dataTap;
+            filteredData = dataToFilter.filter(item => Object.values(item).some(value => String(value).toLowerCase().includes(searchTerm)));
+            currentPage = 1; 
+            renderTable(filteredData, `table-${activeTab}`, currentVisibleColumns[activeTab]);
+        }
+
+        function transformDataForExport(data, columnKeys) {
+            return data.map(item => {
+                const transformedItem = {};
+                columnKeys.forEach(key => {
+                    transformedItem[vietnameseHeaders[key] || key] = item[key] || '';
+                });
+                return transformedItem;
+            });
+        }
+
+        function styleWorksheetHeaders(worksheet, headerColorRGB) {
+            const range = XLSX.utils.decode_range(worksheet['!ref']);
+            const headerStyle = {
+                fill: { fgColor: { rgb: headerColorRGB } },
+                font: { color: { rgb: "FFFFFF" }, bold: true },
+                alignment: { horizontal: "center", vertical: "center" }
+            };
+
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const address = XLSX.utils.encode_cell({ r: range.s.r, c: C });
+                if (!worksheet[address]) continue;
+                worksheet[address].s = headerStyle;
+            }
+        }
+
+        function exportToExcel(data1, data2) {
+            if (data1.length === 0 && data2.length === 0) {
+                showMessage('Lỗi', 'Không có dữ liệu để xuất file Excel.');
+                return;
+            }
+            const timestamp = new Date().toISOString().replace(/:/g, '-').slice(0, 19);
+            const fileName = `DungCuPKT_${timestamp}.xlsx`;
+            const workbook = XLSX.utils.book_new();
+            
+            const transformedLamVia = transformDataForExport(data1, columns['dung_cu_lam_via']);
+            const transformedTap = transformDataForExport(data2, columns['dung_cu_tap']);
+            
+            const ws1 = XLSX.utils.json_to_sheet(transformedLamVia);
+            const ws2 = XLSX.utils.json_to_sheet(transformedTap);
+
+            styleWorksheetHeaders(ws1, "2563EB"); 
+            styleWorksheetHeaders(ws2, "2563EB"); 
+
+            XLSX.utils.book_append_sheet(workbook, ws1, 'Dụng Cụ Làm Via');
+            XLSX.utils.book_append_sheet(workbook, ws2, 'Dụng Cụ Tap');
+
+            XLSX.writeFile(workbook, fileName);
+        }
+
+        function switchTab(tabName) {
+            activeTab = tabName;
+            searchInput.value = '';
+            
+            const inactiveClasses = ['bg-gray-200', 'text-gray-700', 'hover:bg-gray-300', 'focus:ring-gray-400'];
+            const viaActiveClasses = ['bg-blue-600', 'text-white', 'hover:bg-blue-700', 'focus:ring-blue-500'];
+            const tapActiveClasses = ['bg-purple-600', 'text-white', 'hover:bg-purple-700', 'focus:ring-purple-500'];
+
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove(...viaActiveClasses, ...tapActiveClasses);
+                btn.classList.add(...inactiveClasses);
+            });
+            document.querySelectorAll('[id^="table-container-"]').forEach(container => container.classList.add('hidden'));
+            
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            let activeClasses = (tabName === 'dung_cu_lam_via') ? viaActiveClasses : tapActiveClasses;
+            
+            activeBtn.classList.remove(...inactiveClasses);
+            activeBtn.classList.add(...activeClasses);
+
+            document.getElementById(`table-container-${tabName}`).classList.remove('hidden');
+            
+            filteredData = (activeTab === 'dung_cu_lam_via') ? [...dataLamVia] : [...dataTap];
+            currentPage = 1;
+            renderTable(filteredData, `table-${activeTab}`, currentVisibleColumns[activeTab]);
+        }
+
+        function renderColumnCheckboxes() {
+            columnListContainer.innerHTML = '';
+            const columnsForCurrentTab = columns[activeTab];
+            const visibleColumnsForCurrentTab = currentVisibleColumns[activeTab];
+            columnsForCurrentTab.forEach(col => {
+                const isChecked = visibleColumnsForCurrentTab.has(col);
+                const headerText = vietnameseHeaders[col] || col;
+                const checkboxDiv = document.createElement('label');
+                checkboxDiv.className = 'flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all';
+                checkboxDiv.innerHTML = `<input type="checkbox" id="col-${col}" value="${col}" ${isChecked ? 'checked' : ''} class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"><span class="text-sm font-medium text-gray-800">${headerText}</span>`;
+                columnListContainer.appendChild(checkboxDiv);
+            });
+        }
+
+        function updateVisibleColumns() {
+            const newVisibleColumns = new Set();
+            columns[activeTab].forEach(col => {
+                const checkbox = document.getElementById(`col-${col}`);
+                if (checkbox && checkbox.checked) newVisibleColumns.add(col);
+            });
+            currentVisibleColumns[activeTab] = newVisibleColumns;
+            handleSearch();
+        }
+        
+        function handleShowAll() { columnListContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true); }
+        function handleHideAll() { columnListContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false); }
+        function handleDefault() {
+            const defaultCols = new Set(columns[activeTab]);
+            columnListContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = defaultCols.has(cb.value); });
+        }
+        
+        function openEditModal(rowData) {
+            selectedRowData = rowData;
+            editForm.innerHTML = '';
+            const columnsForCurrentTab = columns[activeTab];
+            columnsForCurrentTab.forEach(col => {
+                const label = document.createElement('label');
+                label.className = 'block text-sm font-medium text-gray-700 mt-2';
+                label.textContent = vietnameseHeaders[col] || col;
+
+                let input;
+                const isTextArea = ['ghi_chu', 'dem_lo_tap'].includes(col);
+                
+                if (isTextArea) {
+                    input = document.createElement('textarea');
+                    input.rows = 3;
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                }
+
+                input.name = col;
+                input.value = rowData[col] || '';
+                input.className = 'mt-1 block w-full border border-gray-300 rounded-lg shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500';
+
+                // Make the key column and update column read-only
+                if (col === keyColumns[activeTab] || col === 'update') {
+                    input.readOnly = true;
+                    input.classList.add('bg-gray-100', 'cursor-not-allowed');
+                }
+
+                editForm.appendChild(label);
+                editForm.appendChild(input);
+            });
+
+            editModal.classList.remove('hidden');
+            editModal.classList.add('flex');
+        }
+
+        function closeEditModal() {
+            editModal.classList.add('hidden');
+            editModal.classList.remove('flex');
+            selectedRowData = null;
+        }
+
+        async function handleSaveEdit() {
+            const updatedRow = {
+                [keyColumns[activeTab]]: selectedRowData[keyColumns[activeTab]] // Always include the key column
+            };
+            const allInputs = editForm.querySelectorAll('input, textarea');
+            allInputs.forEach(input => {
+                // Collect only fields that have changed, and exclude the key/update columns
+                if (input.name !== keyColumns[activeTab] && input.name !== 'update' && input.value !== selectedRowData[input.name]) {
+                     updatedRow[input.name] = input.value;
+                }
+            });
+
+            // If no fields have changed, just close the modal
+            if (Object.keys(updatedRow).length === 1) { // Only the key column is present
+                showMessage('Thông báo', 'Không có thay đổi nào để lưu.');
+                closeEditModal();
+                return;
+            }
+            
+            // Gửi dữ liệu cập nhật
+            await updateData(activeTab, updatedRow);
+            closeEditModal();
+        }
+        
+        async function openQrModal() {
+            qrModal.classList.remove('hidden');
+            qrModal.classList.add('flex');
+            qrResultText.textContent = 'Đang tìm camera...';
+            
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            
+            try {
+                await html5QrCode.start(
+                    { facingMode: "environment" }, 
+                    config,
+                    (decodedText, decodedResult) => {
+                        console.log(`QR code detected: ${decodedText}`);
+                        searchInput.value = decodedText;
+                        handleSearch();
+                        closeQrModal();
+                    },
+                    (errorMessage) => {
+                        qrResultText.textContent = 'Đang quét mã...';
+                    }
+                );
+            } catch (err) {
+                console.error("Lỗi khi truy cập camera:", err);
+                qrResultText.textContent = 'Lỗi: Không thể truy cập camera. Vui lòng cấp quyền.';
+            }
+        }
+        
+        function closeQrModal() {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    console.log("Đã dừng quét QR.");
+                }).catch(err => {
+                    console.error("Lỗi khi dừng camera:", err);
+                });
+            }
+            qrModal.classList.add('hidden');
+            qrModal.classList.remove('flex');
+            html5QrCode = null;
+        }
+
+        async function initApp() {
+            try {
+                const [resultLamVia, resultTap] = await Promise.all([
+                    fetchDataFromAppSheet('dung_cu_lam_via'),
+                    fetchDataFromAppSheet('dung_cu_tap')
+                ]);
+                dataLamVia = resultLamVia;
+                dataTap = resultTap;
+                loadingDiv.classList.add('hidden');
+                appDiv.classList.remove('hidden');
+                
+                rowsPerPage = rowsPerPageSelect.value;
+                switchTab('dung_cu_lam_via');
+            } catch (error) {
+                loadingDiv.classList.add('hidden');
+                showMessage('Lỗi Kết nối', `Không thể tải dữ liệu từ AppSheet. Vui lòng kiểm tra lại cấu hình và thử lại. Chi tiết: ${error.message}`);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initApp();
+            document.getElementById('tab-dung_cu_lam_via').addEventListener('click', () => switchTab('dung_cu_lam_via'));
+            document.getElementById('tab-dung_cu_tap').addEventListener('click', () => switchTab('dung_cu_tap'));
+            document.getElementById('export-button').addEventListener('click', () => exportToExcel(dataLamVia, dataTap));
+            searchInput.addEventListener('input', handleSearch);
+            settingsButton.addEventListener('click', () => { renderColumnCheckboxes(); settingsModal.classList.remove('hidden'); });
+            closeSettingsModalButton.addEventListener('click', () => settingsModal.classList.add('hidden'));
+            saveSettingsButton.addEventListener('click', () => { updateVisibleColumns(); settingsModal.classList.add('hidden'); });
+            showAllButton.addEventListener('click', handleShowAll);
+            hideAllButton.addEventListener('click', handleHideAll);
+            defaultButton.addEventListener('click', handleDefault);
+
+            // Edit modal event listeners
+            closeEditModalButton.addEventListener('click', closeEditModal);
+            cancelEditButton.addEventListener('click', closeEditModal);
+            saveEditButton.addEventListener('click', handleSaveEdit);
+            
+            // QR Scan modal event listeners
+            qrScanButton.addEventListener('click', openQrModal);
+            closeQrModalButton.addEventListener('click', closeQrModal);
+            
+            // Pagination event listeners
+            rowsPerPageSelect.addEventListener('change', (e) => {
+                rowsPerPage = e.target.value;
+                currentPage = 1;
+                renderTable(filteredData, `table-${activeTab}`, currentVisibleColumns[activeTab]);
+            });
+            firstPageButton.addEventListener('click', () => {
+                currentPage = 1;
+                renderTable(filteredData, `table-${activeTab}`, currentVisibleColumns[activeTab]);
+            });
+            prevPageButton.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderTable(filteredData, `table-${activeTab}`, currentVisibleColumns[activeTab]);
+                }
+            });
+            nextPageButton.addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredData.length / (rowsPerPage === 'all' ? filteredData.length : rowsPerPage));
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderTable(filteredData, `table-${activeTab}`, currentVisibleColumns[activeTab]);
+                }
+            });
+            lastPageButton.addEventListener('click', () => {
+                const totalPages = Math.ceil(filteredData.length / (rowsPerPage === 'all' ? filteredData.length : rowsPerPage));
+                currentPage = totalPages;
+                renderTable(filteredData, `table-${activeTab}`, currentVisibleColumns[activeTab]);
+            });
+        });
+    </script>
+</body>
+</html>
