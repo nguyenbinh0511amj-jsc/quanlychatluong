@@ -29,24 +29,6 @@
             overflow: hidden;
         }
 
-        .header {
-            background: linear-gradient(45deg, #4CAF50, #45a049);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
-        }
-
         .main-content {
             padding: 40px;
         }
@@ -103,6 +85,31 @@
             padding: 30px;
             margin-bottom: 30px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-container {
+            margin-bottom: 20px;
+        }
+        
+        #searchInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            transition: border-color 0.3s;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        #searchResultInfo {
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: 5px;
         }
 
         .table-container {
@@ -208,10 +215,6 @@
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>📊 Import Excel vào AppSheet</h1>
-        </div>
-        
         <div class="main-content">
             <div class="upload-section" id="uploadSection">
                 <div class="upload-icon">📁</div>
@@ -226,7 +229,11 @@
             </div>
             
             <div id="previewSection" class="preview-section" style="display: none;">
-                <h2>🔍 Preview Dữ Liệu (Đã định dạng)</h2>
+                <h2>🔍 Xem trước Dữ liệu (Đã định dạng)</h2>
+                <div class="search-container">
+                    <input type="text" id="searchInput" placeholder="🔎 Tìm kiếm nội dung...">
+                    <div id="searchResultInfo"></div>
+                </div>
                 <div class="table-container">
                     <table id="previewTable">
                         <thead id="tableHeader"></thead>
@@ -258,8 +265,9 @@
 
         const DATE_FIELDS = ['thoi_han', 'ngay_giao_phoi'];
         const NUMBER_FIELDS = ['sll'];
+        const ROWS_TO_PREVIEW = 10;
         
-        let processedRecords = null; 
+        let allProcessedRecords = null; 
         
         const fileInput = document.getElementById('fileInput');
         const uploadSection = document.getElementById('uploadSection');
@@ -267,7 +275,11 @@
         const fileInfo = document.getElementById('fileInfo');
         const importBtn = document.getElementById('importBtn');
         const statusSection = document.getElementById('statusSection');
-        
+        const searchInput = document.getElementById('searchInput');
+        const searchResultInfo = document.getElementById('searchResultInfo');
+        const tableHeader = document.getElementById('tableHeader');
+        const tableBody = document.getElementById('tableBody');
+
         uploadSection.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadSection.classList.add('dragover');
@@ -289,6 +301,12 @@
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 handleFile(e.target.files[0]);
+            }
+        });
+
+        searchInput.addEventListener('input', () => {
+            if (allProcessedRecords) {
+                displayPreview(allProcessedRecords);
             }
         });
         
@@ -324,10 +342,10 @@
                         return;
                     }
                     
-                    processedRecords = processExcelData(excelData);
+                    allProcessedRecords = processExcelData(excelData);
                     
-                    displayPreview(excelData, processedRecords);
-                    showStatus('success', `✅ Đọc file thành công! Tìm thấy ${processedRecords.length} dòng dữ liệu hợp lệ.`);
+                    displayPreview(allProcessedRecords);
+                    showStatus('success', `✅ Đọc file thành công! Tìm thấy ${allProcessedRecords.length} dòng dữ liệu hợp lệ.`);
                 } catch (error) {
                     showStatus('error', '❌ Lỗi khi đọc file Excel: ' + error.message);
                 }
@@ -346,9 +364,7 @@
                     if (index !== -1) {
                         let value = row[index];
                         if (value === null || value === undefined || value === '') {
-                            // Cập nhật logic xử lý giá trị trống
                             if (field === 'order_kd') {
-                                // Gán giá trị tạm thời nếu order_kd bị trống
                                 value = 'TEMP-' + Date.now();
                                 console.warn(`⚠️ Cột 'order_kd' bị trống, gán giá trị tạm thời: ${value}`);
                             } else {
@@ -371,20 +387,6 @@
                                 value = `${String(date.d).padStart(2, '0')}/${String(date.m).padStart(2, '0')}/${date.y}`;
                             } else {
                                 value = String(value).trim();
-                                const parts = value.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
-                                if (parts) {
-                                    const d = parseInt(parts[1], 10);
-                                    const m = parseInt(parts[2], 10);
-                                    const y = parseInt(parts[3], 10);
-                                    const dateObj = new Date(y, m - 1, d);
-                                    if (!isNaN(dateObj.getTime())) {
-                                        value = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
-                                    } else {
-                                        value = '';
-                                    }
-                                } else {
-                                    value = '';
-                                }
                             }
                         } else {
                             value = String(value).trim();
@@ -398,36 +400,51 @@
             return records;
         }
         
-        function displayPreview(rawData, records) {
-            if (records.length === 0) return;
+        function displayPreview(allRecords) {
+            if (!allRecords || allRecords.length === 0) return;
             
-            const headers = rawData[0].map(h => h ? String(h).trim() : '');
-            const rowsToPreview = records.slice(0, 10);
+            const filterValue = searchInput.value.toUpperCase();
             
-            const tableHeader = document.getElementById('tableHeader');
-            tableHeader.innerHTML = '';
-            const headerRow = document.createElement('tr');
-            headers.forEach(header => {
-                const th = document.createElement('th');
-                th.textContent = header || 'Cột trống';
-                headerRow.appendChild(th);
-            });
-            tableHeader.appendChild(headerRow);
+            const filteredRecords = allRecords.filter(record => 
+                Object.values(record).some(value => 
+                    String(value).toUpperCase().includes(filterValue)
+                )
+            );
             
-            const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = '';
-            rowsToPreview.forEach(record => {
-                const tr = document.createElement('tr');
+            const rowsToPreview = filteredRecords.slice(0, ROWS_TO_PREVIEW);
+            
+            if (allRecords.length > 0) {
+                const headers = Object.keys(allRecords[0]);
+                tableHeader.innerHTML = '';
+                const headerRow = document.createElement('tr');
                 headers.forEach(header => {
-                    const td = document.createElement('td');
-                    td.textContent = record[header] !== undefined ? record[header] : '';
-                    tr.appendChild(td);
+                    const th = document.createElement('th');
+                    th.textContent = header || 'Cột trống';
+                    headerRow.appendChild(th);
                 });
-                tableBody.appendChild(tr);
-            });
+                tableHeader.appendChild(headerRow);
+            }
             
+            tableBody.innerHTML = '';
+            if (rowsToPreview.length > 0) {
+                const headers = Object.keys(rowsToPreview[0]);
+                rowsToPreview.forEach(record => {
+                    const tr = document.createElement('tr');
+                    headers.forEach(header => {
+                        const td = document.createElement('td');
+                        td.textContent = record[header] !== undefined ? record[header] : '';
+                        tr.appendChild(td);
+                    });
+                    tableBody.appendChild(tr);
+                });
+            } else {
+                 tableBody.innerHTML = `<tr><td colspan="${Object.keys(allRecords[0]).length}" style="text-align: center;">Không tìm thấy kết quả nào.</td></tr>`;
+            }
+            
+            searchResultInfo.textContent = `Hiển thị ${rowsToPreview.length} trong tổng số ${filteredRecords.length} kết quả tìm thấy.`;
+
             previewSection.style.display = 'block';
-            checkFieldMapping(headers);
+            checkFieldMapping(Object.keys(allRecords[0]));
         }
         
         function checkFieldMapping(headers) {
@@ -456,14 +473,14 @@
         }
         
         importBtn.addEventListener('click', async () => {
-            if (!processedRecords || processedRecords.length === 0) return;
+            if (!allProcessedRecords || allProcessedRecords.length === 0) return;
             
             importBtn.disabled = true;
             importBtn.innerHTML = '<span class="loading-spinner"></span> Đang import...';
             showStatus('loading', '⏳ Đang chuẩn bị import dữ liệu vào AppSheet...');
             
             try {
-                await importToAppSheet(processedRecords);
+                await importToAppSheet(allProcessedRecords);
             } catch (error) {
                 showStatus('error', '❌ Lỗi khi import: ' + error.message);
             } finally {
@@ -513,8 +530,8 @@
         }
         
         async function importInBatches(apiUrl, records) {
-            const BATCH_SIZE = 1000;
-            const MAX_CONCURRENT = 5;
+            const BATCH_SIZE = 2000;
+            const MAX_CONCURRENT = 10;
             const batches = [];
             
             for (let i = 0; i < records.length; i += BATCH_SIZE) {
@@ -531,7 +548,7 @@
                 try {
                     const payload = { "Action": "Add", "Properties": {}, "Rows": batch };
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 90000);
+                    const timeoutId = setTimeout(() => controller.abort(), 120000);
                     
                     const response = await fetch(apiUrl, {
                         method: 'POST',
@@ -572,12 +589,8 @@
                         failedBatches.push(result.error);
                     }
                     
-                    const elapsed = ((Date.now() - startTime) / 1000);
-                    const rate = (successfulCount / (elapsed || 1)).toFixed(1);
-                    const eta = successfulCount > 0 ? (((records.length - successfulCount) / (successfulCount / elapsed)) / 60).toFixed(1) : '?';
                     showStatus('loading', 
-                        `⚡ TURBO: ${completed}/${batches.length} lô | ` +
-                        `✅ ${successfulCount} dòng | 📈 ${rate}/giây | ⏱️ ETA: ${eta} phút`
+                        `⚡ Đang ghi dữ liệu: ✅ ${successfulCount}/${records.length} dòng đã ghi thành công...`
                     );
                 }
             }
@@ -589,14 +602,13 @@
             await Promise.all(promises);
             
             const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-            const avgRate = (successfulCount / (totalTime || 1)).toFixed(1);
             
             if (failedBatches.length > 0) {
                 const errorMessage = `🎉 HOÀN THÀNH VỚI LỖI! ✅ ${successfulCount}/${records.length} dòng đã import trong ${totalTime} giây. ⚠️ ${failedBatches.length} lô lỗi.`;
                 showStatus('error', errorMessage);
                 console.error('Các lỗi chi tiết:', failedBatches);
             } else {
-                const successMessage = `🎉 TURBO HOÀN THÀNH! ✅ ${successfulCount}/${records.length} dòng đã import trong ${totalTime} giây. (Trung bình: ${avgRate} dòng/giây)`;
+                const successMessage = `🎉 Hoàn thành! ✅ ${records.length}/${records.length} dòng đã import trong ${totalTime} giây.`;
                 showStatus('success', successMessage);
             }
             
@@ -607,9 +619,10 @@
             fileInput.value = '';
             fileInfo.style.display = 'none';
             previewSection.style.display = 'none';
-            processedRecords = null;
+            allProcessedRecords = null;
             importBtn.disabled = true;
             statusSection.style.display = 'none';
+            searchInput.value = '';
         }
     </script>
 </body>
