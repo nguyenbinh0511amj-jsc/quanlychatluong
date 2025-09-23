@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Excel vào AppSheet</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            /* === THAY ĐỔI CHÍNH Ở ĐÂY === */
+            max-width: 95%; 
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            padding: 40px;
+        }
+        
+        .upload-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 2px dashed #ddd;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-section.dragover {
+            border-color: #4CAF50;
+            background: #f0f8f0;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+        }
+        
+        .file-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border-left: 5px solid #4CAF50;
+        }
+        
+        .preview-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            max-height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        th, td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            white-space: nowrap;
+        }
+        
+        th {
+            background: #4CAF50;
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        tr:hover {
+            background: #f5f5f5;
+        }
+        
+        .import-btn {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: block;
+            margin: 30px auto 0;
+            min-width: 200px;
+        }
+        
+        .import-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(33, 150, 243, 0.3);
+        }
+        
+        .import-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4CAF50;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Import Excel vào AppSheet</h1>
+        </div>
+        
+        <div class="main-content">
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">📁</div>
+                <h2>Chọn file Excel để upload</h2>
+                <p>Kéo thả file Excel vào đây hoặc click để chọn file</p>
+                <p><small>Hỗ trợ: .xlsx, .xls</small></p>
+                <input type="file" id="fileInput" class="file-input" accept=".xlsx,.xls">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    📤 Chọn File Excel
+                </button>
+                <div id="fileInfo" class="file-info" style="display: none;"></div>
+            </div>
+            
+            <div id="previewSection" class="preview-section" style="display: none;">
+                <h2>🔍 Preview Dữ Liệu (Đã định dạng)</h2>
+                <div class="table-container">
+                    <table id="previewTable">
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <button id="importBtn" class="import-btn" disabled>
+                    <span class="loading-spinner" id="loadingSpinner" style="display: none;"></span>
+                    🚀 Import vào AppSheet
+                </button>
+            </div>
+            
+            <div id="statusSection" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // AppSheet Configuration
+        const APPSHEET_CONFIG = {
+            appId: 'e1339939-5987-4d7a-8c73-436348abf6b7',
+            accessKey: 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL',
+            tableName: 'don_hang' // Tên bảng trong AppSheet
+        };
+        
+        // Required fields
+        const REQUIRED_FIELDS = [
+            'order_kd', 'so_dh', 'order_phoi', 'order_vat_lieu', 'ten_chi_tiet',
+            'sll', 'thoi_han', 'ngay_giao_phoi', 'qr_code', 'tinh_chat', 'ghi_chu'
+        ];
+
+        // Fields that should be dates (DD/MM/YYYY)
+        const DATE_FIELDS = ['thoi_han', 'ngay_giao_phoi'];
+        // Fields that should be numbers
+        const NUMBER_FIELDS = ['sll'];
+        
+        let rawExcelData = null;
+        let processedRecords = null; // Dữ liệu đã được xử lý để import và preview
+        
+        // File input handling
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const previewSection = document.getElementById('previewSection');
+        const fileInfo = document.getElementById('fileInfo');
+        const importBtn = document.getElementById('importBtn');
+        const statusSection = document.getElementById('statusSection');
+        
+        // Drag and drop handlers
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        function handleFile(file) {
+            if (!file.name.match(/\.(xlsx|xls)$/)) {
+                showStatus('error', '❌ Vui lòng chọn file Excel (.xlsx hoặc .xls)');
+                return;
+            }
+            
+            fileInfo.innerHTML = `
+                <strong>📄 File đã chọn:</strong> ${file.name}<br>
+                <strong>📏 Kích thước:</strong> ${(file.size / 1024 / 1024).toFixed(2)} MB<br>
+                <strong>📅 Ngày sửa đổi:</strong> ${new Date(file.lastModified).toLocaleString('vi-VN')}
+            `;
+            fileInfo.style.display = 'block';
+            
+            readExcelFile(file);
+        }
+        
+        function readExcelFile(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    
+                    rawExcelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    if (rawExcelData.length < 2) { // Cần có header và ít nhất 1 dòng dữ liệu
+                        showStatus('error', '❌ File Excel trống hoặc chỉ có dòng tiêu đề');
+                        return;
+                    }
+                    
+                    // Xử lý dữ liệu ngay sau khi đọc
+                    processedRecords = processExcelData(rawExcelData);
+                    
+                    displayPreview(rawExcelData, processedRecords);
+                    showStatus('success', `✅ Đọc file thành công! Tìm thấy ${processedRecords.length} dòng dữ liệu hợp lệ.`);
+                } catch (error) {
+                    showStatus('error', '❌ Lỗi khi đọc file Excel: ' + error.message);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processExcelData(data) {
+            const headers = data[0].map(h => h ? String(h).trim() : '');
+            const rows = data.slice(1).filter(row => row.some(cell => cell !== null && cell !== undefined && cell !== ''));
+            
+            const records = rows.map(row => {
+                const record = {};
+                headers.forEach((header, index) => {
+                    if (header && REQUIRED_FIELDS.includes(header)) {
+                        let value = row[index];
+
+                        if (value === null || value === undefined) {
+                            value = '';
+                        } else if (header === 'order_kd') {
+                            value = String(value).trim();
+                            if (!/[a-zA-Z]/.test(value) && value.length > 0) {
+                                if (value.length < 10) {
+                                    value = value.padStart(10, '0');
+                                }
+                            }
+                        } else if (NUMBER_FIELDS.includes(header)) {
+                            value = typeof value === 'number' ? value : parseFloat(String(value).replace(/,/g, ''));
+                            if (isNaN(value)) value = 0;
+                        } else if (DATE_FIELDS.includes(header)) {
+                             if (typeof value === 'number' && value > 25569) { // Excel date number check
+                                const date = XLSX.SSF.parse_date_code(value);
+                                value = `${String(date.d).padStart(2, '0')}/${String(date.m).padStart(2, '0')}/${date.y}`;
+                            } else if (value instanceof Date) {
+                                value = `${String(value.getDate()).padStart(2, '0')}/${String(value.getMonth() + 1).padStart(2, '0')}/${value.getFullYear()}`;
+                            } else if (String(value).trim()) {
+                                try {
+                                    // Handles DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD etc.
+                                    const parsedDate = new Date(value);
+                                    if (!isNaN(parsedDate.getTime())) {
+                                        value = `${String(parsedDate.getDate()).padStart(2, '0')}/${String(parsedDate.getMonth() + 1).padStart(2, '0')}/${parsedDate.getFullYear()}`;
+                                    } else {
+                                        value = String(value).trim();
+                                    }
+                                } catch (e) {
+                                    value = String(value).trim();
+                                }
+                            } else {
+                                value = '';
+                            }
+                        } else {
+                            value = String(value).trim();
+                        }
+                        record[header] = value;
+                    }
+                });
+                return record;
+            }).filter(record => Object.keys(record).length > 0);
+
+            return records;
+        }
+        
+        function displayPreview(rawData, records) {
+            if (records.length === 0) return;
+            
+            const headers = rawData[0].map(h => h ? String(h).trim() : '');
+            const rowsToPreview = records.slice(0, 10);
+            
+            const tableHeader = document.getElementById('tableHeader');
+            tableHeader.innerHTML = '';
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header || 'Cột trống';
+                headerRow.appendChild(th);
+            });
+            tableHeader.appendChild(headerRow);
+            
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            rowsToPreview.forEach(record => {
+                const tr = document.createElement('tr');
+                headers.forEach(header => {
+                    const td = document.createElement('td');
+                    td.textContent = record[header] !== undefined ? record[header] : '';
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+            
+            previewSection.style.display = 'block';
+            checkFieldMapping(headers);
+        }
+        
+        function checkFieldMapping(headers) {
+            const missingFields = REQUIRED_FIELDS.filter(field => !headers.includes(field));
+            
+            if (missingFields.length > 0) {
+                showStatus('error', `⚠️ Thiếu các cột bắt buộc: ${missingFields.join(', ')}`);
+                importBtn.disabled = true;
+            } else {
+                showStatus('success', '✅ Tất cả các trường bắt buộc đều có trong file Excel.');
+                importBtn.disabled = false;
+            }
+        }
+        
+        function showStatus(type, message) {
+            statusSection.innerHTML = `<div class="status ${type}">${message}</div>`;
+            statusSection.style.display = 'block';
+            
+            if (type === 'success' || (type === 'loading' && !message.includes('TURBO'))) {
+                 setTimeout(() => {
+                    if (statusSection.innerHTML.includes(message)) {
+                        statusSection.style.display = 'none';
+                    }
+                }, 5000);
+            }
+        }
+        
+        importBtn.addEventListener('click', async () => {
+            if (!processedRecords || processedRecords.length === 0) return;
+            
+            importBtn.disabled = true;
+            importBtn.innerHTML = '<span class="loading-spinner"></span> Đang import...';
+            showStatus('loading', '⏳ Đang chuẩn bị import dữ liệu vào AppSheet...');
+            
+            try {
+                await importToAppSheet(processedRecords);
+            } catch (error) {
+                showStatus('error', '❌ Lỗi khi import: ' + error.message);
+            } finally {
+                importBtn.disabled = false;
+                importBtn.innerHTML = '🚀 Import vào AppSheet';
+            }
+        });
+        
+        async function importToAppSheet(records) {
+             console.log(`Processing ${records.length} pre-formatted records for import`);
+             
+            const endpoints = [
+                `https://api.appsheet.com/api/v2/apps/${APPSHEET_CONFIG.appId}/tables/${APPSHEET_CONFIG.tableName}/Action`,
+                `https://www.appsheet.com/api/v2/apps/${APPSHEET_CONFIG.appId}/tables/${APPSHEET_CONFIG.tableName}/Action`
+            ];
+            
+            let successfulEndpoint = null;
+            
+            for (const apiUrl of endpoints) {
+                try {
+                    console.log(`Testing endpoint:`, apiUrl);
+                    const testPayload = { "Action": "Add", "Properties": {}, "Rows": records.slice(0, 1) };
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'ApplicationAccessKey': APPSHEET_CONFIG.accessKey,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(testPayload)
+                    });
+                    
+                    if (response.ok) {
+                        successfulEndpoint = apiUrl;
+                        console.log('✅ Test successful, using endpoint:', apiUrl);
+                        break;
+                    }
+                } catch (error) {
+                    console.error(`Test endpoint failed:`, error);
+                }
+            }
+            
+            if (!successfulEndpoint) {
+                throw new Error('Không thể kết nối đến AppSheet API. Vui lòng kiểm tra lại App ID, Access Key và tên bảng.');
+            }
+            
+            await importInFastBatches(successfulEndpoint, records);
+        }
+        
+        async function importInFastBatches(apiUrl, records) {
+            const BATCH_SIZE = 100;
+            const MAX_CONCURRENT = 10;
+            const batches = [];
+            
+            for (let i = 0; i < records.length; i += BATCH_SIZE) {
+                batches.push(records.slice(i, i + BATCH_SIZE));
+            }
+            
+            console.log(`🚀 TURBO MODE: Importing ${records.length} records in ${batches.length} batches of ${BATCH_SIZE} each with ${MAX_CONCURRENT} concurrent requests`);
+            
+            let completed = 0, successful = 0, failed = 0;
+            const startTime = Date.now();
+            
+            const processBatch = async (batch, batchIndex, retryCount = 0) => {
+                try {
+                    const payload = { "Action": "Add", "Properties": {}, "Rows": batch };
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 30000);
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'ApplicationAccessKey': APPSHEET_CONFIG.accessKey, 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    
+                    if (response.ok) {
+                        successful += batch.length;
+                        return true;
+                    } else {
+                        const errorText = await response.text();
+                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                    }
+                } catch (error) {
+                    if (retryCount < 2 && !error.name?.includes('Abort')) {
+                        console.warn(`🔄 Retry ${retryCount + 1}/2 for batch ${batchIndex + 1}: ${error.message}`);
+                        await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
+                        return await processBatch(batch, batchIndex, retryCount + 1);
+                    }
+                    failed += batch.length;
+                    console.error(`❌ Batch ${batchIndex + 1} failed after ${retryCount + 1} attempts:`, error.message);
+                    return false;
+                }
+            };
+            
+            const activeRequests = new Set();
+            const promises = [];
+            
+            for (let i = 0; i < batches.length; i++) {
+                while (activeRequests.size >= MAX_CONCURRENT) {
+                    await Promise.race(activeRequests);
+                }
+
+                const promise = (async () => {
+                    await processBatch(batches[i], i);
+                    completed++;
+                     if (completed % 5 === 0 || completed === batches.length) {
+                        const elapsed = ((Date.now() - startTime) / 1000);
+                        const rate = (successful / (elapsed || 1)).toFixed(1);
+                        const eta = successful > 0 ? (((records.length - successful) / (successful / elapsed)) / 60).toFixed(1) : '?';
+                        showStatus('loading', 
+                            `⚡ TURBO: ${completed}/${batches.length} batches | ` +
+                            `✅ ${successful} records | 📈 ${rate}/sec | ⏱️ ETA: ${eta}min`
+                        );
+                    }
+                })();
+                
+                activeRequests.add(promise);
+                promise.finally(() => activeRequests.delete(promise));
+                promises.push(promise);
+            }
+            
+            await Promise.all(promises);
+            
+            const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            const avgRate = (successful / (totalTime || 1)).toFixed(1);
+            const finalMessage = `🎉 TURBO COMPLETE! ✅ ${successful}/${records.length} records imported in ${totalTime}s. (Avg: ${avgRate} rec/s)`;
+            
+            showStatus(failed > 0 ? 'error' : 'success', finalMessage);
+
+            if (failed > 0) {
+                 setTimeout(() => {
+                    showStatus('error', `${finalMessage} | ⚠️ ${failed} records failed. Check Console for details.`)
+                }, 1000);
+            }
+            
+            setTimeout(() => { if (successful > 0) resetForm(); }, 8000);
+        }
+        
+        function resetForm() {
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            previewSection.style.display = 'none';
+            rawExcelData = null;
+            processedRecords = null;
+            importBtn.disabled = true;
+        }
+    </script>
+</body>
+</html>
