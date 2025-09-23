@@ -11,17 +11,16 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .container {
-            /* === THAY ĐỔI CHÍNH Ở ĐÂY === */
-            max-width: 95%; 
+            max-width: 95%;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -29,29 +28,29 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
-        
+
         .header {
             background: linear-gradient(45deg, #4CAF50, #45a049);
             color: white;
             padding: 30px;
             text-align: center;
         }
-        
+
         .header h1 {
             font-size: 2.5rem;
             margin-bottom: 10px;
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
-        
+
         .header p {
             font-size: 1.1rem;
             opacity: 0.9;
         }
-        
+
         .main-content {
             padding: 40px;
         }
-        
+
         .upload-section {
             background: #f8f9fa;
             border-radius: 15px;
@@ -61,16 +60,16 @@
             text-align: center;
             transition: all 0.3s ease;
         }
-        
+
         .upload-section.dragover {
             border-color: #4CAF50;
             background: #f0f8f0;
         }
-        
+
         .file-input {
             display: none;
         }
-        
+
         .upload-btn {
             background: linear-gradient(45deg, #4CAF50, #45a049);
             color: white;
@@ -84,12 +83,12 @@
             align-items: center;
             gap: 10px;
         }
-        
+
         .upload-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
         }
-        
+
         .file-info {
             margin-top: 20px;
             padding: 15px;
@@ -97,7 +96,7 @@
             border-radius: 10px;
             border-left: 5px solid #4CAF50;
         }
-        
+
         .preview-section {
             background: white;
             border-radius: 15px;
@@ -105,27 +104,27 @@
             margin-bottom: 30px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
-        
+
         .table-container {
             overflow-x: auto;
             max-height: 400px;
             border: 1px solid #ddd;
             border-radius: 10px;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
         }
-        
+
         th, td {
             padding: 12px 8px;
             text-align: left;
             border-bottom: 1px solid #ddd;
             white-space: nowrap;
         }
-        
+
         th {
             background: #4CAF50;
             color: white;
@@ -134,11 +133,11 @@
             top: 0;
             z-index: 10;
         }
-        
+
         tr:hover {
             background: #f5f5f5;
         }
-        
+
         .import-btn {
             background: linear-gradient(45deg, #2196F3, #1976D2);
             color: white;
@@ -152,19 +151,19 @@
             margin: 30px auto 0;
             min-width: 200px;
         }
-        
+
         .import-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(33, 150, 243, 0.3);
         }
-        
+
         .import-btn:disabled {
             background: #ccc;
             cursor: not-allowed;
             transform: none;
             box-shadow: none;
         }
-        
+
         .status {
             margin-top: 20px;
             padding: 15px;
@@ -172,25 +171,25 @@
             text-align: center;
             font-weight: 500;
         }
-        
+
         .status.success {
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
-        
+
         .status.error {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
-        
+
         .status.loading {
             background: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
         }
-        
+
         .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -200,7 +199,7 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -231,7 +230,7 @@
                 <div class="table-container">
                     <table id="previewTable">
                         <thead id="tableHeader"></thead>
-                        <tbody id="tableBody"></tbody>
+                        <tbody id="tableBody"></thead>
                     </table>
                 </div>
                 <button id="importBtn" class="import-btn" disabled>
@@ -249,24 +248,19 @@
         const APPSHEET_CONFIG = {
             appId: 'e1339939-5987-4d7a-8c73-436348abf6b7',
             accessKey: 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL',
-            tableName: 'don_hang' // Tên bảng trong AppSheet
+            tableName: 'don_hang'
         };
         
-        // Required fields
         const REQUIRED_FIELDS = [
             'order_kd', 'so_dh', 'order_phoi', 'order_vat_lieu', 'ten_chi_tiet',
             'sll', 'thoi_han', 'ngay_giao_phoi', 'qr_code', 'tinh_chat', 'ghi_chu'
         ];
 
-        // Fields that should be dates (DD/MM/YYYY)
         const DATE_FIELDS = ['thoi_han', 'ngay_giao_phoi'];
-        // Fields that should be numbers
         const NUMBER_FIELDS = ['sll'];
         
-        let rawExcelData = null;
-        let processedRecords = null; // Dữ liệu đã được xử lý để import và preview
+        let processedRecords = null; 
         
-        // File input handling
         const fileInput = document.getElementById('fileInput');
         const uploadSection = document.getElementById('uploadSection');
         const previewSection = document.getElementById('previewSection');
@@ -274,7 +268,6 @@
         const importBtn = document.getElementById('importBtn');
         const statusSection = document.getElementById('statusSection');
         
-        // Drag and drop handlers
         uploadSection.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadSection.classList.add('dragover');
@@ -324,17 +317,16 @@
                     const sheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[sheetName];
                     
-                    rawExcelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: true });
                     
-                    if (rawExcelData.length < 2) { // Cần có header và ít nhất 1 dòng dữ liệu
+                    if (excelData.length < 2) {
                         showStatus('error', '❌ File Excel trống hoặc chỉ có dòng tiêu đề');
                         return;
                     }
                     
-                    // Xử lý dữ liệu ngay sau khi đọc
-                    processedRecords = processExcelData(rawExcelData);
+                    processedRecords = processExcelData(excelData);
                     
-                    displayPreview(rawExcelData, processedRecords);
+                    displayPreview(excelData, processedRecords);
                     showStatus('success', `✅ Đọc file thành công! Tìm thấy ${processedRecords.length} dòng dữ liệu hợp lệ.`);
                 } catch (error) {
                     showStatus('error', '❌ Lỗi khi đọc file Excel: ' + error.message);
@@ -349,47 +341,55 @@
             
             const records = rows.map(row => {
                 const record = {};
-                headers.forEach((header, index) => {
-                    if (header && REQUIRED_FIELDS.includes(header)) {
+                REQUIRED_FIELDS.forEach(field => {
+                    const index = headers.indexOf(field);
+                    if (index !== -1) {
                         let value = row[index];
-
-                        if (value === null || value === undefined) {
-                            value = '';
-                        } else if (header === 'order_kd') {
-                            value = String(value).trim();
-                            if (!/[a-zA-Z]/.test(value) && value.length > 0) {
-                                if (value.length < 10) {
-                                    value = value.padStart(10, '0');
-                                }
+                        if (value === null || value === undefined || value === '') {
+                            // Cập nhật logic xử lý giá trị trống
+                            if (field === 'order_kd') {
+                                // Gán giá trị tạm thời nếu order_kd bị trống
+                                value = 'TEMP-' + Date.now();
+                                console.warn(`⚠️ Cột 'order_kd' bị trống, gán giá trị tạm thời: ${value}`);
+                            } else {
+                                record[field] = '';
+                                return;
                             }
-                        } else if (NUMBER_FIELDS.includes(header)) {
+                        }
+
+                        if (field === 'order_kd') {
+                            value = String(value).trim();
+                            if (!/[a-zA-Z]/.test(value) && value.length > 0 && value.length < 10) {
+                                value = value.padStart(10, '0');
+                            }
+                        } else if (NUMBER_FIELDS.includes(field)) {
                             value = typeof value === 'number' ? value : parseFloat(String(value).replace(/,/g, ''));
                             if (isNaN(value)) value = 0;
-                        } else if (DATE_FIELDS.includes(header)) {
-                             if (typeof value === 'number' && value > 25569) { // Excel date number check
+                        } else if (DATE_FIELDS.includes(field)) {
+                            if (typeof value === 'number' && value > 25569) {
                                 const date = XLSX.SSF.parse_date_code(value);
                                 value = `${String(date.d).padStart(2, '0')}/${String(date.m).padStart(2, '0')}/${date.y}`;
-                            } else if (value instanceof Date) {
-                                value = `${String(value.getDate()).padStart(2, '0')}/${String(value.getMonth() + 1).padStart(2, '0')}/${value.getFullYear()}`;
-                            } else if (String(value).trim()) {
-                                try {
-                                    // Handles DD/MM/YYYY, MM/DD/YYYY, YYYY-MM-DD etc.
-                                    const parsedDate = new Date(value);
-                                    if (!isNaN(parsedDate.getTime())) {
-                                        value = `${String(parsedDate.getDate()).padStart(2, '0')}/${String(parsedDate.getMonth() + 1).padStart(2, '0')}/${parsedDate.getFullYear()}`;
-                                    } else {
-                                        value = String(value).trim();
-                                    }
-                                } catch (e) {
-                                    value = String(value).trim();
-                                }
                             } else {
-                                value = '';
+                                value = String(value).trim();
+                                const parts = value.match(/(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})/);
+                                if (parts) {
+                                    const d = parseInt(parts[1], 10);
+                                    const m = parseInt(parts[2], 10);
+                                    const y = parseInt(parts[3], 10);
+                                    const dateObj = new Date(y, m - 1, d);
+                                    if (!isNaN(dateObj.getTime())) {
+                                        value = `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`;
+                                    } else {
+                                        value = '';
+                                    }
+                                } else {
+                                    value = '';
+                                }
                             }
                         } else {
                             value = String(value).trim();
                         }
-                        record[header] = value;
+                        record[field] = value;
                     }
                 });
                 return record;
@@ -447,7 +447,7 @@
             statusSection.style.display = 'block';
             
             if (type === 'success' || (type === 'loading' && !message.includes('TURBO'))) {
-                 setTimeout(() => {
+                setTimeout(() => {
                     if (statusSection.innerHTML.includes(message)) {
                         statusSection.style.display = 'none';
                     }
@@ -473,8 +473,8 @@
         });
         
         async function importToAppSheet(records) {
-             console.log(`Processing ${records.length} pre-formatted records for import`);
-             
+            console.log(`Processing ${records.length} records for import`);
+            
             const endpoints = [
                 `https://api.appsheet.com/api/v2/apps/${APPSHEET_CONFIG.appId}/tables/${APPSHEET_CONFIG.tableName}/Action`,
                 `https://www.appsheet.com/api/v2/apps/${APPSHEET_CONFIG.appId}/tables/${APPSHEET_CONFIG.tableName}/Action`
@@ -509,12 +509,12 @@
                 throw new Error('Không thể kết nối đến AppSheet API. Vui lòng kiểm tra lại App ID, Access Key và tên bảng.');
             }
             
-            await importInFastBatches(successfulEndpoint, records);
+            await importInBatches(successfulEndpoint, records);
         }
         
-        async function importInFastBatches(apiUrl, records) {
-            const BATCH_SIZE = 100;
-            const MAX_CONCURRENT = 10;
+        async function importInBatches(apiUrl, records) {
+            const BATCH_SIZE = 1000;
+            const MAX_CONCURRENT = 5;
             const batches = [];
             
             for (let i = 0; i < records.length; i += BATCH_SIZE) {
@@ -523,14 +523,15 @@
             
             console.log(`🚀 TURBO MODE: Importing ${records.length} records in ${batches.length} batches of ${BATCH_SIZE} each with ${MAX_CONCURRENT} concurrent requests`);
             
-            let completed = 0, successful = 0, failed = 0;
+            let completed = 0, successfulCount = 0, failedBatches = [];
             const startTime = Date.now();
             
             const processBatch = async (batch, batchIndex, retryCount = 0) => {
+                const batchId = batchIndex + 1;
                 try {
                     const payload = { "Action": "Add", "Properties": {}, "Rows": batch };
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 30000);
+                    const timeoutId = setTimeout(() => controller.abort(), 90000);
                     
                     const response = await fetch(apiUrl, {
                         method: 'POST',
@@ -542,75 +543,73 @@
                     clearTimeout(timeoutId);
                     
                     if (response.ok) {
-                        successful += batch.length;
-                        return true;
+                        successfulCount += batch.length;
+                        return { success: true, count: batch.length };
                     } else {
                         const errorText = await response.text();
-                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                        console.error(`❌ Batch ${batchId} failed. Status: ${response.status}, Error: ${errorText}`);
+                        return { success: false, error: `Batch ${batchId}: HTTP ${response.status} - ${errorText}` };
                     }
                 } catch (error) {
                     if (retryCount < 2 && !error.name?.includes('Abort')) {
-                        console.warn(`🔄 Retry ${retryCount + 1}/2 for batch ${batchIndex + 1}: ${error.message}`);
+                        console.warn(`🔄 Retry ${retryCount + 1}/2 for batch ${batchId}: ${error.message}`);
                         await new Promise(resolve => setTimeout(resolve, 1500 * (retryCount + 1)));
                         return await processBatch(batch, batchIndex, retryCount + 1);
                     }
-                    failed += batch.length;
-                    console.error(`❌ Batch ${batchIndex + 1} failed after ${retryCount + 1} attempts:`, error.message);
-                    return false;
+                    console.error(`❌ Batch ${batchId} failed after ${retryCount + 1} attempts:`, error.message);
+                    return { success: false, error: `Batch ${batchId} failed: ${error.message}` };
                 }
             };
             
-            const activeRequests = new Set();
             const promises = [];
-            
-            for (let i = 0; i < batches.length; i++) {
-                while (activeRequests.size >= MAX_CONCURRENT) {
-                    await Promise.race(activeRequests);
-                }
+            const iterator = batches.values();
 
-                const promise = (async () => {
-                    await processBatch(batches[i], i);
+            async function worker() {
+                for (const [i, batch] of [...iterator].entries()) {
+                    const result = await processBatch(batch, i);
                     completed++;
-                     if (completed % 5 === 0 || completed === batches.length) {
-                        const elapsed = ((Date.now() - startTime) / 1000);
-                        const rate = (successful / (elapsed || 1)).toFixed(1);
-                        const eta = successful > 0 ? (((records.length - successful) / (successful / elapsed)) / 60).toFixed(1) : '?';
-                        showStatus('loading', 
-                            `⚡ TURBO: ${completed}/${batches.length} batches | ` +
-                            `✅ ${successful} records | 📈 ${rate}/sec | ⏱️ ETA: ${eta}min`
-                        );
+                    if (!result.success) {
+                        failedBatches.push(result.error);
                     }
-                })();
-                
-                activeRequests.add(promise);
-                promise.finally(() => activeRequests.delete(promise));
-                promises.push(promise);
+                    
+                    const elapsed = ((Date.now() - startTime) / 1000);
+                    const rate = (successfulCount / (elapsed || 1)).toFixed(1);
+                    const eta = successfulCount > 0 ? (((records.length - successfulCount) / (successfulCount / elapsed)) / 60).toFixed(1) : '?';
+                    showStatus('loading', 
+                        `⚡ TURBO: ${completed}/${batches.length} lô | ` +
+                        `✅ ${successfulCount} dòng | 📈 ${rate}/giây | ⏱️ ETA: ${eta} phút`
+                    );
+                }
             }
-            
+
+            for (let i = 0; i < Math.min(MAX_CONCURRENT, batches.length); i++) {
+                promises.push(worker());
+            }
+
             await Promise.all(promises);
             
             const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-            const avgRate = (successful / (totalTime || 1)).toFixed(1);
-            const finalMessage = `🎉 TURBO COMPLETE! ✅ ${successful}/${records.length} records imported in ${totalTime}s. (Avg: ${avgRate} rec/s)`;
+            const avgRate = (successfulCount / (totalTime || 1)).toFixed(1);
             
-            showStatus(failed > 0 ? 'error' : 'success', finalMessage);
-
-            if (failed > 0) {
-                 setTimeout(() => {
-                    showStatus('error', `${finalMessage} | ⚠️ ${failed} records failed. Check Console for details.`)
-                }, 1000);
+            if (failedBatches.length > 0) {
+                const errorMessage = `🎉 HOÀN THÀNH VỚI LỖI! ✅ ${successfulCount}/${records.length} dòng đã import trong ${totalTime} giây. ⚠️ ${failedBatches.length} lô lỗi.`;
+                showStatus('error', errorMessage);
+                console.error('Các lỗi chi tiết:', failedBatches);
+            } else {
+                const successMessage = `🎉 TURBO HOÀN THÀNH! ✅ ${successfulCount}/${records.length} dòng đã import trong ${totalTime} giây. (Trung bình: ${avgRate} dòng/giây)`;
+                showStatus('success', successMessage);
             }
             
-            setTimeout(() => { if (successful > 0) resetForm(); }, 8000);
+            setTimeout(() => { if (successfulCount > 0) resetForm(); }, 8000);
         }
         
         function resetForm() {
             fileInput.value = '';
             fileInfo.style.display = 'none';
             previewSection.style.display = 'none';
-            rawExcelData = null;
             processedRecords = null;
             importBtn.disabled = true;
+            statusSection.style.display = 'none';
         }
     </script>
 </body>
