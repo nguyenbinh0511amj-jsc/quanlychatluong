@@ -983,6 +983,7 @@
                    <p><i style="font-weight: bold;" id="note5"></i></p>
                    <p style="font-weight: bold;" id="note6"></p>
                    <p style="font-weight: bold;" id="note7"></p>
+                   <p style="font-weight: bold;" id="note8"></p>
                </div>
            `;
 
@@ -1006,6 +1007,7 @@
             const sp_de_bien_dang = productData.sp_de_bien_dang || '';
             const mail_xn_bv = productData.mail_xn_bv || '';
             const gc_bang_tay = productData.gc_bang_tay || '';
+            const sp_dong_dang = productData.sp_dong_dang || '';
 
             // Note 1
             let note1 = '';
@@ -1085,6 +1087,13 @@
                 note7 = "XLBM: phải hoàn thiện đánh bóng trước khi xuất hàng => XN thực hiện:";
             }
             formElement.querySelector('#note7').textContent = note7;
+
+            // Note 8
+            let note8 = '';
+            if (sp_dong_dang === "DD") {
+                note8 = "GÓI: phải kiểm soát SẢN PHẨM ĐỒNG DẠNG trước khi gói hàng => XN thực hiện:";
+            }
+            formElement.querySelector('#note8').textContent = note8;
         }
 
         // Tối ưu hóa in phiếu
