@@ -195,7 +195,7 @@
         }
 
         /**
-         * Chuyển đổi mảng JSON thành file XLSX và kích hoạt tải xuống (Sử dụng SheetJS)
+         * Chuyển đổi mảng JSON thành file XLSX với định dạng cột (Sử dụng SheetJS)
          */
         function convertToXLSX(jsonData, headers, sheetName) {
             
@@ -209,11 +209,74 @@
             });
 
             const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+            
+            // Định dạng cột
+            const colWidth = {};
+            headers.forEach((header, index) => {
+                const colLetter = XLSX.utils.encode_col(index);
+                
+                // Định dạng cột sll kiểu số (không có thập phân)
+                if (header === 'sll') {
+                    for (let i = 2; i <= jsonData.length + 1; i++) {
+                        const cellRef = colLetter + i;
+                        if (ws[cellRef]) {
+                            ws[cellRef].t = 'n'; // Loại số
+                            ws[cellRef].z = '0'; // Định dạng số nguyên
+                        }
+                    }
+                    colWidth[colLetter] = 12;
+                }
+                
+                // Định dạng cột ngay_dong_goi kiểu dd/mm/yyyy
+                if (header === 'ngay_dong_goi') {
+                    for (let i = 2; i <= jsonData.length + 1; i++) {
+                        const cellRef = colLetter + i;
+                        if (ws[cellRef] && ws[cellRef].v) {
+                            const dateValue = ws[cellRef].v;
+                            // Chuyển đổi ngày sang định dạng dd/mm/yyyy
+                            const formattedDate = formatDateToDDMMYYYY(dateValue);
+                            ws[cellRef].v = formattedDate;
+                            ws[cellRef].z = 'dd/mm/yyyy'; // Định dạng ngày
+                        }
+                    }
+                    colWidth[colLetter] = 14;
+                }
+            });
+            
+            // Áp dụng độ rộng cột
+            ws['!cols'] = Object.entries(colWidth).map(([col, width]) => ({
+                wch: width
+            }));
+
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, sheetName);
             
             // Ghi file và kích hoạt tải xuống
             XLSX.writeFile(wb, "du_lieu_nhap_kho.xlsx");
+        }
+
+        /**
+         * Chuyển đổi ngày sang định dạng dd/mm/yyyy
+         */
+        function formatDateToDDMMYYYY(dateString) {
+            if (!dateString) return '';
+            
+            // Nếu là ISO format (YYYY-MM-DD)
+            if (dateString.includes('-')) {
+                const [year, month, day] = dateString.split('-');
+                return `${day}/${month}/${year}`;
+            }
+            
+            // Nếu là dạng khác, cố gắng parse
+            const date = new Date(dateString);
+            if (!isNaN(date.getTime())) {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                return `${day}/${month}/${year}`;
+            }
+            
+            return dateString;
         }
     </script>
 </body>
