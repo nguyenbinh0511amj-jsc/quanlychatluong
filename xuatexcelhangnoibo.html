@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Xuất Dữ Liệu AppSheet sang Excel (Có Lọc Ngày & Giao Diện)</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script> 
+    <style>
+        /* CSS cho Giao Diện */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .date-input-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .date-input-item {
+            display: flex;
+            flex-direction: column;
+            width: 48%; /* Chia đôi màn hình cho 2 trường ngày */
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input[type="date"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745; /* Màu xanh lá cây cho nút hành động */
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        #message {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #e9f7ff;
+            border: 1px solid #cce5ff;
+            color: #004085;
+            border-radius: 4px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Xuất Dữ Liệu Nhập Kho (XLSX)</h2>
+        
+        <div class="date-input-group">
+            <div class="date-input-item">
+                <label for="startDate">📅 Từ Ngày:</label>
+                <input type="date" id="startDate">
+            </div>
+            
+            <div class="date-input-item">
+                <label for="endDate">📅 Đến Ngày:</label>
+                <input type="date" id="endDate">
+            </div>
+        </div>
+
+        <button onclick="xuatDuLieuExcel()">Tải Dữ Liệu sang XLSX</button>
+        <p id="message"></p>
+    </div>
+
+    <script>
+        // THAY THẾ CÁC GIÁ TRỊ CỦA BẠN VÀO ĐÂY
+        const APP_ID = 'e1339939-5987-4d7a-8c73-436348abf6b7';
+        const ACCESS_KEY = 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL';
+        const TABLE_NAME = 'nhap_kho_hang_NB';
+        const DATE_COLUMN = 'ngay_dong_goi'; // Cột để lọc theo ngày
+
+        const API_ENDPOINT = `https://api.appsheet.com/api/v2/apps/${APP_ID}/tables/${TABLE_NAME}/Action`;
+
+        // Các trường (Headers) bạn muốn xuất ra Excel
+        const COLUMNS = [
+            'so_dh', 'order_kd', 'order_phoi', 'order_vat_lieu',
+            'ten_chi_tiet', 'dvt', 'sll', DATE_COLUMN, 
+            'trang_thai', 'Code', 'ho_va_ten'
+        ];
+        
+        const messageElement = document.getElementById('message');
+
+        async function xuatDuLieuExcel() {
+            messageElement.textContent = 'Đang tải dữ liệu từ AppSheet... Vui lòng chờ.';
+            messageElement.style.backgroundColor = '#fff3cd'; // Màu vàng nhạt khi đang xử lý
+            messageElement.style.color = '#856404';
+
+            // 1. Lấy giá trị ngày từ input
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert("Vui lòng chọn cả 'Từ Ngày' và 'Đến Ngày'.");
+                messageElement.textContent = 'Vui lòng chọn cả "Từ Ngày" và "Đến Ngày".';
+                messageElement.style.backgroundColor = '#f8d7da';
+                messageElement.style.color = '#721c24';
+                return;
+            }
+
+            // 2. Xây dựng công thức lọc (Selector) của AppSheet
+            const formattedStartDate = startDate.replace(/-/g, '/');
+            const formattedEndDate = endDate.replace(/-/g, '/');
+            
+            // Công thức lọc: [ngay_dong_goi] >= DATE("Ngày Bắt Đầu") VÀ [ngay_dong_goi] <= DATE("Ngày Kết Thúc")
+            const filterFormula = `FILTER(${TABLE_NAME}, AND([${DATE_COLUMN}] >= DATE("${formattedStartDate}"), [${DATE_COLUMN}] <= DATE("${formattedEndDate}")))`;
+
+            // 3. Chuẩn bị yêu cầu API với Selector
+            const requestBody = {
+                "Action": "Find", 
+                "Properties": {
+                    "Locale": "vi-VN",
+                    "Selector": filterFormula 
+                }
+            };
+
+            try {
+                // 4. Gọi AppSheet API
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'ApplicationAccessKey': ACCESS_KEY 
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Lỗi API: ${response.status} - ${response.statusText}`);
+                }
+
+                // 5. Nhận dữ liệu JSON
+                const data = await response.json();
+
+                if (data && data.length > 0) {
+                    // 6. Chuyển đổi JSON sang Worksheet và Workbook
+                    convertToXLSX(data, COLUMNS, 'DuLieuNhapKho');
+                    messageElement.textContent = `✅ Đã tải xuống ${data.length} dòng dữ liệu Excel (.xlsx)!`;
+                    messageElement.style.backgroundColor = '#d4edda'; // Màu xanh lá khi thành công
+                    messageElement.style.color = '#155724';
+                } else {
+                    messageElement.textContent = '⚠️ Không tìm thấy dữ liệu nào khớp với bộ lọc ngày đã chọn.';
+                    messageElement.style.backgroundColor = '#fff3cd'; 
+                    messageElement.style.color = '#856404';
+                    alert("Không tìm thấy dữ liệu nào trong khoảng thời gian này.");
+                }
+
+            } catch (error) {
+                console.error("Đã xảy ra lỗi:", error);
+                messageElement.textContent = '❌ Lỗi khi tải dữ liệu. Vui lòng kiểm tra console hoặc Access Key.';
+                messageElement.style.backgroundColor = '#f8d7da';
+                messageElement.style.color = '#721c24';
+                alert("Lỗi khi tải dữ liệu: " + error.message);
+            }
+        }
+
+        /**
+         * Chuyển đổi mảng JSON thành file XLSX và kích hoạt tải xuống (Sử dụng SheetJS)
+         */
+        function convertToXLSX(jsonData, headers, sheetName) {
+            
+            // Xây dựng mảng dữ liệu với tiêu đề ở dòng đầu tiên
+            const worksheetData = [ headers ];
+
+            // Thêm các dòng dữ liệu, chỉ lấy các trường được định nghĩa trong 'headers'
+            jsonData.forEach(row => {
+                const values = headers.map(header => row[header] === undefined ? '' : row[header]);
+                worksheetData.push(values);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            
+            // Ghi file và kích hoạt tải xuống
+            XLSX.writeFile(wb, "du_lieu_nhap_kho.xlsx");
+        }
+    </script>
+</body>
+</html>
