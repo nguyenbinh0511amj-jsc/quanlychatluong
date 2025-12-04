@@ -518,18 +518,22 @@
             if (type === 'orderKd') {
                 if (text.length <= 10) {
                     fontSize = 10;
-                } else if (text.length <= 15) {
+                } else if (text.length <= 12) {
                     fontSize = 9;
-                } else if (text.length <= 20) {
-                    fontSize = 7;
+                } else if (text.length <= 14) {
+                    fontSize = 8;
                 } else {
                     fontSize = 6;
                 }
             } else {
-                if (text.length < 25) {
+                if (text.length < 13) {
                     fontSize = 14;
-                } else if (text.length < 30) {
-                    fontSize = 9;
+                } else if (text.length < 15) {
+                    fontSize = 13;
+                } else if (text.length < 18) {
+                    fontSize = 12;
+                } else if (text.length < 24) {
+                    fontSize = 10;
                 } else {
                     fontSize = 8;
                 }
