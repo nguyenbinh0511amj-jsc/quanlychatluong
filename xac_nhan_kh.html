@@ -952,6 +952,7 @@
                            <th>Gói</th>
                            <th>Đã gói</th>
                            <th>Thông tin</th>
+                           <th>Đo quang</th>
                        </tr>
                    </thead>
                    <tbody id="table-body">
@@ -1756,6 +1757,7 @@
             <td class="${goiClass}">${item.ton_goi || ''}</td>
             <td class="${daGoiClass}">${item.da_goi || ''}</td>
             <td title="${item['Thông tin'] || ''}">${item['Thông tin'] || ''}</td>
+            <td title="${item['Đo quang'] || ''}">${item['Đo quang'] || ''}</td>
         `;
 
            // Thêm ô có thể chỉnh sửa vào cột "Xác nhận mới"
@@ -2012,7 +2014,8 @@
                { width: 8 },    // V - Ktra
                { width: 8 },    // W - Gói
                { width: 8 },    // X - Đã gói
-               { width: 15 }    // Y - Thông tin
+               { width: 15 },    // Y - Thông tin
+               { width: 15 }    // Z - Đo quang
            ];
 
            // Header (dòng 1) - giống sheet 1
@@ -2020,7 +2023,7 @@
                'STT', 'Order KD', 'Order lệnh phôi', 'Order vật liệu', 'Tên chi tiết',
                'File GC', 'PKY', 'Số lượng', 'Ngày GC KT', 'Thời hạn mới của KH',
                'Tính chất', 'TT ưu tiên', 'Xác nhận cũ', 'Xác nhận mới', 'AMJ xác nhận', 'Trạng thái', 'SX',
-               'XL', 'TAP', 'VIA', 'Rửa', 'Ktra', 'Gói', 'Đã gói', 'Thông tin'
+               'XL', 'TAP', 'VIA', 'Rửa', 'Ktra', 'Gói', 'Đã gói', 'Thông tin', 'Đo quang'
            ]);
 
            // Định dạng cho header giống sheet 1
@@ -2123,7 +2126,8 @@
                { width: 8 },    // V - Ktra
                { width: 8 },    // W - Gói
                { width: 8 },    // X - Đã gói
-               { width: 15 }    // Y - Thông tin
+               { width: 15 },    // Y - Thông tin
+               { width: 15 }    // Z - Đo quang
            ];
 
            // Header (dòng 1)
@@ -2131,7 +2135,7 @@
                'STT', 'Order KD', 'Order lệnh phôi', 'Order vật liệu', 'Tên chi tiết',
                'File GC', 'PKY', 'Số lượng', 'Ngày GC KT', 'Thời hạn mới của KH',
                'Tính chất', 'TT ưu tiên', 'Xác nhận cũ', 'Xác nhận mới', 'AMJ xác nhận', 'Trạng thái', 'SX',
-               'XL', 'TAP', 'VIA', 'Rửa', 'Ktra', 'Gói', 'Đã gói', 'Thông tin'
+               'XL', 'TAP', 'VIA', 'Rửa', 'Ktra', 'Gói', 'Đã gói', 'Thông tin', 'Đo quang'
            ]);
 
            // Định dạng cho header
@@ -2189,7 +2193,8 @@
                    item.ton_kiem_tra || '',
                    item.ton_goi || '',
                    item.da_goi || '',
-                   item['Thông tin'] || ''
+                   item['Thông tin'] || '',
+                   item['Đo quang'] || ''
                ];
 
                const dataRow = worksheet.addRow(rowData);
