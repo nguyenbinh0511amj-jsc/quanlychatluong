@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>In tem A4 ngang (4×5)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    /* =========================
+       PRINT: A4 LANDSCAPE - 4x5
+       ========================= */
+    @media print {
+      @page { size: A4 landscape; margin: 5mm; }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body, html {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+        font-family: "Times New Roman", Times, serif;
+        width: 100%;
+        height: 100%;
+      }
+
+      .no-print { display: none !important; }
+
+      #printRoot {
+        margin: 0;
+        padding: 0;
+      }
+
+      /* 1 trang A4 ngang đúng kích thước vật lý (trừ margin) */
+      .a4-sheet {
+        width: calc(297mm - 10mm); /* Trừ margin 5mm x 2 */
+        height: calc(210mm - 10mm); /* Trừ margin 5mm x 2 */
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: repeat(5, 1fr);
+        gap: 0;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      /* Cell của grid: tạo khoảng cách giữa tem bằng padding */
+      .cell {
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        padding: 0.5mm; /* <-- khoảng cách giữa các tem giống file mẫu */
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      /* Khung tem */
+      table.tem {
+        width: 100%;
+        height: 100%;
+        border: 2px solid #000; /* border dày hơn giống file mẫu */
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-weight: bold;
+      }
+
+      table.tem td {
+        border: 1px solid rgba(179, 176, 176, 0.911);
+        padding: 0.5mm 1mm;
+        font-size: 10px;
+        font-weight: bold;
+        line-height: 1.1;
+        vertical-align: middle;
+
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .title {
+        text-align: center;
+        font-size: 12px;
+        font-weight: bold;
+        letter-spacing: 0.3px;
+      }
+
+      /* 2 cột:
+         C1: label trái
+         C2: value
+      */
+      col.c1 { width: 35%; }
+      col.c2 { width: 65%; }
+
+      .center { text-align: center; }
+      .value { font-weight: bold; }
+
+      /* Ô kích thước: font nhỏ hơn, cho phép xuống dòng */
+      .size-value {
+        font-size: 10px !important;
+        white-space: normal !important;
+        line-height: 1.15 !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        padding: 0.3mm 0.8mm !important;
+      }
+
+      /* QUAN TRỌNG: để "NHÀ CUNG CẤP" không bị cắt */
+      td.label-left {
+        white-space: normal;       /* cho phép xuống dòng */
+        overflow: visible;         /* tránh bị cắt */
+        text-overflow: clip;
+      }
+    }
+
+    /* =========================
+       SCREEN UI
+       ========================= */
+    body { background: #f3f4f6; }
+
+    /* Sticky header styles */
+    .sticky-container {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background-color: #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background-color: white;
+      padding: 1rem;
+    }
+
+    .sticky-pagination {
+      position: sticky;
+      top: 100px;
+      z-index: 30;
+      background-color: white;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    @media screen and (max-width: 768px) {
+      .sticky-pagination {
+        top: 160px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="max-w-6xl mx-auto no-print">
+    <!-- Sticky container -->
+    <div class="sticky-container">
+      <div class="sticky-header">
+        <div class="bg-white rounded-lg shadow p-4 flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
+          <div class="flex flex-col md:flex-row gap-3 md:items-center w-full">
+            <input id="searchInput" class="border rounded px-3 py-2 w-full md:w-96"
+                   placeholder="Tìm theo Số PO / ORDER KD / TÊN CHI TIẾT..." />
+
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-600">Hiển thị</label>
+              <select id="rowsPerPage" class="border rounded px-2 py-2" onchange="changeRowsPerPage()">
+                <option value="50">50</option>
+                <option value="250">250</option>
+                <option value="500">500</option>
+                <option value="-1">Tất cả</option>
+              </select>
+              <span class="text-sm text-gray-600">dòng</span>
+            </div>
+
+            <button onclick="printSelected_A4_4x5()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded w-full md:w-auto">
+              In A4 ngang (4×5)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading" class="text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-4 border-blue-600"></div>
+      <div class="mt-3 text-gray-600">Đang tải dữ liệu...</div>
+    </div>
+
+    <div id="tableWrap" class="hidden mt-4 bg-white rounded-lg shadow overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-center w-12">
+                <input type="checkbox" id="selectAll" onclick="toggleSelectAll()" style="transform: scale(1.3);" />
+              </th>
+              <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">Số PO</th>
+              <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">ORDER KD</th>
+              <th class="px-4 py-3 text-left text-xs uppercase tracking-wider">TÊN CHI TIẾT</th>
+              <th class="px-4 py-3 text-right text-xs uppercase tracking-wider w-24">SLL</th>
+              <th class="px-4 py-3 text-right text-xs uppercase tracking-wider w-28">SL_TEM_GOI</th>
+            </tr>
+          </thead>
+          <tbody id="tbody" class="divide-y divide-gray-200"></tbody>
+        </table>
+      </div>
+
+      <div class="p-3 border-t flex items-center justify-center gap-2">
+        <button class="border rounded px-3 py-1" onclick="goTo('first')" id="btnFirst">««</button>
+        <button class="border rounded px-3 py-1" onclick="goTo('prev')" id="btnPrev">«</button>
+        <div id="pages" class="flex gap-1"></div>
+        <button class="border rounded px-3 py-1" onclick="goTo('next')" id="btnNext">»</button>
+        <button class="border rounded px-3 py-1" onclick="goTo('last')" id="btnLast">»»</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- vùng in -->
+  <div id="printRoot" class="hidden"></div>
+
+  <script>
+    // ====== CONFIG APPSHEET ======
+    const appId = 'e1339939-5987-4d7a-8c73-436348abf6b7';
+    const accessKey = 'V2-WTcys-x7QFl-Z5SzF-zSe7D-qciuV-yaUHk-CDGEe-oSexL';
+    const region = 'www';
+
+    const TABLE_MAIN = 'so_giao_nhan';
+
+    // ====== STATE ======
+    let originalData = [];
+    let filteredData = [];
+
+    let currentPage = 1;
+    let itemsPerPage = 50;
+
+    // ====== UI HELPERS ======
+    function showLoading() {
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('tableWrap').classList.add('hidden');
+    }
+    function hideLoading() {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('tableWrap').classList.remove('hidden');
+    }
+
+    function changeRowsPerPage() {
+      itemsPerPage = parseInt(document.getElementById('rowsPerPage').value, 10);
+      currentPage = 1;
+      render();
+    }
+
+    function toggleSelectAll() {
+      const checked = document.getElementById('selectAll').checked;
+      document.querySelectorAll('.rowCk').forEach(x => x.checked = checked);
+    }
+
+    // ====== PAGINATION ======
+    function totalPages() {
+      if (itemsPerPage === -1) return 1;
+      return Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
+    }
+
+    function goTo(where) {
+      const tp = totalPages();
+      if (where === 'first') currentPage = 1;
+      else if (where === 'prev') currentPage = Math.max(1, currentPage - 1);
+      else if (where === 'next') currentPage = Math.min(tp, currentPage + 1);
+      else if (where === 'last') currentPage = tp;
+      else currentPage = parseInt(where, 10) || 1;
+      render();
+    }
+
+    function renderPagination() {
+      const tp = totalPages();
+      document.getElementById('btnFirst').disabled = currentPage === 1;
+      document.getElementById('btnPrev').disabled = currentPage === 1;
+      document.getElementById('btnNext').disabled = currentPage === tp;
+      document.getElementById('btnLast').disabled = currentPage === tp;
+
+      const pages = document.getElementById('pages');
+      pages.innerHTML = '';
+
+      const max = 5;
+      let start = Math.max(1, currentPage - Math.floor(max/2));
+      let end = Math.min(tp, start + max - 1);
+      start = Math.max(1, end - max + 1);
+
+      for (let i = start; i <= end; i++) {
+        const b = document.createElement('button');
+        b.className = `border rounded px-3 py-1 ${i === currentPage ? 'bg-blue-600 text-white border-blue-600' : ''}`;
+        b.textContent = i;
+        b.onclick = () => goTo(i);
+        pages.appendChild(b);
+      }
+    }
+
+    // ====== FILTER ======
+    function applyFilter() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      filteredData = originalData.filter(x =>
+        (x.so_dh || '').toLowerCase().includes(q) ||
+        (x.order_kd || '').toLowerCase().includes(q) ||
+        (x.ten_chi_tiet || '').toLowerCase().includes(q)
+      );
+      currentPage = 1;
+      render();
+    }
+
+    // ====== RENDER TABLE ======
+    function render() {
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = '';
+
+      let slice = filteredData;
+      if (itemsPerPage !== -1) {
+        const start = (currentPage - 1) * itemsPerPage;
+        slice = filteredData.slice(start, start + itemsPerPage);
+      }
+
+      slice.forEach((row) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-gray-50';
+
+        // data-row: không dùng replaceAll phức tạp; JSON ở đây sạch vì key/value không có dấu '
+        tr.innerHTML = `
+          <td class="px-4 py-3 text-center">
+            <input type="checkbox" class="rowCk" data-row='${JSON.stringify(row)}' style="transform: scale(1.2);" />
+          </td>
+          <td class="px-4 py-3 text-sm text-gray-700">${row.so_dh || ''}</td>
+          <td class="px-4 py-3 text-sm font-medium text-gray-900">${row.order_kd || ''}</td>
+          <td class="px-4 py-3 text-sm text-gray-700">${row.ten_chi_tiet || ''}</td>
+          <td class="px-4 py-3 text-sm text-gray-700 text-right">${row.sll || '0'}</td>
+          <td class="px-4 py-3 text-sm text-gray-700 text-right">${row.sl_tem_goi ?? ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      renderPagination();
+    }
+
+    // ====== APPSHEET FETCH ======
+    function fetchTable(tableName) {
+      const apiUrl = `https://${region}.appsheet.com/api/v2/apps/${appId}/tables/${tableName}/Action`;
+      return fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'ApplicationAccessKey': accessKey,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          Action: 'Find',
+          Properties: { Locale: 'vi-VN', Timezone: 'Asia/Ho_Chi_Minh' }
+        })
+      }).then(r => r.json());
+    }
+
+    async function loadData() {
+      showLoading();
+      try {
+        const main = await fetchTable(TABLE_MAIN);
+
+        // Lọc chỉ lấy các dòng có so_file chứa "SM"
+        const allData = Array.isArray(main) ? main.slice().reverse() : [];
+        originalData = allData.filter(row => {
+          const soFile = (row.so_file || '').toString().toUpperCase();
+          return soFile.includes('SM');
+        });
+        filteredData = originalData;
+
+        hideLoading();
+        render();
+      } catch (e) {
+        console.error(e);
+        hideLoading();
+        alert('Lỗi tải dữ liệu.');
+      }
+    }
+
+    // ====== PRINT: A4 4x5 = 20 TEM / TRANG ======
+
+    // Hàm tính font-size tự động cho MÃ BẢN VẼ
+    function calculateFontSizeForMaBanVe(text) {
+      const length = (text || '').length;
+
+      // Nếu độ dài <= 18 ký tự, giữ font-size mặc định (10px)
+      if (length <= 30) return '10px';
+
+      // Nếu độ dài > 18, giảm dần font-size
+      if (length <= 31) return '9px';
+      if (length <= 33) return '8px';
+      if (length <= 35) return '7px';
+
+      // Nếu quá dài, giảm xuống 5.5px
+      return '5.5px';
+    }
+
+    function buildLabelHTML(row, stt, quantity) {
+      const soPO = row.so_dh || '';
+      const maQuanLy = row.order_kd || '';
+      const maBanVe = row.ten_chi_tiet || '';
+      const kichThuoc = row.kich_thuoc_sp || row.Kich_thuoc_sp || '';
+
+      const q = parseInt(quantity, 10) || 0;
+      const unit = (q === 1) ? 'PC' : 'PCS';
+      const soLuongText = `${q} ${unit}`;
+
+      const nhaCungCap = 'AMJ';
+
+      // Tính font-size cho MÃ BẢN VẼ
+      const maBanVeFontSize = calculateFontSizeForMaBanVe(maBanVe);
+
+      // <td class="center value">${String(stt).padStart(2,'0')}</td> thay cột STT nếu muốn tự động
+
+      return `
+        <div class="cell">
+          <table class="tem">
+            <colgroup>
+              <col class="c1"><col class="c2">
+            </colgroup>
+
+            <tr>
+              <td class="title" colspan="2">TEM SẢN PHẨM</td>
+            </tr>
+
+            <tr>
+              <td class="label-left">Số PO</td>
+              <td class="center value">${soPO}</td>
+            </tr>
+
+            <tr>
+              <td class="label-left">MÃ QUẢN LÝ</td>
+              <td class="center value">${maQuanLy}</td>
+            </tr>
+
+            <tr>
+              <td class="label-left">MÃ BẢN VẼ</td>
+              <td class="center value" style="font-size: ${maBanVeFontSize} !important; overflow: visible !important; white-space: nowrap !important; text-overflow: clip !important;">${maBanVe}</td>
+            </tr>
+
+            <tr>
+              <td class="label-left">KÍCH THƯỚC</td>
+              <td class="center value size-value">${kichThuoc}</td>
+            </tr>
+
+            <tr>
+              <td class="label-left">SỐ LƯỢNG</td>
+              <td class="center value">${soLuongText}</td>
+            </tr>
+
+            <tr>
+              <td class="label-left">NHÀ CUNG CẤP</td>
+              <td class="center value">${nhaCungCap}</td>
+            </tr>
+          </table>
+        </div>
+      `;
+    }
+
+    function printSelected_A4_4x5() {
+      const selected = Array.from(document.querySelectorAll('.rowCk:checked'))
+        .map(x => JSON.parse(x.getAttribute('data-row')));
+
+      if (selected.length === 0) {
+        alert('Chọn ít nhất 1 dòng để in.');
+        return;
+      }
+
+      // Nhóm theo order_kd để mỗi order in riêng trang
+      const groupedByOrder = {};
+
+      for (const row of selected) {
+        const orderKey = row.order_kd || 'NO_ORDER';
+        if (!groupedByOrder[orderKey]) {
+          groupedByOrder[orderKey] = [];
+        }
+        groupedByOrder[orderKey].push(row);
+      }
+
+      const printRoot = document.getElementById('printRoot');
+      printRoot.innerHTML = '';
+      printRoot.classList.remove('hidden');
+
+      let globalSTT = 1;
+      const allPages = []; // Lưu tất cả các trang để biết trang nào là cuối cùng
+
+      // Duyệt qua từng order và tạo các trang
+      for (const orderKey in groupedByOrder) {
+        const orderRows = groupedByOrder[orderKey];
+
+        // Expand tem cho order này
+        const labels = [];
+
+        for (const row of orderRows) {
+          const total = parseInt(row.sll, 10) || 0;
+          const pack = (row.sl_tem_goi === 0) ? 0 : (parseInt(row.sl_tem_goi, 10) || 0);
+
+          if (total <= 0) continue;
+          if (pack <= 0) continue;
+
+          const fullCount = Math.floor(total / pack);
+          const remainder = total % pack;
+
+          for (let i = 0; i < fullCount; i++) {
+            labels.push({ row, quantity: pack });
+          }
+          if (remainder > 0) {
+            labels.push({ row, quantity: remainder });
+          }
+        }
+
+        if (labels.length === 0) continue;
+
+        // In tem của order này - mỗi order chiếm đủ số trang cần thiết
+        const PER_PAGE = 20; // 4x5
+
+        for (let i = 0; i < labels.length; i += PER_PAGE) {
+          const pageSlice = labels.slice(i, i + PER_PAGE);
+
+          let pageHTML = `<div class="a4-sheet">`;
+
+          for (let j = 0; j < PER_PAGE; j++) {
+            if (j < pageSlice.length) {
+              const item = pageSlice[j];
+              pageHTML += buildLabelHTML(item.row, globalSTT++, item.quantity);
+            } else {
+              // fill ô trống để grid đủ 20 tem
+              pageHTML += `<div class="cell" style="visibility:hidden;"></div>`;
+            }
+          }
+
+          pageHTML += `</div>`;
+          allPages.push(pageHTML);
+        }
+      }
+
+      // Render các trang, chỉ set pageBreakAfter cho các trang không phải trang cuối
+      allPages.forEach((pageHTML, index) => {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = pageHTML;
+
+        // Chỉ ngắt trang nếu không phải trang cuối cùng
+        if (index < allPages.length - 1) {
+          wrap.firstElementChild.style.pageBreakAfter = 'always';
+        }
+
+        printRoot.appendChild(wrap.firstElementChild);
+      });
+
+      setTimeout(() => {
+        window.print();
+        printRoot.classList.add('hidden');
+        printRoot.innerHTML = '';
+      }, 50);
+    }
+
+    // debounce filter
+    let t;
+    document.getElementById('searchInput').addEventListener('input', () => {
+      clearTimeout(t);
+      t = setTimeout(applyFilter, 250);
+    });
+
+    document.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
