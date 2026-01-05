@@ -400,7 +400,23 @@
       const soPO = row.so_dh || '';
       const maQuanLy = row.order_kd || '';
       const maBanVe = row.ten_chi_tiet || '';
-      const kichThuoc = row.kich_thuoc_sp || row.Kich_thuoc_sp || '';
+      const mqUpper = String(maQuanLy || '').toUpperCase().trim();
+
+      // Helper: find first non-empty field from a list of candidate keys (case-sensitive check)
+      function firstField(r, candidates) {
+        for (const k of candidates) {
+          if (r[k] != null) {
+            const v = String(r[k]).trim();
+            if (v !== '') return v;
+          }
+        }
+        return '';
+      }
+
+      // If MA QUAN LY contains '-T', prefer XLBM (any common casing), fallback to existing size fields.
+      const kichThuoc = mqUpper.includes('-T')
+        ? firstField(row, ['xlbm', 'XLBM', 'XlBM', 'Xlbm', 'kich_thuoc_sp', 'Kich_thuoc_sp', 'KICH_THUOC_SP'])
+        : firstField(row, ['kich_thuoc_sp', 'Kich_thuoc_sp', 'KICH_THUOC_SP', 'xlbm', 'XLBM']);
 
       const q = parseInt(quantity, 10) || 0;
       const unit = (q === 1) ? 'PC' : 'PCS';
