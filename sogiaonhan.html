@@ -556,8 +556,9 @@
                     style="width:100%; margin-bottom: 0;">
                     <thead>
                         <tr>
-                            <th width="10%"><input type="checkbox" id="selectAll"></th>
-                            <th width="15%">File bản vẽ</th>
+                            <th width="5%"></th>
+                            <th width="8%"><input type="checkbox" id="selectAll"></th>
+                            <th width="12%">File bản vẽ</th>
                             <th width="10%">STT</th>
                             <th width="25%">Order KD</th>
                             <th width="25%">Tên chi tiết</th>
@@ -614,6 +615,7 @@
         let allOrderData = [];
         let dataTable;
         const productCache = {}; // Cache cho dữ liệu sản phẩm
+        const quang3DCache = {}; // Cache cho dữ liệu đo 3D quang
 
         // Fetch dữ liệu đơn hàng
         async function fetchBatchedOrders() {
@@ -680,8 +682,20 @@
             data.forEach((item, index) => {
                 const row = tableBody.insertRow();
 
+                // Nút In nhanh
+                const cellQuickPrint = row.insertCell(0);
+                const printBtn = document.createElement('button');
+                printBtn.textContent = '🖨️';
+                printBtn.title = 'In nhanh';
+                printBtn.style.cssText = 'border:none; background:none; cursor:pointer; font-size:18px; padding:2px 6px;';
+                printBtn.setAttribute('data-order', item.order_kd);
+                printBtn.addEventListener('click', function() {
+                    quickPrint(this.getAttribute('data-order'));
+                });
+                cellQuickPrint.appendChild(printBtn);
+
                 // Checkbox
-                const cellCheckbox = row.insertCell(0);
+                const cellCheckbox = row.insertCell(1);
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.className = 'row-checkbox';
@@ -689,7 +703,7 @@
                 cellCheckbox.appendChild(checkbox);
 
                 // THAY ĐỔI: Lấy file_ban_ve từ dữ liệu sản phẩm
-                const cellTinhChat = row.insertCell(1);
+                const cellTinhChat = row.insertCell(2);
                 const productData = productCache[item.ten_chi_tiet];
                 if (productData && productData.file_ban_ve) {
                     const fileLink = document.createElement('a');
@@ -709,20 +723,20 @@
                 }
 
                 // STT - Đánh số từ 1 trở đi
-                const cellSTT = row.insertCell(2);
+                const cellSTT = row.insertCell(3);
                 cellSTT.textContent = index + 1;
 
                 // Các cột khác như trước đây...
-                const cellOrder = row.insertCell(3);
+                const cellOrder = row.insertCell(4);
                 cellOrder.textContent = item.order_kd;
 
-                const cellTenChiTiet = row.insertCell(4);
+                const cellTenChiTiet = row.insertCell(5);
                 cellTenChiTiet.textContent = item.ten_chi_tiet;
 
-                const cellSoLuong = row.insertCell(5);
+                const cellSoLuong = row.insertCell(6);
                 cellSoLuong.textContent = item.sll;
 
-                
+
             });
 
             // Hủy DataTable cũ nếu đã tồn tại
@@ -743,6 +757,13 @@
                 data: data,
                 dom: '<"top"lf>rt<"bottom"ip>', // Thêm 'f' để giữ chức năng tìm kiếm
                 columns: [
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            return '<button onclick="quickPrint(\'' + row.order_kd + '\')" title="In nhanh" style="border:none; background:none; cursor:pointer; font-size:18px; padding:2px 6px;">🖨️</button>';
+                        }
+                    },
                     {
                         data: null,
                         render: function (data, type, row) {
@@ -771,7 +792,7 @@
                     { data: 'order_kd' },
                     { data: 'ten_chi_tiet' },
                     { data: 'sll' }
-                    
+
                 ],
                 headerCallback: function (thead, data, start, end, display) {
                     $(thead).closest('thead').hide(); // Ẩn hoàn toàn thead
@@ -984,13 +1005,12 @@
                    <p style="font-weight: bold;" id="note6"></p>
                    <p style="font-weight: bold;" id="note7"></p>
                    <p style="font-weight: bold;" id="note8"></p>
+                   <p style="font-weight: bold;" id="note9"></p>
                </div>
            `;
 
-            // Xử lý các ghi chú sau khi tạo form
-            if (productData) {
-                processNotes(form, productData, orderData);
-            }
+            // Xử lý các ghi chú sau khi tạo form (luôn gọi để kiểm tra 3D quang)
+            processNotes(form, productData, orderData);
 
             return form;
         }
@@ -1001,13 +1021,13 @@
             const so_file = orderData.so_file || '';
             const order_kd = orderData.order_kd || '';
 
-            // Sử dụng dữ liệu từ sản phẩm
-            const vat_lieu = productData.vat_lieu || '';
-            const mat_ngoai = productData.mat_ngoai || '';
-            const sp_de_bien_dang = productData.sp_de_bien_dang || '';
-            const mail_xn_bv = productData.mail_xn_bv || '';
-            const gc_bang_tay = productData.gc_bang_tay || '';
-            const sp_dong_dang = productData.sp_dong_dang || '';
+            // Sử dụng dữ liệu từ sản phẩm (có thể null)
+            const vat_lieu = productData?.vat_lieu || '';
+            const mat_ngoai = productData?.mat_ngoai || '';
+            const sp_de_bien_dang = productData?.sp_de_bien_dang || '';
+            const mail_xn_bv = productData?.mail_xn_bv || '';
+            const gc_bang_tay = productData?.gc_bang_tay || '';
+            const sp_dong_dang = productData?.sp_dong_dang || '';
 
             // Note 1
             let note1 = '';
@@ -1094,6 +1114,89 @@
                 note8 = "GÓI: phải kiểm soát SẢN PHẨM ĐỒNG DẠNG trước khi gói hàng => XN thực hiện:";
             }
             formElement.querySelector('#note8').textContent = note8;
+
+            // Note 9 - Kiểm tra chương trình đo máy 3D quang
+            let note9 = '';
+            if (quang3DCache[ten_chi_tiet]) {
+                note9 = 'KTRA: Chi tiết đã có chương trình đo máy 3D quang => XN thực hiện:';
+            }
+            formElement.querySelector('#note9').textContent = note9;
+        }
+
+        // In nhanh 1 phiếu theo order_kd
+        async function quickPrint(orderId) {
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('loadingIndicator').textContent = 'Đang chuẩn bị in nhanh...';
+            const printArea = document.getElementById('printArea');
+            printArea.innerHTML = '';
+            try {
+                const orderData = allOrderData.find(item => item.order_kd === orderId);
+                if (!orderData) {
+                    alert('Không tìm thấy dữ liệu cho order: ' + orderId);
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    return;
+                }
+                if (orderData.ten_chi_tiet && !productCache[orderData.ten_chi_tiet]) {
+                    const pd = await fetchProductData(orderData.ten_chi_tiet);
+                    if (pd) productCache[orderData.ten_chi_tiet] = pd;
+                }
+                if (orderData.ten_chi_tiet && !quang3DCache.hasOwnProperty(orderData.ten_chi_tiet)) {
+                    await check3DQuang(orderData.ten_chi_tiet);
+                }
+                const productData = productCache[orderData.ten_chi_tiet] || null;
+                const formElement = createForm(orderData, productData);
+                printArea.appendChild(formElement);
+                const qrContainer = formElement.querySelector('.qr-code');
+                if (qrContainer) {
+                    new QRCode(qrContainer, { text: orderData.order_kd, width: 150, height: 150, correctLevel: QRCode.CorrectLevel.H });
+                }
+                document.getElementById('loadingIndicator').style.display = 'none';
+                setTimeout(() => {
+                    window.print();
+                    setTimeout(() => { printArea.innerHTML = ''; }, 500);
+                }, 500);
+            } catch (error) {
+                console.error('Lỗi in nhanh:', error);
+                document.getElementById('loadingIndicator').style.display = 'none';
+                alert('Lỗi in nhanh: ' + error.message);
+                printArea.innerHTML = '';
+            }
+        }
+
+        // Hàm kiểm tra ten_chi_tiet có trong bảng thoi_gian_do_ga_lap_3d_quang không
+        async function check3DQuang(tenChiTiet) {
+            if (quang3DCache.hasOwnProperty(tenChiTiet)) {
+                return quang3DCache[tenChiTiet];
+            }
+            try {
+                const response = await fetch(`https://${region}.appsheet.com/api/v2/apps/${appId}/tables/thoi_gian_do_ga_lap_3d_quang/Action`, {
+                    method: 'POST',
+                    headers: {
+                        'ApplicationAccessKey': accessKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        Action: 'Find',
+                        Properties: {},
+                        Selector: `[ten_chi_tiet] = "${tenChiTiet}"`
+                    })
+                });
+                if (!response.ok) {
+                    quang3DCache[tenChiTiet] = null;
+                    return null;
+                }
+                const data = await response.json();
+                if (!Array.isArray(data) || data.length === 0) {
+                    quang3DCache[tenChiTiet] = null;
+                    return null;
+                }
+                quang3DCache[tenChiTiet] = data[0];
+                return data[0];
+            } catch (error) {
+                console.error('3D Quang - Lỗi:', tenChiTiet, error);
+                quang3DCache[tenChiTiet] = null;
+                return null;
+            }
         }
 
         // Tối ưu hóa in phiếu
@@ -1139,6 +1242,13 @@
                             productCache[tenChiTiet] = productData;
                         }
                     }
+                }
+
+                // Kiểm tra 3D quang cho các chi tiết được chọn
+                const missing3D = tenChiTiets.filter(t => !quang3DCache.hasOwnProperty(t));
+                if (missing3D.length > 0) {
+                    document.getElementById('loadingIndicator').textContent = 'Đang kiểm tra chương trình đo 3D quang...';
+                    await Promise.all(missing3D.map(t => check3DQuang(t)));
                 }
 
                 // Tiếp tục xử lý in phiếu như trước
