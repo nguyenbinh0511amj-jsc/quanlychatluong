@@ -556,8 +556,8 @@
                     style="width:100%; margin-bottom: 0;">
                     <thead>
                         <tr>
-                            <th width="5%"></th>
-                            <th width="8%"><input type="checkbox" id="selectAll"></th>
+                            <th width="5%" style="text-align:center"></th>
+                            <th width="8%" style="text-align:center"><input type="checkbox" id="selectAll"></th>
                             <th width="12%">File bản vẽ</th>
                             <th width="10%">STT</th>
                             <th width="25%">Order KD</th>
@@ -684,18 +684,20 @@
 
                 // Nút In nhanh
                 const cellQuickPrint = row.insertCell(0);
+                cellQuickPrint.style.textAlign = 'center';
                 const printBtn = document.createElement('button');
                 printBtn.textContent = '🖨️';
                 printBtn.title = 'In nhanh';
-                printBtn.style.cssText = 'border:none; background:none; cursor:pointer; font-size:18px; padding:2px 6px;';
+                printBtn.style.cssText = 'border:none; background:none; cursor:pointer; font-size:18px; padding:0;';
                 printBtn.setAttribute('data-order', item.order_kd);
-                printBtn.addEventListener('click', function() {
+                printBtn.addEventListener('click', function () {
                     quickPrint(this.getAttribute('data-order'));
                 });
                 cellQuickPrint.appendChild(printBtn);
 
                 // Checkbox
                 const cellCheckbox = row.insertCell(1);
+                cellCheckbox.style.textAlign = 'center';
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.className = 'row-checkbox';
@@ -1190,8 +1192,16 @@
                     quang3DCache[tenChiTiet] = null;
                     return null;
                 }
-                quang3DCache[tenChiTiet] = data[0];
-                return data[0];
+                // Kiểm tra khớp chính xác ten_chi_tiet (API có thể trả về kết quả không chính xác)
+                const exactMatch = data.find(item => item.ten_chi_tiet === tenChiTiet);
+                if (!exactMatch) {
+                    console.warn('3D Quang - Không khớp chính xác:', tenChiTiet, 
+                        '| API trả về:', data.map(d => d.ten_chi_tiet));
+                    quang3DCache[tenChiTiet] = null;
+                    return null;
+                }
+                quang3DCache[tenChiTiet] = exactMatch;
+                return exactMatch;
             } catch (error) {
                 console.error('3D Quang - Lỗi:', tenChiTiet, error);
                 quang3DCache[tenChiTiet] = null;
