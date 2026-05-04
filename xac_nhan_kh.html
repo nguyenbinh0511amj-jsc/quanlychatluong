@@ -609,6 +609,16 @@
             font-weight: bold !important;
         }
 
+        .do-quang-chua {
+            color: #dc2626 !important;
+            font-weight: bold !important;
+        }
+
+        .do-quang-da {
+            color: #16a34a !important;
+            font-weight: bold !important;
+        }
+
         .tap-via-rua-ktra-goi-nonzero {
             color: #16a34a !important;
             font-weight: bold !important;
@@ -954,11 +964,12 @@
                            <th>Thông tin</th>
                            <th>Đo quang</th>
                            <th>CT đo quang</th>
+                           <th>CT CMM</th>
                        </tr>
                    </thead>
                    <tbody id="table-body">
                        <tr>
-                           <td colspan="29" class="text-center p-8">
+                           <td colspan="30" class="text-center p-8">
                                <div class="loading"></div>
                                <div class="mt-2">Đang tải...</div>
                            </td>
@@ -1258,7 +1269,7 @@
            if (loading) {
                tbody.innerHTML = `
               <tr>
-                  <td colspan="29" class="text-center p-8">
+                  <td colspan="30" class="text-center p-8">
                       <div class="loading"></div>
                       <div class="mt-2">Đang tải...</div>
                   </td>
@@ -1271,7 +1282,7 @@
            const tbody = document.getElementById('table-body');
            tbody.innerHTML = `
          <tr>
-             <td colspan="29" class="text-center p-8 text-red-500">
+             <td colspan="31" class="text-center p-8 text-red-500">
                  <i class="fas fa-exclamation-triangle mr-2"></i>${message}
              </td>
          </tr>
@@ -1682,7 +1693,7 @@
            const pageData = filteredData.slice(startIndex, endIndex);
 
            if (pageData.length === 0) {
-               tbody.innerHTML = '<tr><td colspan="29" class="text-center p-8">Không có dữ liệu</td></tr>';
+               tbody.innerHTML = '<tr><td colspan="31" class="text-center p-8">Không có dữ liệu</td></tr>';
                updatePaginationInfo(0, 0, 0);
                return;
            }
@@ -1758,8 +1769,9 @@
             <td class="${goiClass}">${item.ton_goi || ''}</td>
             <td class="${daGoiClass}">${item.da_goi || ''}</td>
             <td title="${item['Thông tin'] || ''}">${item['Thông tin'] || ''}</td>
-            <td title="${item['Đo quang'] || ''}">${item['Đo quang'] || ''}</td>
-            <td title="${item['Chương trình đo quang'] || ''}">${item['Chương trình đo quang'] || ''}</td>
+            <td title="${item['Đo quang'] || ''}" class="${(item['Đo quang'] || '').toLowerCase().includes('chưa') ? 'do-quang-chua' : (item['Đo quang'] || '').toLowerCase().includes('đã') ? 'do-quang-da' : ''}">${item['Đo quang'] || ''}</td>
+            <td title="${item['Chương trình đo quang'] || ''}" class="${(item['Chương trình đo quang'] || '').toLowerCase().includes('chưa') ? 'do-quang-chua' : (item['Chương trình đo quang'] || '').toLowerCase().includes('đã') ? 'do-quang-da' : ''}">${item['Chương trình đo quang'] || ''}</td>
+            <td title="${item['Chương trình CMM'] || ''}" class="${(item['Chương trình CMM'] || '').toLowerCase().includes('chưa') ? 'do-quang-chua' : (item['Chương trình CMM'] || '').toLowerCase().includes('đã') ? 'do-quang-da' : ''}">${item['Chương trình CMM'] || ''}</td>
         `;
 
            // Thêm ô có thể chỉnh sửa vào cột "Xác nhận mới"
@@ -1986,7 +1998,7 @@
                    header: 0.3,
                    footer: 0.3
                },
-               printArea: 'A1:AA1000',
+               printArea: 'A1:AB1000',
                scale: 100
            };
 
@@ -2018,7 +2030,8 @@
                { width: 8 },    // X - Đã gói
                { width: 15 },   // Y - Thông tin
                { width: 15 },   // Z - Đo quang
-               { width: 15 }    // AA - Chương trình đo quang
+               { width: 15 },   // AA - Chương trình đo quang
+               { width: 15 }    // AB - Chương trình CMM
            ];
 
            // Header (dòng 1) - giống sheet 1
@@ -2026,7 +2039,7 @@
                'STT', 'Order KD', 'Order lệnh phôi', 'Order vật liệu', 'Tên chi tiết',
                'File GC', 'PKY', 'Số lượng', 'Ngày GC KT', 'Thời hạn mới của KH',
                'Tính chất', 'TT ưu tiên', 'Xác nhận cũ', 'Xác nhận mới', 'AMJ xác nhận', 'Trạng thái', 'SX',
-               'XL', 'TAP', 'VIA', 'Rửa', 'Ktra', 'Gói', 'Đã gói', 'Thông tin', 'Đo quang', 'Chương trình đo quang'
+               'XL', 'TAP', 'VIA', 'Rửa', 'Ktra', 'Gói', 'Đã gói', 'Thông tin', 'Đo quang', 'Chương trình đo quang', 'Chương trình CMM'
            ]);
 
            // Định dạng cho header giống sheet 1
@@ -2060,7 +2073,7 @@
            // Thêm một số dòng trống có border để người dùng có thể nhập dữ liệu
            for (let i = 0; i < 50; i++) {
                const emptyRow = worksheet.addRow([
-                   '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
+                   '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
                ]);
 
                emptyRow.eachCell((cell) => {
@@ -2099,7 +2112,7 @@
                    header: 0.3,
                    footer: 0.3
                },
-               printArea: 'A1:AA1000',
+               printArea: 'A1:AB1000',
                scale: 100
            };
 
@@ -2131,7 +2144,8 @@
                { width: 8 },    // X - Đã gói
                { width: 15 },   // Y - Thông tin
                { width: 15 },   // Z - Đo quang
-               { width: 15 }    // AA - Chương trình đo quang
+               { width: 15 },   // AA - Chương trình đo quang
+               { width: 15 }    // AB - Chương trình CMM
            ];
 
            // Header (dòng 1)
@@ -2139,7 +2153,7 @@
                'STT', 'Order KD', 'Order lệnh phôi', 'Order vật liệu', 'Tên chi tiết',
                'File GC', 'PKY', 'Số lượng', 'Ngày GC KT', 'Thời hạn mới của KH',
                'Tính chất', 'TT ưu tiên', 'Xác nhận cũ', 'Xác nhận mới', 'AMJ xác nhận', 'Trạng thái', 'SX',
-               'XL', 'TAP', 'VIA', 'Rửa', 'Ktra', 'Gói', 'Đã gói', 'Thông tin', 'Đo quang', 'Chương trình đo quang'
+               'XL', 'TAP', 'VIA', 'Rửa', 'Ktra', 'Gói', 'Đã gói', 'Thông tin', 'Đo quang', 'Chương trình đo quang', 'Chương trình CMM'
            ]);
 
            // Định dạng cho header
@@ -2199,7 +2213,8 @@
                    item.da_goi || '',
                    item['Thông tin'] || '',
                    item['Đo quang'] || '',
-                   item['Chương trình đo quang'] || ''
+                   item['Chương trình đo quang'] || '',
+                   item['Chương trình CMM'] || ''
                ];
 
                const dataRow = worksheet.addRow(rowData);
@@ -2258,6 +2273,16 @@
                    } else if (colNumber === 14) { // Xác nhận mới
                        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA726' } };
                    }
+                    
+                    // Màu chữ cho cột Đo quang (26), CT đo quang (27), và CT CMM (28)
+                    if (colNumber === 26 || colNumber === 27 || colNumber === 28) {
+                        const val = (cellValue || '').toString().toLowerCase();
+                        if (val.includes('chưa')) {
+                            cell.font = { name: 'Times New Roman', size: 9, bold: true, color: { argb: 'FFDC2626' } };
+                        } else if (val.includes('đã')) {
+                            cell.font = { name: 'Times New Roman', size: 9, bold: true, color: { argb: 'FF16A34A' } };
+                        }
+                    }
 
                    // Áp dụng định dạng số
                    if (numFmt) {
