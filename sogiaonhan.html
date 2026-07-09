@@ -360,8 +360,8 @@
         }
 
         .table-content {
-            margin-top: 150px;
-            /* Điều chỉnh theo chiều cao thực tế của header */
+            margin-top: 250px;
+            /* Điều chỉnh theo chiều cao thực tế của header - sẽ được JS tự động tính lại */
         }
 
         #headerTable {
@@ -543,6 +543,110 @@
         .fixed-header .table-header {
             margin-top: 15px;
         }
+
+        /* Multi-search bar styles */
+        .multi-search-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .multi-search-container label {
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        #multiSearchInput {
+            flex: 1;
+            min-width: 300px;
+            padding: 8px 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            outline: none;
+        }
+
+        #multiSearchInput:focus {
+            border-color: #6e8efb;
+            box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.15);
+        }
+
+        #autoCheckBtn {
+            background: linear-gradient(45deg, #6e8efb, #a777e3);
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        #autoCheckBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(110, 142, 251, 0.3);
+        }
+
+        #clearSearchBtn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        #clearSearchBtn:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+        }
+
+        .search-result-info {
+            font-size: 13px;
+            color: #888;
+            margin-left: 5px;
+        }
+
+        /* Highlight matching rows */
+        #dataTable tbody tr.search-highlight {
+            background-color: rgba(110, 142, 251, 0.1) !important;
+        }
+
+        /* Action bar: In phiếu + Hiển thị dữ liệu cùng hàng */
+        .action-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .action-bar .dataTables_length {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .action-bar .dataTables_length label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            font-weight: normal;
+        }
+
+        .action-bar .dataTables_length select {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
     </style>
 </head>
 
@@ -552,7 +656,21 @@
             <h1 class="text-center my-2"><Strong>DANH SÁCH PHIẾU THEO DÕI SẢN PHẨM</Strong></h1>
             <div id="loadingIndicator" class="loading">Đang tải dữ liệu...</div>
             <div id="errorMessage" class="error"></div>
-            <button id="printSelectedBtn" class="btn btn-success mb-1" style="display: none;">In phiếu</button>
+
+            <!-- Multi-search bar -->
+            <div class="multi-search-container" id="multiSearchSection" style="display: none;">
+                <label for="multiSearchInput">🔍 Tìm kiếm:</label>
+                <input type="text" id="multiSearchInput"
+                    placeholder="Nhập nhiều Order KD cách nhau bằng dấu phẩy, ví dụ: KD001, KD002, KD003">
+                <button id="autoCheckBtn" title="Tích checkbox tất cả kết quả tìm được">✅ Tích tất cả kết quả</button>
+                <button id="clearSearchBtn" title="Xóa tìm kiếm và bỏ tích tất cả">🗑️ Xóa</button>
+                <span class="search-result-info" id="searchResultInfo"></span>
+            </div>
+
+            <div class="action-bar" id="actionBar" style="display: none;">
+                <button id="printSelectedBtn" class="btn btn-success">In phiếu</button>
+                <div id="lengthControlPlaceholder"></div>
+            </div>
             <div class="table-header">
                 <table id="headerTable" class="table table-striped table-bordered"
                     style="width:100%; margin-bottom: 0;">
@@ -757,7 +875,7 @@
                 pageLength: 25,
                 lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Tất cả"]],
                 data: data,
-                dom: '<"top"lf>rt<"bottom"ip>', // Thêm 'f' để giữ chức năng tìm kiếm
+                dom: 'rt<"bottom"ip>', // Bỏ 'l' và 'f' vì đã có multi-search và action-bar tùy chỉnh
                 columnDefs: [
                     { width: '5%', targets: 0 },
                     { width: '8%', targets: 1 },
@@ -811,8 +929,20 @@
                 }
             });
 
+            // Hiển thị multi-search section và action bar
+            document.getElementById('multiSearchSection').style.display = 'flex';
+            document.getElementById('actionBar').style.display = 'flex';
+
+            // Thiết lập multi-search
+            setupMultiSearch();
+
             document.getElementById('dataTable').style.display = 'table';
-            document.getElementById('printSelectedBtn').style.display = 'inline-block';
+
+            // Di chuyển length control vào cạnh nút In phiếu
+            moveLengthControl();
+
+            // Tự động tính lại margin-top cho table-content
+            adjustTableContentMargin();
         }
 
         // Function to fetch product data from san_pham table
@@ -1522,6 +1652,189 @@
                 document.getElementById('errorMessage').style.display = 'block';
                 document.getElementById('errorMessage').textContent = 'Đã xảy ra lỗi: ' + error.message;
             }
+        }
+
+        // ===== TỰ ĐỘNG ĐIỀU CHỈNH MARGIN-TOP =====
+        function adjustTableContentMargin() {
+            const fixedHeader = document.querySelector('.fixed-header');
+            const tableContent = document.querySelector('.table-content');
+            if (fixedHeader && tableContent) {
+                const headerHeight = fixedHeader.offsetHeight;
+                tableContent.style.marginTop = (headerHeight + 10) + 'px';
+            }
+        }
+
+        // Cập nhật khi thay đổi kích thước cửa sổ
+        window.addEventListener('resize', adjustTableContentMargin);
+
+        // ===== DI CHUYỂN LENGTH CONTROL =====
+        function moveLengthControl() {
+            // Tạo length control thủ công vì đã bỏ 'l' khỏi dom
+            const placeholder = document.getElementById('lengthControlPlaceholder');
+            if (!placeholder || !dataTable) return;
+
+            const lengthOptions = [10, 25, 50, 100, -1];
+            const lengthLabels = ['10', '25', '50', '100', 'Tất cả'];
+            const currentLength = dataTable.page.len();
+
+            let selectHTML = '<select id="customPageLength">';
+            for (let i = 0; i < lengthOptions.length; i++) {
+                const selected = lengthOptions[i] === currentLength ? ' selected' : '';
+                selectHTML += `<option value="${lengthOptions[i]}"${selected}>${lengthLabels[i]}</option>`;
+            }
+            selectHTML += '</select>';
+
+            placeholder.innerHTML = `<div class="dataTables_length"><label>Hiển thị ${selectHTML} dữ liệu</label></div>`;
+
+            // Gắn sự kiện thay đổi
+            document.getElementById('customPageLength').addEventListener('change', function () {
+                dataTable.page.len(parseInt(this.value)).draw();
+            });
+        }
+
+        // ===== MULTI-SEARCH FUNCTIONALITY =====
+        let activeSearchTerms = []; // Lưu các từ khóa đang tìm kiếm
+
+        function setupMultiSearch() {
+            const searchInput = document.getElementById('multiSearchInput');
+            const autoCheckBtn = document.getElementById('autoCheckBtn');
+            const clearSearchBtn = document.getElementById('clearSearchBtn');
+            const searchResultInfo = document.getElementById('searchResultInfo');
+
+            // Xử lý tìm kiếm khi nhập
+            searchInput.addEventListener('input', function () {
+                performMultiSearch(this.value);
+            });
+
+            // Xử lý khi nhấn Enter
+            searchInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    performMultiSearch(this.value);
+                    // Auto-check kết quả khi nhấn Enter
+                    autoCheckVisibleRows();
+                }
+            });
+
+            // Nút tích tất cả kết quả
+            autoCheckBtn.addEventListener('click', function () {
+                autoCheckVisibleRows();
+            });
+
+            // Nút xóa tìm kiếm
+            clearSearchBtn.addEventListener('click', function () {
+                searchInput.value = '';
+                activeSearchTerms = [];
+                searchResultInfo.textContent = '';
+
+                // Xóa custom filter
+                $.fn.dataTable.ext.search.length = 0;
+                dataTable.draw();
+
+                // Bỏ tích tất cả checkbox
+                document.querySelectorAll('.row-checkbox').forEach(cb => {
+                    cb.checked = false;
+                });
+                document.getElementById('selectAll').checked = false;
+
+                // Xóa highlight
+                document.querySelectorAll('#dataTable tbody tr').forEach(tr => {
+                    tr.classList.remove('search-highlight');
+                });
+            });
+        }
+
+        function performMultiSearch(searchValue) {
+            const searchResultInfo = document.getElementById('searchResultInfo');
+
+            // Tách các từ khóa bằng dấu phẩy, loại bỏ khoảng trắng thừa
+            activeSearchTerms = searchValue
+                .split(',')
+                .map(term => term.trim().toLowerCase())
+                .filter(term => term.length > 0);
+
+            // Xóa custom filter cũ
+            $.fn.dataTable.ext.search.length = 0;
+
+            if (activeSearchTerms.length === 0) {
+                searchResultInfo.textContent = '';
+                dataTable.draw();
+                return;
+            }
+
+            // Thêm custom filter mới - tìm theo OR (bất kỳ từ khóa nào khớp)
+            $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+                // data[4] là cột Order KD (index 4)
+                const orderKD = (data[4] || '').toLowerCase();
+                // data[5] là cột Tên chi tiết (index 5)
+                const tenChiTiet = (data[5] || '').toLowerCase();
+
+                // Kiểm tra xem bất kỳ từ khóa nào khớp với Order KD hoặc Tên chi tiết
+                return activeSearchTerms.some(term =>
+                    orderKD.includes(term) || tenChiTiet.includes(term)
+                );
+            });
+
+            dataTable.draw();
+
+            // Hiển thị số kết quả
+            const visibleCount = dataTable.rows({ filter: 'applied' }).count();
+            searchResultInfo.textContent = `Tìm thấy ${visibleCount} kết quả cho ${activeSearchTerms.length} từ khóa`;
+
+            // Highlight các dòng tìm được
+            highlightSearchResults();
+        }
+
+        function autoCheckVisibleRows() {
+            const searchResultInfo = document.getElementById('searchResultInfo');
+            let checkedCount = 0;
+
+            // Lấy tất cả các dòng đang hiển thị (sau khi lọc)
+            dataTable.rows({ filter: 'applied' }).every(function (rowIdx) {
+                const node = this.node();
+                if (node) {
+                    const checkbox = node.querySelector('.row-checkbox');
+                    if (checkbox && !checkbox.checked) {
+                        checkbox.checked = true;
+                        checkedCount++;
+                    }
+                }
+            });
+
+            // Cập nhật thông tin
+            const totalChecked = document.querySelectorAll('.row-checkbox:checked').length;
+            if (checkedCount > 0) {
+                searchResultInfo.textContent = `Đã tích ${checkedCount} mục mới. Tổng đã tích: ${totalChecked}`;
+
+                // Thông báo toast
+                if (typeof Toastify !== 'undefined') {
+                    Toastify({
+                        text: `✅ Đã tích ${checkedCount} checkbox (Tổng: ${totalChecked})`,
+                        duration: 2000,
+                        gravity: 'top',
+                        position: 'center',
+                        backgroundColor: 'linear-gradient(to right, #6e8efb, #a777e3)',
+                        stopOnFocus: true
+                    }).showToast();
+                }
+            } else {
+                searchResultInfo.textContent = `Tất cả kết quả đã được tích. Tổng: ${totalChecked}`;
+            }
+        }
+
+        function highlightSearchResults() {
+            // Xóa highlight cũ
+            document.querySelectorAll('#dataTable tbody tr').forEach(tr => {
+                tr.classList.remove('search-highlight');
+            });
+
+            // Thêm highlight cho các dòng visible
+            dataTable.rows({ filter: 'applied' }).every(function () {
+                const node = this.node();
+                if (node) {
+                    node.classList.add('search-highlight');
+                }
+            });
         }
 
         // Khởi chạy khi trang đã tải xong
