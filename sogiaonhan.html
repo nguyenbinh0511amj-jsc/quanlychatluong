@@ -1015,7 +1015,8 @@
                         <th width="10%">STT</th>
                         <th width="25%">Order KD</th>
                         <th width="25%">Tên chi tiết</th>
-                        <th width="15%">Số lượng</th>
+                        <th width="12%">Số lượng</th>
+                        <th width="10%">Ghi chú</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -1076,6 +1077,53 @@
         const quang3DCache = {}; // Cache cho dữ liệu đo 3D quang
         const giaoHangPSXCache = {}; // Cache cho dữ liệu giao hàng PSX
         let orderDataMap = new Map(); // Map để lookup nhanh theo order_kd
+        let printStatusMap = {}; // Trạng thái in: { order_kd: true/false }
+
+        // API endpoint cho trạng thái in (dùng Vercel API hoặc localStorage fallback)
+        const printStatusApiBase = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+            ? '' : '';
+
+        // Tải trạng thái in từ API
+        async function loadPrintStatus() {
+            try {
+                const response = await fetch('/api/print-status');
+                if (response.ok) {
+                    const data = await response.json();
+                    printStatusMap = data || {};
+                }
+            } catch (e) {
+                // Fallback: đọc từ localStorage
+                try {
+                    printStatusMap = JSON.parse(localStorage.getItem('printStatus') || '{}');
+                } catch (err) { printStatusMap = {}; }
+            }
+        }
+
+        // Đánh dấu đã in và cập nhật UI
+        async function markAsPrinted(orderIds) {
+            orderIds.forEach(id => { printStatusMap[id] = true; });
+
+            // Cập nhật UI ngay lập tức
+            orderIds.forEach(id => {
+                const cell = document.querySelector(`[data-order-status="${id}"]`);
+                if (cell) {
+                    cell.textContent = 'Đã in';
+                    cell.style.color = '#2e7d32';
+                }
+            });
+
+            // Lưu lên server
+            try {
+                await fetch('/api/print-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderIds: orderIds })
+                });
+            } catch (e) {
+                // Fallback: lưu localStorage
+                localStorage.setItem('printStatus', JSON.stringify(printStatusMap));
+            }
+        }
 
         // Promise toàn cục để đảm bảo dữ liệu nền đã tải xong trước khi in
         let productsReadyPromise = Promise.resolve();
@@ -1193,6 +1241,15 @@
 
                 const cellSoLuong = row.insertCell(6);
                 cellSoLuong.textContent = item.sll;
+
+                // Cột Ghi chú (Đã in / Chưa in)
+                const cellGhiChu = row.insertCell(7);
+                const isPrinted = printStatusMap[item.order_kd];
+                cellGhiChu.textContent = isPrinted ? 'Đã in' : 'Chưa in';
+                cellGhiChu.style.textAlign = 'center';
+                cellGhiChu.style.fontWeight = '600';
+                cellGhiChu.style.color = isPrinted ? '#2e7d32' : '#e65100';
+                cellGhiChu.setAttribute('data-order-status', item.order_kd);
 
 
             });
@@ -1757,6 +1814,8 @@
                 // In ngay vì PDF đã được render xong
                 setTimeout(() => {
                     window.print();
+                    // Đánh dấu đã in
+                    markAsPrinted([orderId]);
                     setTimeout(() => { printArea.innerHTML = ''; }, 500);
                 }, 300);
             } catch (error) {
@@ -1933,6 +1992,8 @@
 
                 setTimeout(() => {
                     window.print();
+                    // Đánh dấu tất cả phiếu đã in
+                    markAsPrinted(selectedOrders);
                     setTimeout(() => {
                         printArea.innerHTML = '';
                     }, 500);
@@ -2064,9 +2125,11 @@
                 const productsPromise = fetchAllProducts();
                 const quang3DPromise = fetchAll3DQuang();
                 const psxPromise = fetchAllGiaoHangPSX();
+                const printStatusPromise = loadPrintStatus();
 
-                // Chờ CHỈ orders — hiển thị bảng NGAY khi có
+                // Chờ orders + print status — hiển thị bảng NGAY khi có
                 const orderData = await ordersPromise;
+                await printStatusPromise;
                 allOrderData = orderData;
 
                 // Tạo Map để lookup nhanh
