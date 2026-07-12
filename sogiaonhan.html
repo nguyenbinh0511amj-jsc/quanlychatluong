@@ -1278,7 +1278,8 @@
                     { width: '10%', targets: 3 },
                     { width: '25%', targets: 4 },
                     { width: '25%', targets: 5 },
-                    { width: '15%', targets: 6 }
+                    { width: '12%', targets: 6 },
+                    { width: '10%', targets: 7 }
                 ],
                 autoWidth: false,
                 columns: [
@@ -1316,7 +1317,17 @@
                     },
                     { data: 'order_kd' },
                     { data: 'ten_chi_tiet' },
-                    { data: 'sll' }
+                    { data: 'sll' },
+                    {
+                        data: null,
+                        orderable: false,
+                        render: function (data, type, row) {
+                            const isPrinted = printStatusMap[row.order_kd];
+                            const text = isPrinted ? 'Đã in' : 'Chưa in';
+                            const color = isPrinted ? '#2e7d32' : '#e65100';
+                            return '<span data-order-status="' + row.order_kd + '" style="font-weight:600; color:' + color + '">' + text + '</span>';
+                        }
+                    }
 
                 ],
                 headerCallback: function (thead, data, start, end, display) {
@@ -2131,6 +2142,14 @@
                 const orderData = await ordersPromise;
                 await printStatusPromise;
                 allOrderData = orderData;
+
+                // Lần đầu: nếu chưa có dữ liệu trạng thái in, đánh dấu TẤT CẢ là "Đã in"
+                if (Object.keys(printStatusMap).length === 0) {
+                    const allIds = orderData.map(item => item.order_kd).filter(Boolean);
+                    allIds.forEach(id => { printStatusMap[id] = true; });
+                    // Lưu lên server
+                    markAsPrinted(allIds);
+                }
 
                 // Tạo Map để lookup nhanh
                 orderDataMap = new Map();
