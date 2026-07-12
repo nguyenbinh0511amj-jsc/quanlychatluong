@@ -2143,12 +2143,13 @@
                 await printStatusPromise;
                 allOrderData = orderData;
 
-                // Lần đầu: nếu chưa có dữ liệu trạng thái in, đánh dấu TẤT CẢ là "Đã in"
-                if (Object.keys(printStatusMap).length === 0) {
+                // Lần đầu: nếu chưa khởi tạo, đánh dấu TẤT CẢ dữ liệu hiện tại là "Đã in"
+                if (!printStatusMap['__initialized']) {
                     const allIds = orderData.map(item => item.order_kd).filter(Boolean);
                     allIds.forEach(id => { printStatusMap[id] = true; });
+                    printStatusMap['__initialized'] = true;
                     // Lưu lên server
-                    markAsPrinted(allIds);
+                    markAsPrinted([...allIds, '__initialized']);
                 }
 
                 // Tạo Map để lookup nhanh
