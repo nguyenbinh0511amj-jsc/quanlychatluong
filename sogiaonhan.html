@@ -1125,6 +1125,33 @@
             }
         }
 
+        // Tự động đồng bộ trạng thái in từ MongoDB mỗi 10 giây
+        async function refreshPrintStatus() {
+            try {
+                const response = await fetch('/api/print-status');
+                if (response.ok) {
+                    const newData = await response.json();
+                    // So sánh và cập nhật UI cho các order thay đổi
+                    for (const orderId in newData) {
+                        if (orderId === '__initialized') continue;
+                        if (!printStatusMap[orderId] && newData[orderId]) {
+                            // Order mới được in từ PC khác → cập nhật UI
+                            printStatusMap[orderId] = true;
+                            const cells = document.querySelectorAll(`[data-order-status="${orderId}"]`);
+                            cells.forEach(cell => {
+                                cell.textContent = 'Đã in';
+                                cell.style.color = '#2e7d32';
+                                cell.style.fontWeight = '600';
+                            });
+                        }
+                    }
+                }
+            } catch (e) { /* Bỏ qua lỗi mạng */ }
+        }
+
+        // Bắt đầu polling mỗi 10 giây
+        setInterval(refreshPrintStatus, 10000);
+
         // Promise toàn cục để đảm bảo dữ liệu nền đã tải xong trước khi in
         let productsReadyPromise = Promise.resolve();
         let quang3DReadyPromise = Promise.resolve();
