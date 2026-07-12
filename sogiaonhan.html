@@ -3,7 +3,11 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Phiếu Theo Dõi Tình Trạng Sản Phẩm</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.10.25/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -13,18 +17,16 @@
     <script src="https://cdn.datatables.net/1.10.25/js/dataTables.bootstrap5.min.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
-        body {
-            font-family: 'Times New Roman', Times, serif;
-            background-color: #f8f9fa;
-        }
+        /* ============================================
+           PHẦN IN ẤN (PRINT) - GIỮ NGUYÊN
+           ============================================ */
 
-        .container {
-            margin: 0 auto;
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            padding: 20px;
+        /* Print form styles - giữ nguyên Times New Roman */
+        #printArea,
+        #printArea * {
+            font-family: 'Times New Roman', Times, serif;
         }
 
         .containerin {
@@ -34,11 +36,6 @@
             background-color: white;
             border-radius: 10px;
             padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
         }
 
         .title {
@@ -95,29 +92,28 @@
             flex-grow: 1;
         }
 
-        table {
+        /* Print form table styles */
+        #printArea table {
             width: 100%;
             border-collapse: collapse;
             margin: 15px 0;
+            font-family: 'Times New Roman', Times, serif;
         }
 
-        th {
+        #printArea th {
             border: 1px solid black;
             padding: 6px;
             text-align: center;
+            background-color: #f0f0f0;
+            color: blue;
+            font-weight: bold;
         }
 
-        td {
+        #printArea td {
             border: 1px solid black;
             padding: 6px;
             text-align: center;
             height: 30px;
-        }
-
-        th {
-            background-color: #f0f0f0;
-            color: blue;
-            font-weight: bold;
         }
 
         .double-column {
@@ -144,62 +140,6 @@
             text-align: center;
         }
 
-        /* CSS đơn giản cho loading indicator */
-        .loading {
-            text-align: center;
-            padding: 5px;
-            font-size: 16px;
-            display: none;
-            position: relative;
-        }
-
-        .loading:before {
-            content: "";
-            width: 25px;
-            height: 25px;
-            border: 3px solid #6e8efb;
-            border-top-color: #a777e3;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            display: inline-block;
-            margin-right: 10px;
-            vertical-align: middle;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        .error {
-            color: red;
-            text-align: center;
-            margin: 20px;
-            font-size: 16px;
-            display: none;
-        }
-
-        /* Bảng dữ liệu */
-        #dataTable th,
-        #dataTable td {
-            text-align: center;
-            vertical-align: middle;
-            padding: 10px;
-        }
-
-        #printSelectedBtn {
-            font-size: 1.1em;
-            padding: 10px 20px;
-        }
-
-        #selectAll,
-        .row-checkbox {
-            width: 20px;
-            height: 20px;
-            transform: scale(1.2);
-        }
-
         /* CSS cho in ấn */
         @media print {
             body * {
@@ -221,11 +161,35 @@
                 width: 100%;
             }
 
+            /* Trang bản vẽ - mặt sau */
+            .drawing-page {
+                page-break-after: always;
+                width: 100%;
+                height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+                margin: 0;
+                overflow: hidden;
+            }
+
+            .drawing-page iframe {
+                width: 100%;
+                height: 100%;
+                border: none;
+            }
+
+            .drawing-page img {
+                width: 100%;
+                height: 100%;
+                object-fit: fill;
+            }
+
             .page-break {
                 page-break-after: always;
             }
 
-            /* Ẩn các phần không cần thiết khi in */
             #dataTableSection,
             #printSelectedBtn,
             .loading,
@@ -233,7 +197,6 @@
                 display: none !important;
             }
 
-            /* Loại bỏ padding và margin cho container khi in */
             .containerin {
                 padding: 0 !important;
                 margin: 0 !important;
@@ -242,212 +205,13 @@
                 border-radius: 0 !important;
             }
 
-            /* Loại bỏ padding và margin cho các phần tử bên trong */
             .top-labels,
             .info-section,
             table {
                 margin: 0 !important;
                 padding: 0 !important;
             }
-        }
 
-        /* Thiết kế mềm mại và hiện đại cho bảng dữ liệu */
-        #dataTable {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            border-collapse: separate;
-            border-spacing: 0;
-            width: 100%;
-            table-layout: fixed;
-            border: none;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            margin: 0;
-        }
-
-        #dataTable th {
-            color: white;
-            font-weight: 500;
-            padding: 16px 20px;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-            border: none;
-        }
-
-        #dataTable td {
-            padding: 14px 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            color: #555;
-            font-size: 14px;
-        }
-
-        #dataTable tbody tr {
-            transition: all 0.2s ease;
-        }
-
-        #dataTable tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        #dataTable tbody tr:hover {
-            background-color: rgba(110, 142, 251, 0.05);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
-        }
-
-        #dataTable.table-striped tbody tr:nth-of-type(odd) {
-            background-color: rgba(249, 250, 253, 0.7);
-        }
-
-        #dataTable input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            border-radius: 4px;
-            border: 2px solid #ddd;
-            appearance: none;
-            -webkit-appearance: none;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.2s;
-        }
-
-        #dataTable input[type="checkbox"]:checked {
-            background-color: #a777e3;
-            border-color: #a777e3;
-        }
-
-        #dataTable input[type="checkbox"]:checked:after {
-            content: '✓';
-            color: white;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 12px;
-        }
-
-        .table-responsive {
-            border-radius: 12px;
-            overflow: hidden;
-            padding: 0;
-            margin-bottom: 30px;
-        }
-
-        /* Chỉnh sửa để loại bỏ style mặc định của Bootstrap nếu cần */
-        #dataTable.table-bordered th,
-        #dataTable.table-bordered td {
-            border: none;
-        }
-
-        /* Đảm bảo display: none không bị ghi đè */
-        #dataTable[style*="display: none"] {
-            display: none !important;
-        }
-
-        .fixed-header {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            z-index: 1000;
-            padding-left: 30px;
-            padding-right: 30px;
-        }
-
-        .table-header {
-            background: white;
-        }
-
-        .table-content {
-            margin-top: 250px;
-            /* Điều chỉnh theo chiều cao thực tế của header - sẽ được JS tự động tính lại */
-        }
-
-        #headerTable {
-            margin-bottom: 0;
-            table-layout: fixed;
-        }
-
-        #headerTable thead tr {
-            background: linear-gradient(45deg, #6e8efb, #a777e3);
-            border-radius: 8px;
-        }
-
-        #headerTable thead th {
-            color: white !important;
-            border-color: rgba(255, 255, 255, 0.2) !important;
-            font-weight: 500;
-        }
-
-        /* Thêm border-radius cho góc trái và phải */
-        #headerTable thead th:first-child {
-            border-top-left-radius: 8px;
-            border-bottom-left-radius: 8px;
-        }
-
-        #headerTable thead th:last-child {
-            border-top-right-radius: 8px;
-            border-bottom-right-radius: 8px;
-        }
-
-        .fixed-header h1 {
-            color: #1976D2;
-            font-size: 34px;
-            margin-bottom: 20px;
-            font-weight: 700;
-        }
-
-        #printSelectedBtn {
-            background: #1976D2;
-            border: none;
-            padding: 10px 25px;
-            font-weight: 500;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-        }
-
-        #printSelectedBtn:hover {
-            background: #1565C0;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        #selectAll {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        /* Điều chỉnh container chính */
-        #mainContainer {
-            padding-top: 20px;
-            max-width: 100%;
-            margin: 0 auto;
-            padding-left: 30px;
-            padding-right: 30px;
-        }
-
-        /* Style cho loading indicator */
-        .loading {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px 20px;
-            border-radius: 5px;
-            font-weight: 500;
-            color: #1976D2;
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        /* Đảm bảo các cột có độ rộng phù hợp */
-        #headerTable th,
-        #dataTable th {
-            white-space: nowrap;
-        }
-
-        /* Media query cho màn hình in */
-        @media print {
             .fixed-header {
                 position: static;
                 box-shadow: none;
@@ -459,6 +223,605 @@
             }
         }
 
+        /* ============================================
+           PHẦN GIAO DIỆN WEB - REDESIGN MỚI
+           ============================================ */
+
+        /* === ROOT & DESIGN TOKENS === */
+        :root {
+            --bg-primary: #f0f2f8;
+            --bg-secondary: #e8eaf0;
+            --bg-card: rgba(255, 255, 255, 0.7);
+            --bg-glass: rgba(255, 255, 255, 0.55);
+            --bg-glass-hover: rgba(110, 142, 251, 0.07);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a68;
+            --text-muted: #8e8ea0;
+            --accent-1: #6e8efb;
+            --accent-2: #a777e3;
+            --accent-3: #0288d1;
+            --gradient-main: linear-gradient(135deg, #6e8efb 0%, #a777e3 100%);
+            --gradient-subtle: linear-gradient(135deg, rgba(110, 142, 251, 0.1) 0%, rgba(167, 119, 227, 0.1) 100%);
+            --border-color: rgba(0, 0, 0, 0.08);
+            --border-active: rgba(110, 142, 251, 0.5);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.1);
+            --shadow-glow: 0 0 20px rgba(110, 142, 251, 0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* === GLOBAL === */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Animated background mesh */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(110, 142, 251, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(167, 119, 227, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(79, 195, 247, 0.06) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+            animation: bgPulse 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgPulse {
+            0% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* === CONTAINER === */
+        .container {
+            position: relative;
+            z-index: 1;
+            margin: 0 auto;
+            background-color: transparent;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* === FIXED HEADER — GLASSMORPHISM === */
+        .fixed-header {
+            flex-shrink: 0;
+            z-index: 1000;
+            padding: 16px 32px 12px;
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(24px) saturate(1.8);
+            -webkit-backdrop-filter: blur(24px) saturate(1.8);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .fixed-header h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 14px;
+            background: var(--gradient-main);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+
+        /* === LOADING INDICATOR === */
+        .loading {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 14px 24px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--accent-1);
+            margin-bottom: 12px;
+        }
+
+        .loading:before {
+            content: "";
+            width: 22px;
+            height: 22px;
+            border: 3px solid rgba(110, 142, 251, 0.2);
+            border-top-color: var(--accent-1);
+            border-right-color: var(--accent-2);
+            border-radius: 50%;
+            animation: spinGlow 0.8s linear infinite;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+
+        @keyframes spinGlow {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: #e53935;
+            text-align: center;
+            margin: 16px 0;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            display: none;
+            padding: 12px 20px;
+            background: rgba(229, 57, 53, 0.06);
+            border: 1px solid rgba(229, 57, 53, 0.15);
+            border-radius: var(--radius-md);
+        }
+
+        /* === MULTI-SEARCH BAR === */
+        .multi-search-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            transition: border-color var(--transition-smooth);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .multi-search-container:focus-within {
+            border-color: var(--border-active);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .multi-search-container label {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        #multiSearchInput {
+            flex: 1;
+            min-width: 280px;
+            padding: 10px 16px;
+            background: white;
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: var(--text-primary);
+            outline: none;
+            transition: all var(--transition-smooth);
+        }
+
+        #multiSearchInput::placeholder {
+            color: var(--text-muted);
+        }
+
+        #multiSearchInput:focus {
+            border-color: var(--accent-1);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.1);
+        }
+
+        /* === BUTTONS === */
+        .btn-gradient {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-smooth);
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #autoCheckBtn {
+            background: var(--gradient-main);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all var(--transition-smooth);
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(110, 142, 251, 0.2);
+        }
+
+        #autoCheckBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(110, 142, 251, 0.35);
+        }
+
+        #autoCheckBtn:active {
+            transform: translateY(0);
+        }
+
+        #clearSearchBtn {
+            background: rgba(229, 57, 53, 0.08);
+            color: #e53935;
+            border: 1px solid rgba(229, 57, 53, 0.2);
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all var(--transition-smooth);
+            white-space: nowrap;
+        }
+
+        #clearSearchBtn:hover {
+            background: rgba(229, 57, 53, 0.15);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(229, 57, 53, 0.12);
+        }
+
+        #clearSearchBtn:active {
+            transform: translateY(0);
+        }
+
+        .search-result-info {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-left: 4px;
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 20px;
+        }
+
+        /* === ACTION BAR === */
+        .action-bar {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+            padding: 8px 0;
+        }
+
+        #printSelectedBtn {
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            padding: 12px 28px;
+            background: var(--gradient-main);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: white;
+            cursor: pointer;
+            transition: all var(--transition-smooth);
+            box-shadow: 0 4px 15px rgba(110, 142, 251, 0.25);
+            letter-spacing: 0.3px;
+        }
+
+        #printSelectedBtn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(110, 142, 251, 0.4);
+        }
+
+        #printSelectedBtn:active {
+            transform: translateY(-1px);
+        }
+
+        .action-bar .dataTables_length {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .action-bar .dataTables_length label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            font-weight: 400;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .action-bar .dataTables_length select {
+            padding: 6px 10px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+            transition: border-color var(--transition-fast);
+        }
+
+        .action-bar .dataTables_length select:focus {
+            border-color: var(--accent-1);
+            outline: none;
+        }
+
+        /* === TABLE CONTENT === */
+        .table-content {
+            flex: 1;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            margin-top: 0;
+            padding: 0 32px;
+            min-height: 0;
+        }
+
+        /* === DATA TABLE === */
+        #dataTable {
+            font-family: 'Inter', sans-serif;
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            table-layout: fixed;
+            border: none;
+            border-radius: var(--radius-md);
+            box-shadow: none;
+            margin: 0;
+            background: transparent;
+        }
+
+        /* === DATA TABLE THEAD (STICKY) === */
+        #dataTable thead {
+            position: sticky;
+            top: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        #dataTable thead tr {
+            background: var(--gradient-main);
+        }
+
+        #dataTable thead th {
+            font-family: 'Inter', sans-serif;
+            color: white !important;
+            font-weight: 600;
+            font-size: 13px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            padding: 14px 16px;
+            border: none !important;
+            border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+            text-align: center;
+        }
+
+        #dataTable thead th:last-child {
+            border-right: none !important;
+        }
+
+        /* Checkbox in header */
+        #selectAll {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+            background: transparent;
+            position: relative;
+            transition: all var(--transition-fast);
+        }
+
+        #selectAll:checked {
+            background: white;
+            border-color: white;
+        }
+
+        #selectAll:checked::after {
+            content: '✓';
+            color: var(--accent-1);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        #dataTable td {
+            padding: 14px 16px;
+            border: none;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid transparent;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 400;
+            transition: all var(--transition-fast);
+            vertical-align: middle;
+            text-align: center;
+        }
+
+        #dataTable tbody tr {
+            background: white;
+            transition: all var(--transition-smooth);
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+        }
+
+        #dataTable tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        #dataTable tbody tr:hover {
+            background: rgba(110, 142, 251, 0.06) !important;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #dataTable tbody tr:hover td {
+            color: var(--text-primary);
+        }
+
+        #dataTable.table-striped tbody tr:nth-of-type(odd) {
+            background-color: white;
+        }
+
+        /* Highlight matching rows */
+        #dataTable tbody tr.search-highlight {
+            background-color: rgba(110, 142, 251, 0.1) !important;
+            border-left: 3px solid var(--accent-1);
+        }
+
+        /* === CUSTOM CHECKBOXES IN TABLE === */
+        #dataTable input[type="checkbox"],
+        .row-checkbox {
+            width: 18px;
+            height: 18px;
+            border-radius: 5px;
+            border: 2px solid rgba(0, 0, 0, 0.18);
+            background: white;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            position: relative;
+            transition: all var(--transition-bounce);
+            transform: scale(1);
+        }
+
+        #dataTable input[type="checkbox"]:hover,
+        .row-checkbox:hover {
+            border-color: var(--accent-1);
+            box-shadow: 0 0 8px rgba(110, 142, 251, 0.2);
+        }
+
+        #dataTable input[type="checkbox"]:checked,
+        .row-checkbox:checked {
+            background: var(--gradient-main);
+            border-color: transparent;
+            animation: checkBounce 0.3s ease;
+        }
+
+        @keyframes checkBounce {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        #dataTable input[type="checkbox"]:checked::after,
+        .row-checkbox:checked::after {
+            content: '✓';
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* Quick print button in table */
+        #dataTable td button,
+        #dataTable td [onclick*="quickPrint"] {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            transition: all var(--transition-fast);
+        }
+
+        #dataTable td button:hover,
+        #dataTable td [onclick*="quickPrint"]:hover {
+            background: rgba(110, 142, 251, 0.08);
+            transform: scale(1.15);
+        }
+
+        /* Links in table */
+        #dataTable td a {
+            color: #e53935 !important;
+            text-decoration: none !important;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            padding: 4px 10px;
+            border-radius: 4px;
+            background: rgba(229, 57, 53, 0.06);
+        }
+
+        #dataTable td a:hover {
+            background: rgba(229, 57, 53, 0.12);
+            box-shadow: 0 0 8px rgba(229, 57, 53, 0.08);
+        }
+
+        /* === TABLE RESPONSIVE === */
+        .table-responsive {
+            border-radius: 0;
+            overflow: visible;
+            padding: 0;
+            margin-bottom: 0;
+            background: transparent;
+        }
+
+        /* DataTables wrapper trong vùng cuộn */
+        .table-content .dataTables_wrapper {
+            padding-bottom: 20px;
+        }
+
+        /* === DATATABLES BOOTSTRAP OVERRIDES === */
+        #dataTable.table-bordered th,
+        #dataTable.table-bordered td {
+            border-top: none;
+            border-left: none;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid transparent;
+        }
+
+        #dataTable[style*="display: none"] {
+            display: none !important;
+        }
+
+        /* === CONTAINER === */
+        #mainContainer {
+            position: relative;
+            z-index: 1;
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* === DATATABLES CONTROLS === */
         .top {
             display: flex;
             align-items: center;
@@ -474,20 +837,21 @@
             margin-left: auto;
         }
 
-        /* Điều chỉnh khoảng cách giữa các phần tử */
         .dataTables_length label,
         .dataTables_filter label {
             margin: 0;
             display: flex;
             align-items: center;
             gap: 8px;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-secondary);
+            font-size: 13px;
         }
 
         .dataTables_filter input {
             margin-left: 8px;
         }
 
-        /* Định dạng container cho controls */
         .dataTables_wrapper .top {
             display: flex;
             align-items: center;
@@ -496,7 +860,6 @@
             padding: 10px 0;
         }
 
-        /* Định dạng phần select entries */
         .dataTables_length {
             display: flex;
             align-items: center;
@@ -512,12 +875,14 @@
         }
 
         .dataTables_length select {
-            padding: 4px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 6px 10px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
         }
 
-        /* Định dạng phần search */
         .dataTables_filter {
             display: flex;
             align-items: center;
@@ -533,119 +898,85 @@
         }
 
         .dataTables_filter input {
-            padding: 4px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 6px 10px;
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
             min-width: 200px;
+            font-family: 'Inter', sans-serif;
         }
 
-        /* Đặt controls vào fixed header */
-        .fixed-header .table-header {
-            margin-top: 15px;
-        }
 
-        /* Multi-search bar styles */
-        .multi-search-container {
+        /* === PAGINATION === */
+        .dataTables_wrapper .dataTables_paginate {
+            padding: 16px 0;
             display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-            flex-wrap: wrap;
+            justify-content: center;
         }
 
-        .multi-search-container label {
-            font-weight: 600;
-            color: #333;
-            white-space: nowrap;
-        }
-
-        #multiSearchInput {
-            flex: 1;
-            min-width: 300px;
-            padding: 8px 14px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
-            outline: none;
-        }
-
-        #multiSearchInput:focus {
-            border-color: #6e8efb;
-            box-shadow: 0 0 0 3px rgba(110, 142, 251, 0.15);
-        }
-
-        #autoCheckBtn {
-            background: linear-gradient(45deg, #6e8efb, #a777e3);
-            color: white;
-            border: none;
-            padding: 8px 18px;
-            border-radius: 8px;
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
             font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
+            padding: 8px 14px;
+            margin: 0 3px;
+            border-radius: var(--radius-sm) !important;
+            border: 1px solid var(--border-color) !important;
+            background: white !important;
+            color: var(--text-secondary) !important;
+            transition: all var(--transition-fast);
         }
 
-        #autoCheckBtn:hover {
-            transform: translateY(-2px);
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: rgba(110, 142, 251, 0.06) !important;
+            color: var(--text-primary) !important;
+            border-color: var(--accent-1) !important;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: var(--gradient-main) !important;
+            color: white !important;
+            border: none !important;
             box-shadow: 0 4px 12px rgba(110, 142, 251, 0.3);
         }
 
-        #clearSearchBtn {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 8px 18px;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
+        .dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
         }
 
-        #clearSearchBtn:hover {
-            background: #c0392b;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
-        }
-
-        .search-result-info {
+        .dataTables_wrapper .dataTables_info {
+            font-family: 'Inter', sans-serif;
             font-size: 13px;
-            color: #888;
-            margin-left: 5px;
+            color: var(--text-muted);
+            padding: 12px 0;
         }
 
-        /* Highlight matching rows */
-        #dataTable tbody tr.search-highlight {
-            background-color: rgba(110, 142, 251, 0.1) !important;
+        /* === SCROLLBAR === */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
         }
 
-        /* Action bar: In phiếu + Hiển thị dữ liệu cùng hàng */
-        .action-bar {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 10px;
+        ::-webkit-scrollbar-track {
+            background: var(--bg-primary);
         }
 
-        .action-bar .dataTables_length {
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-
-        .action-bar .dataTables_length label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin: 0;
-            font-weight: normal;
-        }
-
-        .action-bar .dataTables_length select {
-            padding: 4px 8px;
-            border: 1px solid #ddd;
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.12);
             border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        /* === SELECTION === */
+        ::selection {
+            background: rgba(110, 142, 251, 0.2);
+            color: var(--text-primary);
         }
     </style>
 </head>
@@ -653,7 +984,7 @@
 <body>
     <div class="container" id="mainContainer">
         <div class="fixed-header">
-            <h1 class="text-center my-2"><Strong>DANH SÁCH PHIẾU THEO DÕI SẢN PHẨM</Strong></h1>
+            <h1 class="text-center my-2">DANH SÁCH PHIẾU THEO DÕI SẢN PHẨM</h1>
             <div id="loadingIndicator" class="loading">Đang tải dữ liệu...</div>
             <div id="errorMessage" class="error"></div>
 
@@ -668,30 +999,25 @@
             </div>
 
             <div class="action-bar" id="actionBar" style="display: none;">
-                <button id="printSelectedBtn" class="btn btn-success">In phiếu</button>
+                <button id="printSelectedBtn">🖨️ In phiếu</button>
                 <div id="lengthControlPlaceholder"></div>
             </div>
-            <div class="table-header">
-                <table id="headerTable" class="table table-striped table-bordered"
-                    style="width:100%; margin-bottom: 0;">
-                    <thead>
-                        <tr>
-                            <th width="5%" style="text-align:center"></th>
-                            <th width="8%" style="text-align:center"><input type="checkbox" id="selectAll"></th>
-                            <th width="12%">File bản vẽ</th>
-                            <th width="10%">STT</th>
-                            <th width="25%">Order KD</th>
-                            <th width="25%">Tên chi tiết</th>
-                            <th width="15%">Số lượng</th>
-                        </tr>
-                    </thead>
-                </table>
-            </div>
+
         </div>
 
         <div id="dataTableSection" class="table-responsive table-content">
             <table id="dataTable" class="table table-striped table-bordered" style="width:100%; display: none;">
-                <!-- Xóa toàn bộ phần thead bị ẩn -->
+                <thead>
+                    <tr>
+                        <th width="5%"></th>
+                        <th width="8%" style="text-align:center"><input type="checkbox" id="selectAll"></th>
+                        <th width="12%">File bản vẽ</th>
+                        <th width="10%">STT</th>
+                        <th width="25%">Order KD</th>
+                        <th width="25%">Tên chi tiết</th>
+                        <th width="15%">Số lượng</th>
+                    </tr>
+                </thead>
                 <tbody id="tableBody">
                     <!-- Dữ liệu sẽ được thêm vào đây bằng JavaScript -->
                 </tbody>
@@ -722,6 +1048,18 @@
                 return false;
             }
         };
+
+        // Glassmorphism header scroll shadow
+        window.addEventListener('scroll', function() {
+            const header = document.querySelector('.fixed-header');
+            if (header) {
+                if (window.scrollY > 10) {
+                    header.classList.add('scrolled');
+                } else {
+                    header.classList.remove('scrolled');
+                }
+            }
+        });
 
         // Constants for AppSheet connection
         const appId = 'e1339939-5987-4d7a-8c73-436348abf6b7';
@@ -830,7 +1168,7 @@
                     fileLink.textContent = "In bản vẽ";
                     const fileName = encodeURIComponent(productData.file_ban_ve);
                     fileLink.href = `https://www.appsheet.com/template/gettablefileurl?appName=Quảnlýchấtlượng-648353741&tableName=san_pham&fileName=${fileName}`;
-                    fileLink.style.color = "blue";
+                    fileLink.style.color = "red";
                     fileLink.style.textDecoration = "underline";
                     fileLink.style.cursor = "pointer";
                     fileLink.addEventListener('click', function (e) {
@@ -908,7 +1246,7 @@
                             if (productData && productData.file_ban_ve) {
                                 return '<a href="https://www.appsheet.com/template/gettablefileurl?appName=Quảnlýchấtlượng-648353741&tableName=san_pham&fileName='
                                     + encodeURIComponent(productData.file_ban_ve)
-                                    + '" style="color: blue; text-decoration: underline; cursor: pointer;" onclick="window.open(this.href, \'_blank\'); return false;">In bản vẽ</a>';
+                                    + '" style="color: red; text-decoration: underline; cursor: pointer;" onclick="window.open(this.href, \'_blank\'); return false;">In bản vẽ</a>';
                             }
                             return '';
                         }
@@ -925,7 +1263,7 @@
 
                 ],
                 headerCallback: function (thead, data, start, end, display) {
-                    $(thead).closest('thead').hide(); // Ẩn hoàn toàn thead
+                    // Thead hiện, dùng sticky
                 }
             });
 
@@ -1001,6 +1339,10 @@
             form.className = 'containerin page-break';
             form.style.pageBreakAfter = 'always';
             form.style.marginBottom = '20px';
+            // Lưu thông tin bản vẽ vào form để dùng khi in
+            if (productData && productData.file_ban_ve) {
+                form.setAttribute('data-file-ban-ve', productData.file_ban_ve);
+            }
 
             // Xử lý thông tin cơ bản
             let tapRen = '';
@@ -1277,6 +1619,106 @@
             formElement.querySelector('#note10').textContent = note10;
         }
 
+        // Cache ảnh bản vẽ đã render (tránh render lại)
+        const renderedDrawingCache = {};
+
+        // Tạo trang bản vẽ (mặt sau) cho in 2 mặt
+        async function createDrawingPage(fileBanVe) {
+            // Kiểm tra cache trước
+            if (renderedDrawingCache[fileBanVe]) {
+                const page = document.createElement('div');
+                page.className = 'drawing-page';
+                page.style.pageBreakAfter = 'always';
+                const img = document.createElement('img');
+                img.src = renderedDrawingCache[fileBanVe];
+                img.style.cssText = 'width:100%; height:100%; object-fit:contain;';
+                page.appendChild(img);
+                return page;
+            }
+
+            const drawingUrl = `https://www.appsheet.com/template/gettablefileurl?appName=Quảnlýchấtlượng-648353741&tableName=san_pham&fileName=${encodeURIComponent(fileBanVe)}`;
+            // Chọn proxy phù hợp theo môi trường
+            const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            const isVercel = location.hostname.includes('vercel.app') || location.hostname.includes('.vercel.');
+            let fetchUrl;
+            if (isLocal) {
+                fetchUrl = `/proxy?url=${encodeURIComponent(drawingUrl)}`;
+            } else if (isVercel || location.pathname === '/sogiaonhan.html') {
+                // Vercel hoặc bất kỳ host nào có /api/proxy
+                fetchUrl = `/api/proxy?url=${encodeURIComponent(drawingUrl)}`;
+            } else {
+                fetchUrl = `https://corsproxy.io/?${encodeURIComponent(drawingUrl)}`;
+            }
+            const page = document.createElement('div');
+            page.className = 'drawing-page';
+            page.style.pageBreakAfter = 'always';
+
+            const ext = fileBanVe.split('.').pop().toLowerCase();
+
+            if (ext === 'pdf') {
+                try {
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    const response = await fetch(fetchUrl);
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    const arrayBuffer = await response.arrayBuffer();
+                    
+                    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    const pdfPage = await pdf.getPage(1);
+                    
+                    // Scale 4 = 288 DPI (nhanh hơn 2x so với scale 6, chất lượng vẫn tốt)
+                    const scale = 4;
+                    const viewport = pdfPage.getViewport({ scale });
+                    
+                    const canvas = document.createElement('canvas');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+                    const ctx = canvas.getContext('2d');
+                    
+                    await pdfPage.render({ canvasContext: ctx, viewport }).promise;
+                    
+                    // Xoay 90° nếu dọc
+                    let finalCanvas = canvas;
+                    if (canvas.height > canvas.width) {
+                        const rc = document.createElement('canvas');
+                        rc.width = canvas.height;
+                        rc.height = canvas.width;
+                        const rCtx = rc.getContext('2d');
+                        rCtx.translate(rc.width / 2, rc.height / 2);
+                        rCtx.rotate(90 * Math.PI / 180);
+                        rCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+                        finalCanvas = rc;
+                    }
+                    
+                    // JPEG nhanh hơn PNG 5-10 lần, chất lượng 95%
+                    const dataUrl = finalCanvas.toDataURL('image/jpeg', 0.95);
+                    renderedDrawingCache[fileBanVe] = dataUrl;
+                    
+                    const img = document.createElement('img');
+                    img.src = dataUrl;
+                    img.style.cssText = 'width:100%; height:100%; object-fit:contain;';
+                    page.appendChild(img);
+                } catch (err) {
+                    console.error('Lỗi render PDF:', err);
+                    page.innerHTML = '<p style="text-align:center; font-size:14px; color:#999;">Không tải được bản vẽ PDF</p>';
+                }
+            } else {
+                // Dùng img cho ảnh (jpg, png, ...)
+                const img = document.createElement('img');
+                img.src = fetchUrl;
+                img.style.cssText = 'max-width:100%; max-height:100vh; object-fit:contain;';
+                page.appendChild(img);
+                // Đợi ảnh tải xong
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                    img.onerror = () => {
+                        page.innerHTML = '<p style="text-align:center; font-size:14px; color:#999;">Không tải được bản vẽ</p>';
+                        resolve();
+                    };
+                });
+            }
+            return page;
+        }
+
         // In nhanh 1 phiếu theo order_kd - dữ liệu đã có sẵn trong cache
         async function quickPrint(orderId) {
             const loadingEl = document.getElementById('loadingIndicator');
@@ -1304,7 +1746,15 @@
                 if (qrContainer) {
                     new QRCode(qrContainer, { text: orderData.order_kd, width: 150, height: 150, correctLevel: QRCode.CorrectLevel.H });
                 }
+
+                // Thêm trang bản vẽ (mặt sau)
+                if (productData && productData.file_ban_ve) {
+                    const drawingPage = await createDrawingPage(productData.file_ban_ve);
+                    printArea.appendChild(drawingPage);
+                }
+
                 loadingEl.style.display = 'none';
+                // In ngay vì PDF đã được render xong
                 setTimeout(() => {
                     window.print();
                     setTimeout(() => { printArea.innerHTML = ''; }, 500);
@@ -1426,15 +1876,38 @@
             printArea.innerHTML = '';
 
             try {
-                // Tạo các phiếu từ cache (không cần gọi API)
+                // Bước 1: Chuẩn bị dữ liệu và tìm các PDF cần tải
+                const orderItems = [];
+                const pdfFilesToLoad = new Set();
+                
                 for (const orderId of selectedOrders) {
                     const orderData = orderDataMap.get(orderId) || allOrderData.find(item => item.order_kd === orderId);
-                    if (!orderData) {
-                        console.error(`Không tìm thấy dữ liệu cho order: ${orderId}`);
-                        continue;
-                    }
-
+                    if (!orderData) continue;
                     const productData = productCache[orderData.ten_chi_tiet] || null;
+                    orderItems.push({ orderData, productData });
+                    if (productData && productData.file_ban_ve) {
+                        pdfFilesToLoad.add(productData.file_ban_ve);
+                    }
+                }
+
+                // Bước 2: Tải TẤT CẢ PDF song song (không chờ từng cái)
+                const drawingCache = {};
+                if (pdfFilesToLoad.size > 0) {
+                    loadingEl.textContent = `Đang tải ${pdfFilesToLoad.size} bản vẽ...`;
+                    const pdfPromises = [...pdfFilesToLoad].map(async (fileBanVe) => {
+                        try {
+                            const drawingPage = await createDrawingPage(fileBanVe);
+                            drawingCache[fileBanVe] = drawingPage;
+                        } catch (e) {
+                            console.error('Lỗi tải bản vẽ:', fileBanVe, e);
+                        }
+                    });
+                    await Promise.all(pdfPromises);
+                }
+
+                // Bước 3: Ghép phiếu + bản vẽ vào printArea (rất nhanh vì đã cache)
+                loadingEl.textContent = 'Đang tạo phiếu in...';
+                for (const { orderData, productData } of orderItems) {
                     const formElement = createForm(orderData, productData);
                     printArea.appendChild(formElement);
 
@@ -1446,6 +1919,13 @@
                             height: 150,
                             correctLevel: QRCode.CorrectLevel.H
                         });
+                    }
+
+                    // Thêm trang bản vẽ đã cache
+                    if (productData && productData.file_ban_ve && drawingCache[productData.file_ban_ve]) {
+                        // Clone node vì cùng file có thể dùng cho nhiều phiếu
+                        const drawingClone = drawingCache[productData.file_ban_ve].cloneNode(true);
+                        printArea.appendChild(drawingClone);
                     }
                 }
 
@@ -1608,6 +2088,19 @@
                     });
                 });
 
+                // Click vào dòng để tự động toggle checkbox
+                $('#dataTable tbody').on('click', 'tr', function (e) {
+                    // Bỏ qua nếu click vào checkbox, nút, hoặc link
+                    const target = e.target;
+                    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'A' || target.closest('button') || target.closest('a')) {
+                        return;
+                    }
+                    const checkbox = this.querySelector('.row-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                    }
+                });
+
                 console.log(`Bảng hiển thị: ${orderData.length} orders`);
 
                 // Các dữ liệu còn lại tải ngầm — khi nào xong thì cập nhật cache
@@ -1654,14 +2147,9 @@
             }
         }
 
-        // ===== TỰ ĐỘNG ĐIỀU CHỈNH MARGIN-TOP =====
+        // ===== TỰ ĐỘNG ĐIỀU CHỈNH (FLEXBOX - KHÔNG CẦN MARGIN) =====
         function adjustTableContentMargin() {
-            const fixedHeader = document.querySelector('.fixed-header');
-            const tableContent = document.querySelector('.table-content');
-            if (fixedHeader && tableContent) {
-                const headerHeight = fixedHeader.offsetHeight;
-                tableContent.style.marginTop = (headerHeight + 10) + 'px';
-            }
+            // Flexbox layout tự xử lý, không cần tính toán margin
         }
 
         // Cập nhật khi thay đổi kích thước cửa sổ
